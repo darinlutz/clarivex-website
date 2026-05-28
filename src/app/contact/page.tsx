@@ -24,7 +24,7 @@ export default function Contact() {
             <div className="bg-secondary-dark rounded-xl border border-powder-500/30 p-8">
               <h2 className="text-2xl font-bold text-powder-400 mb-2">Contact Information</h2>
               <p className="text-slate-400 mb-8">
-                Fill out the form below and we'll get back to you as soon as possible.
+                Fill out the form below and we will get back to you as soon as possible.
               </p>
               <ContactForm />
             </div>
@@ -105,7 +105,7 @@ export default function Contact() {
             {[
               {
                 q: 'How long does a typical project take?',
-                a: 'Project timelines vary based on scope and complexity. During our initial consultation, we'll provide a detailed timeline and milestones.',
+                a: 'Project timelines vary based on scope and complexity. During our initial consultation, we will provide a detailed timeline and milestones.',
               },
               {
                 q: 'Do you work with businesses of all sizes?',
@@ -117,7 +117,7 @@ export default function Contact() {
               },
               {
                 q: 'Can you provide references or case studies?',
-                a: 'Absolutely! We're happy to share relevant examples and connect you with past clients who can speak to our work.',
+                a: 'Absolutely! We are happy to share relevant examples and connect you with past clients who can speak to our work.',
               },
             ].map((item, idx) => (
               <div key={idx} className="bg-tertiary-dark rounded-lg border border-powder-500/30 p-6">

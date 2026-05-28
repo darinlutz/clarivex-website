@@ -36,7 +36,7 @@ export default function ContactForm() {
       }
 
       setStatus('success');
-      setMessage('Thank you! Your message has been sent successfully. We'll be in touch soon.');
+      setMessage('Thank you! Your message has been sent successfully. We will be in touch soon.');
       setFormData({ name: '', email: '', phone: '' });
 
       // Clear success message after 5 seconds
@@ -135,7 +135,7 @@ export default function ContactForm() {
       </button>
 
       <p className="text-xs text-slate-500 text-center">
-        We'll respond to your inquiry within 24 hours.
+        We will respond to your inquiry within 24 hours.
       </p>
     </form>
   );
