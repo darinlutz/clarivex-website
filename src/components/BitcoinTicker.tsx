@@ -60,7 +60,7 @@ export default function BitcoinTicker() {
               </p>
               {lastUpdate && (
                 <p className="text-xs text-slate-500 mt-1">
-                  Updated: {lastUpdate.toLocaleTimeString()}
+                  Last Updated: {lastUpdate.toLocaleTimeString()}
                 </p>
               )}
             </div>
