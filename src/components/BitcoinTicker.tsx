@@ -45,34 +45,34 @@ export default function BitcoinTicker() {
   }, []);
 
   return (
-    <div className="bg-gradient-to-r from-secondary-dark to-tertiary-dark border border-powder-500 rounded-lg p-6 shadow-xl">
+    <div className="bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 rounded-lg p-6 shadow-xl">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-slate-400 text-sm uppercase tracking-wide mb-2">Bitcoin Price</p>
+          <p className="text-slate-600 text-sm uppercase tracking-wide mb-2">Bitcoin Price</p>
           {loading && !price ? (
-            <div className="animate-pulse h-8 bg-powder-500/20 w-32 rounded"></div>
+            <div className="animate-pulse h-8 bg-powder-200 w-32 rounded"></div>
           ) : error ? (
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-red-600 text-sm">{error}</p>
           ) : price !== null ? (
             <div>
-              <p className="text-3xl font-bold">
+              <p className="text-3xl font-bold text-dark-blue">
                 ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               {lastUpdate && (
                 <p className="text-xs text-slate-500 mt-1">
-                  Nicca: {lastUpdate.toLocaleTimeString()}
+                  Updated: {lastUpdate.toLocaleTimeString()}
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">Price unavailable</p>
+            <p className="text-slate-600 text-sm">Price unavailable</p>
           )}
         </div>
 
         {/* Bitcoin Icon */}
-        <div className="w-16 h-16 bg-gradient-to-br from-powder-400 to-powder-600 rounded-full flex items-center justify-center shadow-lg">
+        <div className="w-16 h-16 bg-gradient-to-br from-powder-500 to-powder-600 rounded-full flex items-center justify-center shadow-lg">
           <svg
-            className="w-10 h-10 text-primary-dark"
+            className="w-10 h-10 text-white"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -82,7 +82,7 @@ export default function BitcoinTicker() {
       </div>
 
       {/* Auto-refresh indicator */}
-      <div className="mt-4 pt-4 border-t border-powder-500/30">
+      <div className="mt-4 pt-4 border-t border-slate-200">
         <div className="flex items-center space-x-2 text-xs text-slate-500">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
           <span>Live updates every 30 seconds</span>

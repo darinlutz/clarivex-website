@@ -56,7 +56,7 @@ export default function ContactForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Name Field */}
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-powder-300 mb-2">
+        <label htmlFor="name" className="block text-sm font-medium text-dark-blue mb-2">
           Full Name *
         </label>
         <input
@@ -66,14 +66,14 @@ export default function ContactForm() {
           value={formData.name}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 bg-tertiary-dark border border-powder-500/30 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-powder-400 focus:ring-1 focus:ring-powder-400 transition-colors"
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
           placeholder="John Doe"
         />
       </div>
 
       {/* Email Field */}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-powder-300 mb-2">
+        <label htmlFor="email" className="block text-sm font-medium text-dark-blue mb-2">
           Email Address *
         </label>
         <input
@@ -83,14 +83,14 @@ export default function ContactForm() {
           value={formData.email}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 bg-tertiary-dark border border-powder-500/30 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-powder-400 focus:ring-1 focus:ring-powder-400 transition-colors"
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
           placeholder="john@example.com"
         />
       </div>
 
       {/* Phone Field */}
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-powder-300 mb-2">
+        <label htmlFor="phone" className="block text-sm font-medium text-dark-blue mb-2">
           Phone Number *
         </label>
         <input
@@ -100,7 +100,7 @@ export default function ContactForm() {
           value={formData.phone}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 bg-tertiary-dark border border-powder-500/30 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-powder-400 focus:ring-1 focus:ring-powder-400 transition-colors"
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
           placeholder="+1 (555) 123-4567"
         />
       </div>
@@ -110,8 +110,8 @@ export default function ContactForm() {
         <div
           className={`p-4 rounded-lg ${
             status === 'success'
-              ? 'bg-green-900/20 border border-green-500/50 text-green-300'
-              : 'bg-red-900/20 border border-red-500/50 text-red-300'
+              ? 'bg-green-100 border border-green-300 text-green-800'
+              : 'bg-red-100 border border-red-300 text-red-800'
           }`}
         >
           {message}
@@ -122,11 +122,11 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="w-full px-6 py-3 bg-gradient-to-r from-powder-400 to-powder-500 text-primary-dark font-bold rounded-lg hover:shadow-lg hover:shadow-powder-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+        className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
       >
         {status === 'loading' ? (
           <span className="flex items-center justify-center gap-2">
-            <span className="w-4 h-4 border-2 border-primary-dark border-t-transparent rounded-full animate-spin"></span>
+            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             Sending...
           </span>
         ) : (

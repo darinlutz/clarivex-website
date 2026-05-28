@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 
 export default function Navigation() {
@@ -10,7 +11,7 @@ export default function Navigation() {
   const closeMenu = () => setIsOpen(false);
 
   return (
-    <nav className="fixed w-full top-0 z-50 bg-primary-dark border-b border-powder-500 shadow-lg">
+    <nav className="fixed w-full top-0 z-50 bg-white border-b border-slate-200 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -19,31 +20,33 @@ export default function Navigation() {
             className="flex items-center space-x-2 group"
             onClick={closeMenu}
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-powder-400 to-powder-600 rounded-lg flex items-center justify-center font-bold text-primary-dark text-lg group-hover:shadow-lg group-hover:shadow-powder-500/50 transition-all">
-              C
-            </div>
-            <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-powder-400 to-powder-300 bg-clip-text text-transparent">
-              Clarivex
-            </span>
+            <Image
+              src="/assets/svg/clarivex_logo_white.svg"
+              alt="Clarivex Logo"
+              width={280}
+              height={120}
+              className="group-hover:shadow-lg group-hover:shadow-powder-500/50 transition-all"
+            />
+      
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
               href="/"
-              className="text-slate-200 hover:text-powder-400 transition-colors font-medium"
+              className="text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
               Home
             </Link>
             <Link
               href="/solutions"
-              className="text-slate-200 hover:text-powder-400 transition-colors font-medium"
+              className="text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
               Solutions
             </Link>
             <Link
               href="/contact"
-              className="px-6 py-2 bg-gradient-to-r from-powder-400 to-powder-500 text-primary-dark font-bold rounded-lg hover:shadow-lg hover:shadow-powder-400/50 transition-all"
+              className="px-6 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all"
             >
               Contact
             </Link>
@@ -52,7 +55,7 @@ export default function Navigation() {
           {/* Mobile menu button */}
           <button
             onClick={toggleMenu}
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-powder-400 hover:text-powder-300 focus:outline-none transition-colors"
+            className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-dark-blue hover:text-powder-600 focus:outline-none transition-colors"
             aria-expanded="false"
           >
             <svg
@@ -74,25 +77,25 @@ export default function Navigation() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden bg-secondary-dark border-t border-powder-500">
+        <div className="md:hidden bg-slate-50 border-t border-slate-200">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
               href="/"
-              className="block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:text-powder-400 hover:bg-tertiary-dark transition-colors"
+              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
               onClick={closeMenu}
             >
               Home
             </Link>
             <Link
               href="/solutions"
-              className="block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:text-powder-400 hover:bg-tertiary-dark transition-colors"
+              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
               onClick={closeMenu}
             >
               Solutions
             </Link>
             <Link
               href="/contact"
-              className="block px-3 py-2 rounded-md text-base font-medium bg-gradient-to-r from-powder-400 to-powder-500 text-primary-dark hover:shadow-lg transition-all"
+              className="block px-3 py-2 rounded-md text-base font-medium bg-gradient-to-r from-powder-500 to-powder-600 text-white hover:shadow-lg transition-all"
               onClick={closeMenu}
             >
               Contact
