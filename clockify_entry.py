@@ -5,13 +5,13 @@ API_KEY = "ODkyYzI3YmYtZDAxMC00MTA1LWIxZGQtOGNhM2E4ZDhlOWJh"
 WORKSPACE_ID = "5f5fb2a73ab33d735bc7ca3a"
 
 PROJECT_NAME = "AZ"
-DESCRIPTION = "test project"
+DESCRIPTION = "AZ Incident Tracking, AZ Portal front-end updates"
 
-START_DATE = date(2026, 6, 1)
-END_DATE   = date(2026, 6, 30)
+START_DATE = date(2026, 5, 26)
+END_DATE   = date(2026, 7, 3)
 
 # UTC offset for your local timezone (e.g. -7 for MST, -5 for EST)
-UTC_OFFSET_HOURS = -5
+UTC_OFFSET_HOURS = -6
 
 BASE_URL = "https://api.clockify.me/api/v1"
 HEADERS = {
