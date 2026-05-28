@@ -55,7 +55,7 @@ export default function BitcoinTicker() {
             <p className="text-red-400 text-sm">{error}</p>
           ) : price !== null ? (
             <div>
-              <p className="text-3xl font-bold bg-gradient-to-r from-powder-400 to-powder-300 bg-clip-text text-transparent">
+              <p className="text-3xl font-bold text-powder-300">
                 ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               {lastUpdate && (
