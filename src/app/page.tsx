@@ -1,65 +1,126 @@
-import Image from "next/image";
+import BitcoinTicker from '@/components/BitcoinTicker';
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="w-full">
+      {/* Hero Section */}
+      <section className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-primary-dark via-tertiary-dark to-secondary-dark flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-powder-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-powder-500/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          {/* Company Name */}
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-powder-300 via-powder-400 to-powder-500 bg-clip-text text-transparent">
+              Clarivex
+            </span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          {/* Tagline */}
+          <p className="text-xl sm:text-2xl md:text-3xl text-slate-300 font-light mb-8 leading-relaxed">
+            Tackling complex problems with <span className="text-powder-400 font-semibold">clear solutions</span>
           </p>
+
+          {/* Description */}
+          <p className="text-base sm:text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+            We specialize in helping businesses automate and streamline their repetitive processes.
+            From data analytics to system integration, we deliver clarity and efficiency at every step.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link
+              href="/solutions"
+              className="px-8 py-4 bg-gradient-to-r from-powder-400 to-powder-500 text-primary-dark font-bold rounded-lg hover:shadow-lg hover:shadow-powder-400/50 transition-all transform hover:scale-105"
+            >
+              Explore Solutions
+            </Link>
+            <Link
+              href="/contact"
+              className="px-8 py-4 border-2 border-powder-400 text-powder-400 font-bold rounded-lg hover:bg-powder-400/10 transition-all"
+            >
+              Get Started
+            </Link>
+          </div>
+
+          {/* Bitcoin Ticker */}
+          <div className="w-full max-w-md mx-auto">
+            <BitcoinTicker />
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-secondary-dark border-t border-powder-500">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-powder-400">
+            Why Choose Clarivex?
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="bg-tertiary-dark rounded-lg p-8 border border-powder-500/30 hover:border-powder-400/50 transition-all transform hover:-translate-y-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-powder-400 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary-dark" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-powder-300 mb-3">Clear Solutions</h3>
+              <p className="text-slate-400">
+                We cut through complexity to deliver straightforward, effective solutions tailored to your business needs.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="bg-tertiary-dark rounded-lg p-8 border border-powder-500/30 hover:border-powder-400/50 transition-all transform hover:-translate-y-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-powder-400 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary-dark" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8m-2-13h4v6h-4z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-powder-300 mb-3">Efficiency</h3>
+              <p className="text-slate-400">
+                Automate repetitive processes and save your team valuable time and resources for strategic work.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="bg-tertiary-dark rounded-lg p-8 border border-powder-500/30 hover:border-powder-400/50 transition-all transform hover:-translate-y-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-powder-400 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 text-primary-dark" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-powder-300 mb-3">Scalable</h3>
+              <p className="text-slate-400">
+                Build systems that grow with your business. Our solutions are designed for long-term success.
+              </p>
+            </div>
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-powder-500/10 to-powder-400/10 border-t border-powder-500">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-powder-300">
+            Ready to Transform Your Business?
+          </h2>
+          <p className="text-lg text-slate-300 mb-8">
+            Let's discuss how Clarivex can help you automate, streamline, and scale your operations.
+          </p>
+          <Link
+            href="/contact"
+            className="inline-block px-8 py-4 bg-gradient-to-r from-powder-400 to-powder-500 text-primary-dark font-bold rounded-lg hover:shadow-lg hover:shadow-powder-400/50 transition-all transform hover:scale-105"
+          >
+            Contact Us Today
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

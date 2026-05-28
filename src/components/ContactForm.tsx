@@ -1,0 +1,142 @@
+'use client';
+
+import { useState } from 'react';
+
+export default function ContactForm() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+  });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus('loading');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      setStatus('success');
+      setMessage('Thank you! Your message has been sent successfully. We'll be in touch soon.');
+      setFormData({ name: '', email: '', phone: '' });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setStatus('idle');
+        setMessage('');
+      }, 5000);
+    } catch (error) {
+      setStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to send message. Please try again.'
+      );
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Name Field */}
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-powder-300 mb-2">
+          Full Name *
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+          className="w-full px-4 py-3 bg-tertiary-dark border border-powder-500/30 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-powder-400 focus:ring-1 focus:ring-powder-400 transition-colors"
+          placeholder="John Doe"
+        />
+      </div>
+
+      {/* Email Field */}
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-powder-300 mb-2">
+          Email Address *
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+          className="w-full px-4 py-3 bg-tertiary-dark border border-powder-500/30 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-powder-400 focus:ring-1 focus:ring-powder-400 transition-colors"
+          placeholder="john@example.com"
+        />
+      </div>
+
+      {/* Phone Field */}
+      <div>
+        <label htmlFor="phone" className="block text-sm font-medium text-powder-300 mb-2">
+          Phone Number *
+        </label>
+        <input
+          type="tel"
+          id="phone"
+          name="phone"
+          value={formData.phone}
+          onChange={handleChange}
+          required
+          className="w-full px-4 py-3 bg-tertiary-dark border border-powder-500/30 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-powder-400 focus:ring-1 focus:ring-powder-400 transition-colors"
+          placeholder="+1 (555) 123-4567"
+        />
+      </div>
+
+      {/* Status Messages */}
+      {message && (
+        <div
+          className={`p-4 rounded-lg ${
+            status === 'success'
+              ? 'bg-green-900/20 border border-green-500/50 text-green-300'
+              : 'bg-red-900/20 border border-red-500/50 text-red-300'
+          }`}
+        >
+          {message}
+        </div>
+      )}
+
+      {/* Submit Button */}
+      <button
+        type="submit"
+        disabled={status === 'loading'}
+        className="w-full px-6 py-3 bg-gradient-to-r from-powder-400 to-powder-500 text-primary-dark font-bold rounded-lg hover:shadow-lg hover:shadow-powder-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+      >
+        {status === 'loading' ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-4 h-4 border-2 border-primary-dark border-t-transparent rounded-full animate-spin"></span>
+            Sending...
+          </span>
+        ) : (
+          'Send Message'
+        )}
+      </button>
+
+      <p className="text-xs text-slate-500 text-center">
+        We'll respond to your inquiry within 24 hours.
+      </p>
+    </form>
+  );
+}
