@@ -15,8 +15,12 @@ export default function BitcoinTicker() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const fetchBitcoinPrice = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      const response = await fetch('/api/bitcoin');
+      const apiUrl = new URL('/api/bitcoin', window.location.origin).toString();
+      const response = await fetch(apiUrl);
       if (!response.ok) throw new Error('Failed to fetch Bitcoin price');
 
       const data: BitcoinPrice = await response.json();
@@ -60,7 +64,9 @@ export default function BitcoinTicker() {
                 </p>
               )}
             </div>
-          ) : null}
+          ) : (
+            <p className="text-slate-400 text-sm">Price unavailable</p>
+          )}
         </div>
 
         {/* Bitcoin Icon */}
