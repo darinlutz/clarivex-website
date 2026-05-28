@@ -43,7 +43,7 @@ export default function Home() {
               href="/contact"
               className="px-8 py-4 border-2 border-powder-400 text-powder-400 font-bold rounded-lg hover:bg-powder-400/10 transition-all"
             >
-              Get Started
+              Get Started Now
             </Link>
           </div>
 
