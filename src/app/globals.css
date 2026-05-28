@@ -7,11 +7,11 @@
 }
 
 :root {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --powder-blue: #87ceeb;
-  --powder-light: #b0e0e6;
-  --accent: #64b5f6;
+  --background: #ffffff;
+  --foreground: #1e3a8a;
+  --powder-blue: #0284c7;
+  --powder-light: #0369a1;
+  --accent: #1e40af;
 }
 
 html {
@@ -29,13 +29,13 @@ body {
 }
 
 a {
-  color: var(--powder-blue);
+  color: #0284c7;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 a:hover {
-  color: var(--accent);
+  color: #1e40af;
 }
 
 button {

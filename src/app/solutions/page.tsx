@@ -80,53 +80,53 @@ export default function Solutions() {
   return (
     <div className="w-full">
       {/* Header Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-primary-dark to-secondary-dark border-b border-powder-500">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-powder-300 via-powder-400 to-powder-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
             Our Solutions
           </h1>
-          <p className="text-lg text-slate-300 max-w-3xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-3xl mx-auto">
             Comprehensive services designed to address your unique business challenges and drive real results.
           </p>
         </div>
       </section>
 
       {/* Solutions Grid */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-primary-dark">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             {solutions.map((solution) => (
               <div
                 key={solution.id}
-                className="bg-secondary-dark rounded-xl border border-powder-500/30 hover:border-powder-400/60 p-8 transition-all duration-300 transform hover:-translate-y-2 group"
+                className="bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-8 transition-all duration-300 transform hover:-translate-y-2 group"
               >
                 {/* Icon and Title */}
                 <div className="mb-6">
-                  <div className="text-5xl mb-4 inline-block p-4 bg-tertiary-dark rounded-lg group-hover:bg-powder-400/20 transition-colors">
+                  <div className="text-5xl mb-4 inline-block p-4 bg-white rounded-lg group-hover:bg-powder-100 transition-colors">
                     {solution.icon}
                   </div>
-                  <h2 className="text-2xl font-bold text-powder-300 group-hover:text-powder-400 transition-colors">
+                  <h2 className="text-2xl font-bold text-dark-blue group-hover:text-powder-600 transition-colors">
                     {solution.title}
                   </h2>
                 </div>
 
                 {/* Description */}
-                <p className="text-slate-300 mb-6 text-base leading-relaxed">
+                <p className="text-slate-600 mb-6 text-base leading-relaxed">
                   {solution.description}
                 </p>
 
                 {/* Benefits */}
                 <div className="space-y-3 mb-8">
-                  <p className="text-powder-400 font-semibold text-sm uppercase tracking-wide">
+                  <p className="text-powder-600 font-semibold text-sm uppercase tracking-wide">
                     Key Activities
                   </p>
                   <ul className="space-y-2">
                     {solution.benefits.map((benefit, idx) => (
                       <li key={idx} className="flex items-start gap-3">
-                        <span className="text-powder-400 font-bold flex-shrink-0 mt-0.5">
+                        <span className="text-powder-600 font-bold flex-shrink-0 mt-0.5">
                           ✓
                         </span>
-                        <span className="text-slate-300">{benefit}</span>
+                        <span className="text-slate-600">{benefit}</span>
                       </li>
                     ))}
                   </ul>
@@ -135,7 +135,7 @@ export default function Solutions() {
                 {/* CTA Button */}
                 <Link
                   href="/contact"
-                  className="inline-block px-6 py-2 bg-gradient-to-r from-powder-400/20 to-powder-500/20 text-powder-300 font-semibold rounded-lg border border-powder-400/50 hover:bg-powder-400/30 hover:text-powder-200 transition-all group-hover:shadow-lg group-hover:shadow-powder-400/20"
+                  className="inline-block px-6 py-2 bg-powder-100 text-powder-600 font-semibold rounded-lg border border-powder-300 hover:bg-powder-200 hover:text-powder-700 transition-all group-hover:shadow-lg group-hover:shadow-powder-300/30"
                 >
                   Learn More
                 </Link>
@@ -146,9 +146,9 @@ export default function Solutions() {
       </section>
 
       {/* Process Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-secondary-dark border-t border-powder-500">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-powder-400 mb-12">
+          <h2 className="text-3xl font-bold text-center text-dark-blue mb-12">
             Our Process
           </h2>
 
@@ -160,15 +160,15 @@ export default function Solutions() {
               { step: '4', title: 'Support', desc: 'Ongoing maintenance and optimization' },
             ].map((item) => (
               <div key={item.step} className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-powder-400 to-powder-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-powder-400/30">
-                  <span className="text-2xl font-bold text-primary-dark">
+                <div className="w-16 h-16 bg-gradient-to-br from-powder-500 to-powder-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-powder-500/30">
+                  <span className="text-2xl font-bold text-white">
                     {item.step}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-powder-300 mb-2">
+                <h3 className="text-lg font-bold text-dark-blue mb-2">
                   {item.title}
                 </h3>
-                <p className="text-slate-400 text-sm">{item.desc}</p>
+                <p className="text-slate-600 text-sm">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -176,17 +176,17 @@ export default function Solutions() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-powder-500/10 to-powder-400/10 border-t border-powder-500">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6 text-powder-300">
+          <h2 className="text-3xl font-bold mb-6 text-dark-blue">
             Which solution is right for you?
           </h2>
-          <p className="text-lg text-slate-300 mb-8">
+          <p className="text-lg text-slate-600 mb-8">
             Let's explore how these solutions can address your specific business needs.
           </p>
           <Link
             href="/contact"
-            className="inline-block px-8 py-4 bg-gradient-to-r from-powder-400 to-powder-500 text-primary-dark font-bold rounded-lg hover:shadow-lg hover:shadow-powder-400/50 transition-all transform hover:scale-105"
+            className="inline-block px-8 py-4 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
           >
             Schedule a Consultation
           </Link>

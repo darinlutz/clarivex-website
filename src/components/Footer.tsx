@@ -4,25 +4,25 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-secondary-dark border-t border-powder-500 text-slate-300">
+    <footer className="bg-slate-50 border-t border-slate-200 text-dark-blue">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* About */}
           <div>
-            <h3 className="text-lg font-bold text-powder-400 mb-4">Clarivex</h3>
-            <p className="text-slate-400">
+            <h3 className="text-lg font-bold text-powder-600 mb-4">Clarivex</h3>
+            <p className="text-slate-600">
               Tackling complex problems with clear solutions. We help businesses automate and streamline their repetitive processes.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-bold text-powder-400 mb-4">Quick Links</h3>
+            <h3 className="text-lg font-bold text-powder-600 mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link
                   href="/"
-                  className="text-slate-400 hover:text-powder-400 transition-colors"
+                  className="text-slate-600 hover:text-powder-600 transition-colors"
                 >
                   Home
                 </Link>
@@ -30,7 +30,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/solutions"
-                  className="text-slate-400 hover:text-powder-400 transition-colors"
+                  className="text-slate-600 hover:text-powder-600 transition-colors"
                 >
                   Solutions
                 </Link>
@@ -38,7 +38,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/contact"
-                  className="text-slate-400 hover:text-powder-400 transition-colors"
+                  className="text-slate-600 hover:text-powder-600 transition-colors"
                 >
                   Contact
                 </Link>
@@ -48,21 +48,21 @@ export default function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-lg font-bold text-powder-400 mb-4">Contact</h3>
-            <p className="text-slate-400 mb-2">
+            <h3 className="text-lg font-bold text-powder-600 mb-4">Contact</h3>
+            <p className="text-slate-600 mb-2">
               Email:{' '}
-              <a href="mailto:darinlutz@yahoo.com" className="text-powder-400 hover:text-powder-300">
+              <a href="mailto:darinlutz@yahoo.com" className="text-powder-600 hover:text-powder-700">
                 darinlutz@yahoo.com
               </a>
             </p>
-            <p className="text-slate-400">
+            <p className="text-slate-600">
               Ready to solve your business challenges? Get in touch today!
             </p>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="border-t border-powder-500 my-8"></div>
+        <div className="border-t border-slate-200 my-8"></div>
 
         {/* Copyright */}
         <div className="text-center text-slate-500">
