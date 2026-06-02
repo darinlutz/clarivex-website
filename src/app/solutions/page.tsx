@@ -101,7 +101,7 @@ export default function Solutions() {
                 className="bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-8 transition-all duration-300 transform hover:-translate-y-2 group"
               >
                 {/* Icon and Title */}
-                <div className="mb-6">
+                <div className="mb-6 px-2">
                   <div className="text-5xl mb-4 inline-block p-4 bg-white rounded-lg group-hover:bg-powder-100 transition-colors">
                     {solution.icon}
                   </div>
@@ -111,12 +111,12 @@ export default function Solutions() {
                 </div>
 
                 {/* Description */}
-                <p className="text-slate-600 mb-6 text-base leading-relaxed">
+                <p className="text-slate-600 mb-6 text-base leading-relaxed px-2">
                   {solution.description}
                 </p>
 
                 {/* Benefits */}
-                <div className="space-y-3 mb-8">
+                <div className="space-y-3 mb-8 px-2">
                   <p className="text-powder-600 font-semibold text-sm uppercase tracking-wide">
                     Key Activities
                   </p>

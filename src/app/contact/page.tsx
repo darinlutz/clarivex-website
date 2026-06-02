@@ -39,7 +39,7 @@ export default function Contact() {
                       <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
                     </svg>
                   </div>
-                  <div>
+                  <div className="px-2">
                     <h3 className="text-lg font-bold text-dark-blue mb-2">Email</h3>
                     <p className="text-slate-600">
                       <a href="mailto:darinlutz@yahoo.com" className="text-powder-600 hover:text-powder-700 transition-colors">
@@ -61,7 +61,7 @@ export default function Contact() {
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
                     </svg>
                   </div>
-                  <div>
+                  <div className="px-2">
                     <h3 className="text-lg font-bold text-dark-blue mb-2">Response Time</h3>
                     <p className="text-slate-600">
                       Most inquiries are answered within 24 business hours. For urgent matters, please mention it in your message.
@@ -78,7 +78,7 @@ export default function Contact() {
                       <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                     </svg>
                   </div>
-                  <div>
+                  <div className="px-2">
                     <h3 className="text-lg font-bold text-dark-blue mb-2">What Happens Next?</h3>
                     <ul className="text-slate-600 space-y-2 text-sm">
                       <li>✓ We review your information</li>
@@ -121,8 +121,8 @@ export default function Contact() {
               },
             ].map((item, idx) => (
               <div key={idx} className="bg-white rounded-lg border border-slate-200 p-6">
-                <h3 className="text-lg font-bold text-dark-blue mb-3">{item.q}</h3>
-                <p className="text-slate-600">{item.a}</p>
+                <h3 className="text-lg font-bold text-dark-blue mb-3 px-2 pt-1">{item.q}</h3>
+                <p className="text-slate-600 px-2 pb-1">{item.a}</p>
               </div>
             ))}
           </div>

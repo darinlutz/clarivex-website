@@ -34,13 +34,13 @@ export default function Navigation() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               href="/"
-              className="text-dark-blue hover:text-powder-600 transition-colors font-medium"
+              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
               Home
             </Link>
             <Link
               href="/solutions"
-              className="text-dark-blue hover:text-powder-600 transition-colors font-medium"
+              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
               Solutions
             </Link>

@@ -63,40 +63,40 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="bg-slate-50 rounded-lg p-8 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
+            <div className="bg-slate-50 rounded-lg py-10 px-12 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
               <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-dark-blue mb-3">Clear Solutions</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-bold text-dark-blue mb-3 mt-1">Clear Solutions</h3>
+              <p className="text-slate-600 mb-1">
                 We cut through complexity to deliver straightforward, effective solutions tailored to your business needs.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-slate-50 rounded-lg p-8 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
+            <div className="bg-slate-50 rounded-lg py-10 px-12 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
               <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8m-2-13h4v6h-4z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-dark-blue mb-3">Efficiency</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-bold text-dark-blue mb-3 mt-1">Efficiency</h3>
+              <p className="text-slate-600 mb-1">
                 Automate repetitive processes and save your team valuable time and resources for strategic work.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-slate-50 rounded-lg p-8 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
+            <div className="bg-slate-50 rounded-lg py-10 px-12 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
               <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-dark-blue mb-3">Scalable</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-bold text-dark-blue mb-3 mt-1">Scalable</h3>
+              <p className="text-slate-600 mb-1">
                 Build systems that grow with your business. Our solutions are designed for long-term success.
               </p>
             </div>
