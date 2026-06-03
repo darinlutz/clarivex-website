@@ -23,8 +23,9 @@ export default function Navigation() {
             <Image
               src="/assets/svg/clarivex_logo_white.svg"
               alt="Clarivex Logo"
-              width={180}
-              height={120}
+              width={300}
+              height={90}
+              style={{ width: "180px", height: "auto" }}
               className="group-hover:shadow-lg group-hover:shadow-powder-500/50 transition-all"
             />
       
