@@ -55,13 +55,13 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-200">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-dark-blue">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-200 flex flex-col items-center">
+        <div className="w-full max-w-6xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-red-600">
             Why Choose Clarivex?
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
             {/* Feature 1 */}
             <div className="bg-slate-50 rounded-lg py-10 px-12 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
               <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
