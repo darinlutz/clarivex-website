@@ -80,8 +80,8 @@ export default function Solutions() {
   return (
     <div className="w-full">
       {/* Header Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto text-center">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200 flex flex-col items-center">
+        <div className="w-full max-w-6xl text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
             Our Solutions
           </h1>
@@ -92,13 +92,13 @@ export default function Solutions() {
       </section>
 
       {/* Solutions Grid */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-            {solutions.map((solution) => (
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white flex flex-col items-center">
+        <div className="w-full max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 justify-items-center">
+            {solutions.map((solution, idx) => (
               <div
                 key={solution.id}
-                className="bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-8 transition-all duration-300 transform hover:-translate-y-2 group"
+                className={`bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-8 transition-all duration-300 transform hover:-translate-y-2 group w-full${idx === solutions.length - 1 && solutions.length % 2 !== 0 ? ' md:col-span-2 md:max-w-lg md:mx-auto' : ''}`}
               >
                 {/* Icon and Title */}
                 <div className="mb-6 px-2">
