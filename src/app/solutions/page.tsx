@@ -4,7 +4,7 @@ interface Solution {
   id: string;
   title: string;
   description: string;
-  icon: string;
+/*   icon: string; */
   benefits: string[];
 }
 
@@ -13,7 +13,7 @@ const solutions: Solution[] = [
     id: 'data-analytics',
     title: 'Data Analytics',
     description: 'Transform raw data into actionable insights that drive business decisions and reveal hidden opportunities.',
-    icon: '📊',
+ /*    icon: '📊', */
     benefits: [
       'Real-time data dashboards and reporting',
       'Predictive analytics for trend forecasting',
@@ -26,7 +26,7 @@ const solutions: Solution[] = [
     id: 'code-migration',
     title: 'Software Code Migration',
     description: 'Seamlessly migrate your codebase from one programming language to another with minimal disruption.',
-    icon: '🔄',
+   /*  icon: '🔄', */
     benefits: [
       'Modernize legacy systems efficiently',
       'Leverage newer, more efficient languages',
@@ -39,7 +39,7 @@ const solutions: Solution[] = [
     id: 'web-accessibility',
     title: 'Web Accessibility & Best Practices',
     description: 'Update your web applications to meet WCAG standards and industry best practices for maximum reach.',
-    icon: '♿',
+/*     icon: '♿', */
     benefits: [
       'WCAG 2.1 compliance (AA/AAA levels)',
       'Improved SEO and search rankings',
@@ -52,7 +52,7 @@ const solutions: Solution[] = [
     id: 'system-integration',
     title: 'Connecting Disparate Systems',
     description: 'Integrate your existing systems and platforms to create a unified, seamless business infrastructure.',
-    icon: '🔗',
+   /*  icon: '🔗', */
     benefits: [
       'API and middleware integration solutions',
       'Real-time data synchronization',
@@ -65,7 +65,7 @@ const solutions: Solution[] = [
     id: 'ai-automation',
     title: 'AI-Powered Process Automation',
     description: 'Leverage AI tools and agents to eliminate manual, error-prone processes and boost productivity.',
-    icon: '🤖',
+   /*  icon: '🤖', */
     benefits: [
       'Intelligent workflow automation',
       'AI agents for document processing',
@@ -102,9 +102,9 @@ export default function Solutions() {
               >
                 {/* Icon and Title */}
                 <div className="mb-6 px-2">
-                  <div className="text-5xl mb-4 inline-block p-4 bg-white rounded-lg group-hover:bg-powder-100 transition-colors">
+            {/*       <div className="text-5xl mb-4 inline-block p-4 bg-white rounded-lg group-hover:bg-powder-100 transition-colors">
                     {solution.icon}
-                  </div>
+                  </div> */}
                   <h2 className="text-2xl font-bold text-dark-blue group-hover:text-powder-600 transition-colors">
                     {solution.title}
                   </h2>
@@ -146,8 +146,8 @@ export default function Solutions() {
       </section>
 
       {/* Process Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200">
-        <div className="max-w-4xl mx-auto">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200 flex flex-col items-center">
+        <div className="w-full max-w-4xl">
           <h2 className="text-3xl font-bold text-center text-dark-blue mb-12">
             Our Process
           </h2>
@@ -176,8 +176,8 @@ export default function Solutions() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200 flex flex-col items-center">
+        <div className="w-full max-w-4xl text-center">
           <h2 className="text-3xl font-bold mb-6 text-dark-blue">
             Which solution is right for you?
           </h2>

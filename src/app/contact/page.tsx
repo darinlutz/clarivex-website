@@ -95,8 +95,8 @@ export default function Contact() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200">
-        <div className="max-w-4xl mx-auto">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200 flex flex-col items-center">
+        <div className="w-full max-w-4xl">
           <h2 className="text-3xl font-bold text-center text-dark-blue mb-12">
             Frequently Asked Questions
           </h2>
@@ -130,8 +130,8 @@ export default function Contact() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200 flex flex-col items-center">
+        <div className="w-full max-w-4xl text-center">
           <h2 className="text-3xl font-bold mb-6 text-dark-blue">
             Don't see your question answered?
           </h2>

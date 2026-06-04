@@ -37,17 +37,19 @@ export default function Navigation() {
               href="/"
               className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
-              Home
+              Home 
             </Link>
+          <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
             <Link
               href="/solutions"
               className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
               Solutions
             </Link>
+                <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
             <Link
               href="/contact"
-              className="px-6 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all"
+              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
               Contact
             </Link>
