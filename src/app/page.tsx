@@ -41,7 +41,7 @@ export default function Home() {
             </Link>
             <Link
               href="/contact"
-              className="px-8 py-4 border-2 border-powder-600 text-powder-600 font-bold rounded-lg hover:bg-powder-600/10 transition-all"
+              className="px-8 py-4 text-powder-600 font-bold rounded-lg hover:bg-powder-600/10 transition-all outline-none"
             >
               Get Started Now
             </Link>
@@ -105,7 +105,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200 flex flex-col items-center">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-dark-blue">
             Ready to Transform Your Business?
