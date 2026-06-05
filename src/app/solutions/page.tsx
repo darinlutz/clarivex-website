@@ -94,11 +94,11 @@ export default function Solutions() {
       {/* Solutions Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 justify-items-center">
+          <div className="flex flex-wrap justify-center gap-8 lg:gap-12">
             {solutions.map((solution, idx) => (
               <div
                 key={solution.id}
-                className={`bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-12 transition-all duration-300 transform hover:-translate-y-2 group w-full${idx === solutions.length - 1 && solutions.length % 2 !== 0 ? ' md:col-span-2 md:max-w-lg md:mx-auto' : ''}`}
+                className="bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-12 transition-all duration-300 transform hover:-translate-y-2 group w-full md:w-[calc(50%-1rem)] lg:w-[calc(50%-1.5rem)]"
               >
                 {/* Icon and Title */}
                 <div className="mb-6 px-2">

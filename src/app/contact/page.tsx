@@ -94,6 +94,7 @@ export default function Contact() {
         </div>
       </section>
 
+<br />
       {/* FAQ Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200 flex flex-col items-center">
         <div className="w-full max-w-4xl">
@@ -128,6 +129,8 @@ export default function Contact() {
           </div>
         </div>
       </section>
+
+<br />
 
       {/* CTA Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200 flex flex-col items-center">
