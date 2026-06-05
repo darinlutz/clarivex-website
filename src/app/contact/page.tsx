@@ -17,8 +17,8 @@ export default function Contact() {
       </section>
 
       {/* Contact Content */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
+        <div className="w-full max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Contact Form */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
