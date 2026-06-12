@@ -31,28 +31,6 @@ export default function Contact() {
 
             {/* Contact Info */}
             <div className="space-y-8">
-              {/* Email */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-                    </svg>
-                  </div>
-                  <div className="px-2">
-                    <h3 className="text-lg font-bold text-dark-blue mb-2">Email</h3>
-                    <p className="text-slate-600">
-                      <a href="mailto:darinlutz@yahoo.com" className="text-powder-600 hover:text-powder-700 transition-colors">
-                        darinlutz@yahoo.com
-                      </a>
-                    </p>
-                    <p className="text-sm text-slate-500 mt-2">
-                      We typically respond within 24 hours
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {/* Response Time */}
               <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
                 <div className="flex items-start gap-4">
