@@ -5,14 +5,22 @@ import path from 'path';
 interface TimesheetFormData {
   startDate: string;
   endDate: string;
+  projectName: string;
+  description: string;
 }
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
-function runClockifyScript(startDate: string, endDate: string) {
+function runClockifyScript(startDate: string, endDate: string, projectName: string, description: string) {
   return new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
     const scriptPath = path.join(process.cwd(), 'clockify_entry.py');
-    const proc = spawn('python', [scriptPath, '--start', startDate, '--end', endDate]);
+    const proc = spawn('python', [
+      scriptPath,
+      '--start', startDate,
+      '--end', endDate,
+      '--project', projectName,
+      '--description', description,
+    ]);
 
     let stdout = '';
     let stderr = '';
@@ -27,7 +35,7 @@ export async function POST(request: Request) {
   try {
     const body: TimesheetFormData = await request.json();
 
-    if (!body.startDate || !body.endDate) {
+    if (!body.startDate || !body.endDate || !body.projectName || !body.description) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await runClockifyScript(body.startDate, body.endDate);
+    const result = await runClockifyScript(body.startDate, body.endDate, body.projectName, body.description);
 
     if (result.code !== 0) {
       console.error('clockify_entry.py failed:', result.stderr);

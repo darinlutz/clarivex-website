@@ -7,8 +7,8 @@ from datetime import datetime, timezone, timedelta, date
 API_KEY = os.environ.get("CLOCKIFY_API_KEY")
 WORKSPACE_ID = "5f5fb2a73ab33d735bc7ca3a"
 
-PROJECT_NAME = "AZ"
-DESCRIPTION = "AZ Incident Tracking, AZ Portal front-end updates"
+DEFAULT_PROJECT_NAME = "AZ"
+DEFAULT_DESCRIPTION = "AZ Incident Tracking, AZ Portal front-end updates"
 
 DEFAULT_START_DATE = date(2026, 5, 26)
 DEFAULT_END_DATE = date(2026, 7, 3)
@@ -49,18 +49,18 @@ def workdays_in_range(start, end):
         current += timedelta(days=1)
 
 
-def get_project_id():
+def get_project_id(project_name):
     url = f"{BASE_URL}/workspaces/{WORKSPACE_ID}/projects"
     response = requests.get(url, headers=HEADERS)
     response.raise_for_status()
     projects = response.json()
     for project in projects:
-        if project["name"].strip().upper() == PROJECT_NAME.strip().upper():
+        if project["name"].strip().upper() == project_name.strip().upper():
             return project["id"]
-    raise ValueError(f"Project '{PROJECT_NAME}' not found. Available: {[p['name'] for p in projects]}")
+    raise ValueError(f"Project '{project_name}' not found. Available: {[p['name'] for p in projects]}")
 
 
-def create_time_entry(project_id, log_date):
+def create_time_entry(project_id, log_date, description):
     offset = timezone(timedelta(hours=UTC_OFFSET_HOURS))
     start_local = datetime(log_date.year, log_date.month, log_date.day, 8, 0, 0, tzinfo=offset)
     end_local   = datetime(log_date.year, log_date.month, log_date.day, 16, 0, 0, tzinfo=offset)
@@ -70,7 +70,7 @@ def create_time_entry(project_id, log_date):
     payload = {
         "start": start_utc,
         "end": end_utc,
-        "description": DESCRIPTION,
+        "description": description,
         "projectId": project_id,
         "billable": False,
     }
@@ -85,11 +85,15 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Create Clockify time entries for a date range.")
     parser.add_argument("--start", dest="start", help="Start date (YYYY-MM-DD)")
     parser.add_argument("--end", dest="end", help="End date (YYYY-MM-DD)")
+    parser.add_argument("--project", dest="project", help="Clockify project name")
+    parser.add_argument("--description", dest="description", help="Time entry description")
     args = parser.parse_args()
 
     start_date = date.fromisoformat(args.start) if args.start else DEFAULT_START_DATE
     end_date = date.fromisoformat(args.end) if args.end else DEFAULT_END_DATE
-    return start_date, end_date
+    project_name = args.project if args.project else DEFAULT_PROJECT_NAME
+    description = args.description if args.description else DEFAULT_DESCRIPTION
+    return start_date, end_date, project_name, description
 
 
 if __name__ == "__main__":
@@ -97,7 +101,7 @@ if __name__ == "__main__":
         print("Error: CLOCKIFY_API_KEY environment variable is not set.", file=sys.stderr)
         sys.exit(1)
 
-    start_date, end_date = parse_args()
+    start_date, end_date, project_name, description = parse_args()
     if start_date > end_date:
         print("Error: start date must not be after end date.", file=sys.stderr)
         sys.exit(1)
@@ -108,12 +112,12 @@ if __name__ == "__main__":
     print()
 
     print("Looking up project ID...")
-    project_id = get_project_id()
-    print(f"Found project '{PROJECT_NAME}' → {project_id}")
+    project_id = get_project_id(project_name)
+    print(f"Found project '{project_name}' → {project_id}")
     print()
 
     for d in days:
-        entry = create_time_entry(project_id, d)
+        entry = create_time_entry(project_id, d, description)
         print(f"  Created: {d.strftime('%a %Y-%m-%d')}  ({entry['id']})")
 
     print()

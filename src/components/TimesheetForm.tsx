@@ -6,6 +6,8 @@ export default function TimesheetForm() {
   const [formData, setFormData] = useState({
     startDate: '',
     endDate: '',
+    projectName: '',
+    description: '',
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -19,6 +21,13 @@ export default function TimesheetForm() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (formData.startDate > formData.endDate) {
+      setStatus('error');
+      setMessage('Start date must be the same as or before the end date.');
+      return;
+    }
+
     setStatus('loading');
 
     try {
@@ -36,7 +45,7 @@ export default function TimesheetForm() {
 
       setStatus('success');
       setMessage('Thank you! Your timesheet has been submitted successfully.');
-      setFormData({ startDate: '', endDate: '' });
+      setFormData({ startDate: '', endDate: '', projectName: '', description: '' });
 
       setTimeout(() => {
         setStatus('idle');
@@ -63,6 +72,7 @@ export default function TimesheetForm() {
           name="startDate"
           value={formData.startDate}
           onChange={handleChange}
+          max={formData.endDate || undefined}
           required
           className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
         />
@@ -79,8 +89,43 @@ export default function TimesheetForm() {
           name="endDate"
           value={formData.endDate}
           onChange={handleChange}
+          min={formData.startDate || undefined}
           required
           className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+        />
+      </div>
+
+      {/* Project Name Field */}
+      <div>
+        <label htmlFor="projectName" className="block text-sm font-medium text-dark-blue mb-2">
+          Project Name *
+        </label>
+        <input
+          type="text"
+          id="projectName"
+          name="projectName"
+          value={formData.projectName}
+          onChange={handleChange}
+          required
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+          placeholder="AZ"
+        />
+      </div>
+
+      {/* Description Field */}
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-dark-blue mb-2">
+          Description *
+        </label>
+        <input
+          type="text"
+          id="description"
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          required
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+          placeholder="AZ Incident Tracking, AZ Portal front-end updates"
         />
       </div>
 
@@ -98,20 +143,22 @@ export default function TimesheetForm() {
       )}
 
       {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
-      >
-        {status === 'loading' ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            Submitting...
-          </span>
-        ) : (
-          'Submit Time'
-        )}
-      </button>
+      <div className="pt-4 pb-2">
+        <button
+          type="submit"
+          disabled={status === 'loading'}
+          className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+        >
+          {status === 'loading' ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              Submitting...
+            </span>
+          ) : (
+            'Submit Time'
+          )}
+        </button>
+      </div>
     </form>
   );
 }
