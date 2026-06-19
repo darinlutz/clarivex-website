@@ -1,14 +1,17 @@
+import argparse
+import os
+import sys
 import requests
 from datetime import datetime, timezone, timedelta, date
 
-API_KEY = "ODkyYzI3YmYtZDAxMC00MTA1LWIxZGQtOGNhM2E4ZDhlOWJh"
+API_KEY = os.environ.get("CLOCKIFY_API_KEY")
 WORKSPACE_ID = "5f5fb2a73ab33d735bc7ca3a"
 
 PROJECT_NAME = "AZ"
 DESCRIPTION = "AZ Incident Tracking, AZ Portal front-end updates"
 
-START_DATE = date(2026, 5, 26)
-END_DATE   = date(2026, 7, 3)
+DEFAULT_START_DATE = date(2026, 5, 26)
+DEFAULT_END_DATE = date(2026, 7, 3)
 
 # UTC offset for your local timezone (e.g. -7 for MST, -5 for EST)
 UTC_OFFSET_HOURS = -6
@@ -78,9 +81,29 @@ def create_time_entry(project_id, log_date):
     return response.json()
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Create Clockify time entries for a date range.")
+    parser.add_argument("--start", dest="start", help="Start date (YYYY-MM-DD)")
+    parser.add_argument("--end", dest="end", help="End date (YYYY-MM-DD)")
+    args = parser.parse_args()
+
+    start_date = date.fromisoformat(args.start) if args.start else DEFAULT_START_DATE
+    end_date = date.fromisoformat(args.end) if args.end else DEFAULT_END_DATE
+    return start_date, end_date
+
+
 if __name__ == "__main__":
-    days = list(workdays_in_range(START_DATE, END_DATE))
-    print(f"Date range: {START_DATE} → {END_DATE}")
+    if not API_KEY:
+        print("Error: CLOCKIFY_API_KEY environment variable is not set.", file=sys.stderr)
+        sys.exit(1)
+
+    start_date, end_date = parse_args()
+    if start_date > end_date:
+        print("Error: start date must not be after end date.", file=sys.stderr)
+        sys.exit(1)
+
+    days = list(workdays_in_range(start_date, end_date))
+    print(f"Date range: {start_date} → {end_date}")
     print(f"Workdays to log: {len(days)}")
     print()
 

@@ -53,6 +53,13 @@ export default function Navigation() {
             >
               Contact
             </Link>
+            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+            <Link
+              href="/timesheet"
+              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+            >
+              Timesheet
+            </Link>
           </div>
 
           {/* Mobile menu button */}
