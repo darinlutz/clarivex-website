@@ -29,14 +29,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  color: #0284c7;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
+@layer base {
+  a {
+    color: #0284c7;
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
 
-a:hover {
-  color: #1e40af;
+  a:hover {
+    color: #1e40af;
+  }
 }
 
 button {

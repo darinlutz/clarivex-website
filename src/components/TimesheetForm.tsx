@@ -1,6 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+interface ClockifyProject {
+  id: string;
+  name: string;
+}
 
 export default function TimesheetForm() {
   const [formData, setFormData] = useState({
@@ -12,7 +17,23 @@ export default function TimesheetForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [projects, setProjects] = useState<ClockifyProject[]>([]);
+  const [projectsStatus, setProjectsStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  useEffect(() => {
+    fetch('/api/clockify/projects')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to load projects');
+        return res.json();
+      })
+      .then((data) => {
+        setProjects(data.projects);
+        setProjectsStatus('ready');
+      })
+      .catch(() => setProjectsStatus('error'));
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -100,16 +121,28 @@ export default function TimesheetForm() {
         <label htmlFor="projectName" className="block text-sm font-medium text-dark-blue mb-2">
           Project Name *
         </label>
-        <input
-          type="text"
+        <select
           id="projectName"
           name="projectName"
           value={formData.projectName}
           onChange={handleChange}
           required
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-          placeholder="AZ"
-        />
+          disabled={projectsStatus !== 'ready'}
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <option value="" disabled>
+            {projectsStatus === 'loading'
+              ? 'Loading projects...'
+              : projectsStatus === 'error'
+              ? 'Unable to load projects'
+              : 'Select a project'}
+          </option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.name}>
+              {project.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Description Field */}

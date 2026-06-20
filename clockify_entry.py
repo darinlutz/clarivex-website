@@ -10,8 +10,8 @@ WORKSPACE_ID = "5f5fb2a73ab33d735bc7ca3a"
 DEFAULT_PROJECT_NAME = "AZ"
 DEFAULT_DESCRIPTION = "AZ Incident Tracking, AZ Portal front-end updates"
 
-DEFAULT_START_DATE = date(2026, 5, 26)
-DEFAULT_END_DATE = date(2026, 7, 3)
+DEFAULT_START_DATE = date(2026, 7, 4)
+DEFAULT_END_DATE = date(2026, 7, 4)
 
 # UTC offset for your local timezone (e.g. -7 for MST, -5 for EST)
 UTC_OFFSET_HOURS = -6
@@ -49,6 +49,13 @@ def workdays_in_range(start, end):
         current += timedelta(days=1)
 
 
+def get_current_user_id():
+    url = f"{BASE_URL}/user"
+    response = requests.get(url, headers=HEADERS)
+    response.raise_for_status()
+    return response.json()["id"]
+
+
 def get_project_id(project_name):
     url = f"{BASE_URL}/workspaces/{WORKSPACE_ID}/projects"
     response = requests.get(url, headers=HEADERS)
@@ -58,6 +65,44 @@ def get_project_id(project_name):
         if project["name"].strip().upper() == project_name.strip().upper():
             return project["id"]
     raise ValueError(f"Project '{project_name}' not found. Available: {[p['name'] for p in projects]}")
+
+
+def _day_bounds_utc(log_date):
+    """Return (start_utc, end_utc) ISO strings covering the full local day."""
+    offset = timezone(timedelta(hours=UTC_OFFSET_HOURS))
+    day_start_local = datetime(log_date.year, log_date.month, log_date.day, 0, 0, 0, tzinfo=offset)
+    day_end_local = day_start_local + timedelta(days=1)
+    start_utc = day_start_local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    end_utc = day_end_local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return start_utc, end_utc
+
+
+def get_time_entries_for_day(user_id, log_date):
+    start_utc, end_utc = _day_bounds_utc(log_date)
+    url = f"{BASE_URL}/workspaces/{WORKSPACE_ID}/user/{user_id}/time-entries"
+    params = {
+        "start": start_utc,
+        "end": end_utc,
+        "hydrated": "false",
+        "page-size": 50,
+    }
+    response = requests.get(url, headers=HEADERS, params=params)
+    response.raise_for_status()
+    return response.json()
+
+
+def delete_time_entry(entry_id):
+    url = f"{BASE_URL}/workspaces/{WORKSPACE_ID}/time-entries/{entry_id}"
+    response = requests.delete(url, headers=HEADERS)
+    response.raise_for_status()
+
+
+def delete_existing_entries_for_day(user_id, log_date):
+    entries = get_time_entries_for_day(user_id, log_date)
+    for entry in entries:
+        delete_time_entry(entry["id"])
+        print(f"    Deleted existing entry: {entry['id']}")
+    return len(entries)
 
 
 def create_time_entry(project_id, log_date, description):
@@ -114,9 +159,17 @@ if __name__ == "__main__":
     print("Looking up project ID...")
     project_id = get_project_id(project_name)
     print(f"Found project '{project_name}' → {project_id}")
+
+    print("Looking up current user ID...")
+    user_id = get_current_user_id()
+    print(f"Found user → {user_id}")
     print()
 
     for d in days:
+        deleted_count = delete_existing_entries_for_day(user_id, d)
+        if deleted_count:
+            print(f"  {d.strftime('%a %Y-%m-%d')}: removed {deleted_count} existing entr{'y' if deleted_count == 1 else 'ies'}")
+
         entry = create_time_entry(project_id, d, description)
         print(f"  Created: {d.strftime('%a %Y-%m-%d')}  ({entry['id']})")
 

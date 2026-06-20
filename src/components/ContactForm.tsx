@@ -195,11 +195,11 @@ export default function ContactForm() {
         type="button"
         onClick={handleInquiry}
         disabled={inquiryStatus === 'loading'}
-        className="w-full px-6 py-3 bg-white border-2 border-powder-600 text-powder-600 font-bold rounded-lg hover:bg-powder-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+        className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
       >
         {inquiryStatus === 'loading' ? (
           <span className="flex items-center justify-center gap-2">
-            <span className="w-4 h-4 border-2 border-powder-600 border-t-transparent rounded-full animate-spin"></span>
+            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
             Sending...
           </span>
         ) : (
