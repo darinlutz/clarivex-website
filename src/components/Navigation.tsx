@@ -25,6 +25,7 @@ export default function Navigation() {
               alt="Clarivex Logo"
               width={300}
               height={90}
+              priority
               style={{ width: "180px", height: "auto" }}
               className="group-hover:shadow-lg group-hover:shadow-powder-500/50 transition-all"
             />
