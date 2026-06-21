@@ -1,5 +1,31 @@
 @import "tailwindcss";
-@config "../../tailwind.config.ts";
+
+@theme {
+  --color-powder-50: #f0f9ff;
+  --color-powder-100: #e0f2fe;
+  --color-powder-200: #bae6fd;
+  --color-powder-300: #7dd3fc;
+  --color-powder-400: #38bdf8;
+  --color-powder-500: #0ea5e9;
+  --color-powder-600: #0284c7;
+  --color-powder-700: #0369a1;
+  --color-powder-800: #075985;
+  --color-powder-900: #0c3d66;
+
+  --color-dark-50: #f9fafb;
+  --color-dark-100: #f3f4f6;
+  --color-dark-200: #e5e7eb;
+  --color-dark-300: #d1d5db;
+  --color-dark-400: #9ca3af;
+  --color-dark-500: #6b7280;
+  --color-dark-600: #4b5563;
+  --color-dark-700: #374151;
+  --color-dark-800: #1f2937;
+  --color-dark-900: #0f172a;
+  --color-dark-950: #030712;
+
+  --color-dark-blue: #1e3a8a;
+}
 
 @layer base {
   * {

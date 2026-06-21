@@ -49,7 +49,7 @@ export default function Contact() {
               </div>
 
               {/* What to Expect */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4\">
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
