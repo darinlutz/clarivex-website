@@ -80,7 +80,7 @@ export default function Solutions() {
   return (
     <div className="w-full">
       {/* Header Section */}
-      <section className="py-16 px-6 sm:px-10 lg:px-16 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
+      <section className="py-8 px-3 sm:px-5 lg:px-8 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
             Our Solutions
@@ -92,16 +92,16 @@ export default function Solutions() {
       </section>
 
       {/* Solutions Grid */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-8 px-2 sm:px-3 lg:px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-wrap justify-center gap-8 lg:gap-12">
             {solutions.map((solution, idx) => (
               <div
                 key={solution.id}
-                className="bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-12 transition-all duration-300 transform hover:-translate-y-2 group w-full md:w-[calc(50%-1rem)] lg:w-[calc(50%-1.5rem)]"
+                className="bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-6 transition-all duration-300 transform hover:-translate-y-2 group w-full md:w-[calc(50%-1rem)] lg:w-[calc(50%-1.5rem)]"
               >
                 {/* Icon and Title */}
-                <div className="mb-6 px-2">
+                <div className="mb-3 px-1">
             {/*       <div className="text-5xl mb-4 inline-block p-4 bg-white rounded-lg group-hover:bg-powder-100 transition-colors">
                     {solution.icon}
                   </div> */}
@@ -111,12 +111,12 @@ export default function Solutions() {
                 </div>
 
                 {/* Description */}
-                <p className="text-slate-600 mb-6 text-base leading-relaxed px-2">
+                <p className="text-slate-600 mb-3 text-base leading-relaxed px-1">
                   {solution.description}
                 </p>
 
                 {/* Benefits */}
-                <div className="space-y-3 mb-8 px-2">
+                <div className="space-y-3 mb-4 px-1">
                   <p className="text-powder-600 font-semibold text-sm uppercase tracking-wide">
                     Key Activities
                   </p>
@@ -135,7 +135,7 @@ export default function Solutions() {
                 {/* CTA Button */}
                 <Link
                   href="/contact"
-                  className="inline-block px-6 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
+                  className="inline-block px-3 py-1 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
                 >
                   Learn More
                 </Link>
@@ -148,13 +148,13 @@ export default function Solutions() {
 <br />
 
       {/* Process Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-slate-200 flex flex-col items-center">
+      <section className="py-8 px-2 sm:px-3 lg:px-4 bg-slate-50 border-t border-slate-200 flex flex-col items-center">
         <div className="w-full max-w-4xl">
-          <h2 className="text-3xl font-bold text-center text-dark-blue mb-12">
+          <h2 className="text-3xl font-bold text-center text-dark-blue mb-6">
             Our Process
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
               { step: '1', title: 'Discovery', desc: 'Understand your challenges and goals' },
               { step: '2', title: 'Strategy', desc: 'Design the optimal solution approach' },
@@ -178,17 +178,17 @@ export default function Solutions() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-100 border-t border-slate-200 flex flex-col items-center">
+      <section className="py-8 px-2 sm:px-3 lg:px-4 bg-slate-100 border-t border-slate-200 flex flex-col items-center">
         <div className="w-full max-w-4xl text-center">
-          <h2 className="text-3xl font-bold mb-6 text-dark-blue">
+          <h2 className="text-3xl font-bold mb-3 text-dark-blue">
             Which solution is right for you?
           </h2>
-          <p className="text-lg text-slate-600 mb-8">
+          <p className="text-lg text-slate-600 mb-4">
             Let's explore how these solutions can address your specific business needs.
           </p>
           <Link
             href="/contact"
-            className="inline-block px-8 py-4 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
+            className="inline-block px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
           >
             Schedule a Consultation
           </Link>

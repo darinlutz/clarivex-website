@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="w-full">
       {/* Bitcoin Ticker Section */}
-      <section className="min-h-[40vh] pt-20 pb-10 bg-gradient-to-b from-white via-slate-50 to-slate-100 flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <section className="min-h-[40vh] pt-10 pb-5 bg-gradient-to-b from-white via-slate-50 to-slate-100 flex items-center justify-center px-2 sm:px-3 lg:px-4 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-powder-500/5 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-powder-600/5 rounded-full blur-3xl"></div>
@@ -16,7 +16,7 @@ export default function Home() {
       </section>
 
       {/* Hero Section */}
-      <section className="py-12 bg-gradient-to-b from-slate-100 to-white flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      <section className="py-6 bg-gradient-to-b from-slate-100 to-white flex items-center justify-center px-2 sm:px-3 lg:px-4">
         <div className="max-w-4xl mx-auto text-center">
           {/* Company Name */}
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-6">
@@ -40,14 +40,14 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link
               href="/solutions"
-              className="px-8 py-4 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg
+              className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg
               hover:shadow-powder-500/50 transition-all transform hover:scale-105"
             >
               Explore Solutions
             </Link>
             <Link
               href="/contact"
-              className="px-8 py-4 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg
+              className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg
               hover:shadow-powder-500/50 transition-all transform hover:scale-105"
             >
               Get Started Now
@@ -57,7 +57,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white border-t border-slate-200 flex flex-col items-center">
+      <section className="py-8 px-2 sm:px-3 lg:px-4 bg-white border-t border-slate-200 flex flex-col items-center">
         <div className="w-full max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-red-600">
             Why Choose Clarivex?
@@ -67,7 +67,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
             {/* Feature 1 */}
-            <div className="bg-slate-50 rounded-lg py-10 px-12 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
+            <div className="bg-slate-50 rounded-lg py-5 px-6 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
               <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
@@ -80,7 +80,7 @@ export default function Home() {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-slate-50 rounded-lg py-10 px-12 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
+            <div className="bg-slate-50 rounded-lg py-5 px-6 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
               <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8m-2-13h4v6h-4z" />
@@ -93,7 +93,7 @@ export default function Home() {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-slate-50 rounded-lg py-10 px-12 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
+            <div className="bg-slate-50 rounded-lg py-5 px-6 border border-slate-200 hover:border-powder-300 transition-all transform hover:-translate-y-2">
               <div className="w-12 h-12 bg-gradient-to-br from-powder-500 to-powder-600 rounded-lg mb-4 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
