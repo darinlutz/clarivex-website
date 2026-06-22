@@ -20,7 +20,9 @@ function runClockifyScript(startDate: string, endDate: string, projectName: stri
       '--end', endDate,
       '--project', projectName,
       '--description', description,
-    ]);
+    ], {
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+    });
 
     let stdout = '';
     let stderr = '';

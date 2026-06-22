@@ -4,6 +4,11 @@ import sys
 import requests
 from datetime import datetime, timezone, timedelta, date
 
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
+    sys.stderr.reconfigure(encoding="utf-8")
+
 API_KEY = os.environ.get("CLOCKIFY_API_KEY")
 WORKSPACE_ID = "5f5fb2a73ab33d735bc7ca3a"
 
