@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
+import { submitTimesheet } from '@/lib/clockify';
 
 interface TimesheetFormData {
   startDate: string;
@@ -10,28 +9,6 @@ interface TimesheetFormData {
 }
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-
-function runClockifyScript(startDate: string, endDate: string, projectName: string, description: string) {
-  return new Promise<{ code: number; stdout: string; stderr: string }>((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), 'clockify_entry.py');
-    const proc = spawn('python', [
-      scriptPath,
-      '--start', startDate,
-      '--end', endDate,
-      '--project', projectName,
-      '--description', description,
-    ], {
-      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-    });
-
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (chunk) => (stdout += chunk.toString()));
-    proc.stderr.on('data', (chunk) => (stderr += chunk.toString()));
-    proc.on('error', reject);
-    proc.on('close', (code) => resolve({ code: code ?? 1, stdout, stderr }));
-  });
-}
 
 export async function POST(request: Request) {
   try {
@@ -51,24 +28,31 @@ export async function POST(request: Request) {
       );
     }
 
-    if (new Date(body.startDate) > new Date(body.endDate)) {
+    if (body.startDate > body.endDate) {
       return NextResponse.json(
         { error: 'Start date must be before end date' },
         { status: 400 }
       );
     }
 
-    const result = await runClockifyScript(body.startDate, body.endDate, body.projectName, body.description);
-
-    if (result.code !== 0) {
-      console.error('clockify_entry.py failed:', result.stderr);
+    const apiKey = process.env.CLOCKIFY_API_KEY;
+    if (!apiKey) {
+      console.error('CLOCKIFY_API_KEY is not configured');
       return NextResponse.json(
-        { error: 'Failed to submit time entries' },
+        { error: 'Clockify API key not configured' },
         { status: 500 }
       );
     }
 
-    console.log(result.stdout);
+    const result = await submitTimesheet({
+      apiKey,
+      startDate: body.startDate,
+      endDate: body.endDate,
+      projectName: body.projectName,
+      description: body.description,
+    });
+
+    console.log(result.log.join('\n'));
 
     return NextResponse.json(
       {
