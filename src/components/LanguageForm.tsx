@@ -7,6 +7,45 @@ export default function LanguageForm() {
   const [english, setEnglish] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [speakStatus, setSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [showEnglish, setShowEnglish] = useState(true);
+
+  const maskText = (text: string) => text.replace(/\S/g, '•');
+
+  const handleSpeak = async () => {
+    if (!vietnamese.trim()) return;
+
+    setSpeakStatus('loading');
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: vietnamese }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => URL.revokeObjectURL(audioUrl);
+      await audio.play();
+
+      setSpeakStatus('idle');
+    } catch (error) {
+      setSpeakStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to play audio. Please try again.'
+      );
+    }
+  };
 
   const handleGetSentence = async () => {
     setStatus('loading');
@@ -25,6 +64,7 @@ export default function LanguageForm() {
 
       setVietnamese(data.vietnamese);
       setEnglish(data.english);
+      setShowEnglish(false);
       setStatus('success');
     } catch (error) {
       setStatus('error');
@@ -41,15 +81,29 @@ export default function LanguageForm() {
         <label htmlFor="vietnamese" className="block text-sm font-medium text-dark-blue mb-2">
           Vietnamese
         </label>
-        <input
-          type="text"
-          id="vietnamese"
-          name="vietnamese"
-          value={vietnamese}
-          onChange={(e) => setVietnamese(e.target.value)}
-          placeholder="Press Get New Sentence to generate one"
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-        />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <textarea
+            id="vietnamese"
+            name="vietnamese"
+            value={vietnamese}
+            onChange={(e) => setVietnamese(e.target.value)}
+            placeholder="Press Get New Sentence to generate one"
+            rows={3}
+            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+          />
+          <button
+            type="button"
+            onClick={handleSpeak}
+            disabled={!vietnamese.trim() || speakStatus === 'loading'}
+            className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+          >
+            {speakStatus === 'loading' ? (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+            ) : (
+              'Speak'
+            )}
+          </button>
+        </div>
       </div>
 
       {/* English Field */}
@@ -57,15 +111,26 @@ export default function LanguageForm() {
         <label htmlFor="english" className="block text-sm font-medium text-dark-blue mb-2">
           English
         </label>
-        <input
-          type="text"
-          id="english"
-          name="english"
-          value={english}
-          onChange={(e) => setEnglish(e.target.value)}
-          placeholder="The translation will appear here"
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-        />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <textarea
+            id="english"
+            name="english"
+            value={showEnglish ? english : maskText(english)}
+            onChange={(e) => showEnglish && setEnglish(e.target.value)}
+            readOnly={!showEnglish}
+            placeholder="The translation will appear here"
+            rows={3}
+            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+          />
+          <button
+            type="button"
+            onClick={() => setShowEnglish(!showEnglish)}
+            disabled={!english.trim()}
+            className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+          >
+            {showEnglish ? 'Hide' : 'Show'}
+          </button>
+        </div>
       </div>
 
       {/* Status Messages */}
