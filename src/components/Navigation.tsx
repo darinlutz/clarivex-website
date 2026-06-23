@@ -61,6 +61,13 @@ export default function Navigation() {
             >
               Timesheet
             </Link>
+            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+            <Link
+              href="/trip-planner"
+              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+            >
+              Trip Planner
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -110,6 +117,20 @@ export default function Navigation() {
               onClick={closeMenu}
             >
               Contact
+            </Link>
+            <Link
+              href="/timesheet"
+              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+              onClick={closeMenu}
+            >
+              Timesheet
+            </Link>
+            <Link
+              href="/trip-planner"
+              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+              onClick={closeMenu}
+            >
+              Trip Planner
             </Link>
           </div>
         </div>
