@@ -6,8 +6,8 @@ const VALID_DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const difficulty: Difficulty = VALID_DIFFICULTIES.includes(body.difficulty)
-      ? body.difficulty
+    const complexity: Difficulty = VALID_DIFFICULTIES.includes(body.complexity)
+      ? body.complexity
       : 'easy';
 
     const apiKey = process.env.OPENAI_API_KEY;
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const sentence = await getRandomSentence(difficulty);
+    const sentence = await getRandomSentence(complexity);
 
     return NextResponse.json({ success: true, ...sentence }, { status: 200 });
   } catch (error) {

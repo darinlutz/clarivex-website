@@ -9,7 +9,7 @@ export default function LanguageForm() {
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [showEnglish, setShowEnglish] = useState(true);
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [mode, setMode] = useState<'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'>('nouns');
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -48,6 +48,37 @@ export default function LanguageForm() {
     }
   };
 
+  const handleGetWord = async () => {
+    setStatus('loading');
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/language/word', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ category: mode }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate a new word');
+      }
+
+      setVietnamese(data.vietnamese);
+      setEnglish(data.english);
+      setShowEnglish(false);
+      setStatus('success');
+    } catch (error) {
+      setStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to generate a new word. Please try again.'
+      );
+    }
+  };
+
   const handleGetSentence = async () => {
     setStatus('loading');
     setMessage('');
@@ -58,7 +89,7 @@ export default function LanguageForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ difficulty }),
+        body: JSON.stringify({ complexity: mode }),
       });
 
       const data = await response.json();
@@ -76,6 +107,15 @@ export default function LanguageForm() {
       setMessage(
         error instanceof Error ? error.message : 'Failed to generate a new sentence. Please try again.'
       );
+    }
+  };
+
+  const handleGetLanguageItem = async () => {
+    const isWordMode = ['nouns', 'verbs', 'adjectives'].includes(mode);
+    if (isWordMode) {
+      await handleGetWord();
+    } else {
+      await handleGetSentence();
     }
   };
 
@@ -145,29 +185,30 @@ export default function LanguageForm() {
         </div>
       )}
 
-      {/* Difficulty Selector */}
+      {/* Complexity Categories Selector */}
       <div>
-        <label htmlFor="difficulty" className="block text-sm font-medium text-dark-blue mb-2">
-          Difficulty
+        <label htmlFor="mode" className="block text-sm font-medium text-dark-blue mb-2">
+          Complexity
         </label>
         <select
-          id="difficulty"
-          name="difficulty"
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-          className="w-32 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+          id="mode"
+          name="mode"
+          value={mode}
+          onChange={(e) => setMode(e.target.value as 'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard')}
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
         >
+          <option value="nouns">Nouns/Verbs/Adjectives</option>
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
       </div>
 
-      {/* Get New Sentence Button */}
+      {/* Get New Item Button */}
       <div className="pt-4 pb-2">
         <button
           type="button"
-          onClick={handleGetSentence}
+          onClick={handleGetLanguageItem}
           disabled={status === 'loading'}
           className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
         >
@@ -177,7 +218,7 @@ export default function LanguageForm() {
               Generating...
             </span>
           ) : (
-            'Get New Sentence'
+            ['nouns', 'verbs', 'adjectives'].includes(mode) ? 'Get New Word' : 'Get New Sentence'
           )}
         </button>
       </div>

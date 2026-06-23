@@ -255,3 +255,55 @@ export async function getRandomSentence(
 
   return { vietnamese: finalState.vietnamese, english: finalState.english };
 }
+
+type WordCategory = 'nouns' | 'verbs' | 'adjectives';
+
+const CATEGORY_WORD_EXAMPLES: Record<WordCategory, { pattern: string; examples: string[] }> = {
+  nouns: {
+    pattern: 'Return a single Vietnamese noun (like "sách" (book), "chó" (dog), "nhà" (house)). Include the English translation.',
+    examples: ['sách', 'chó', 'nhà', 'cái bàn', 'con mèo']
+  },
+  verbs: {
+    pattern: 'Return a single Vietnamese verb (like "chạy" (run), "ăn" (eat), "ngủ" (sleep)). Include the English translation.',
+    examples: ['chạy', 'ăn', 'ngủ', 'đi', 'nói']
+  },
+  adjectives: {
+    pattern: 'Return a single Vietnamese adjective (like "đỏ" (red), "to" (big), "nhanh" (fast)). Include the English translation.',
+    examples: ['đỏ', 'to', 'nhanh', 'đen', 'nhỏ']
+  }
+};
+
+const WordSchema = z.object({
+  vietnamese: z.string().describe('A single Vietnamese word with correct diacritics'),
+  english: z.string().describe('The English translation of the Vietnamese word'),
+});
+
+export async function getRandomWord(
+  category: WordCategory = 'nouns'
+): Promise<{ vietnamese: string; english: string }> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+
+  const categoryInfo = CATEGORY_WORD_EXAMPLES[category];
+  
+  const model = new ChatOpenAI({ model: 'gpt-4o', temperature: 1 });
+  const structuredModel = model.withStructuredOutput(WordSchema);
+  
+  const wordPrompt = ChatPromptTemplate.fromMessages([
+    [
+      'system',
+      'You are a Vietnamese language tutor. ' + categoryInfo.pattern
+    ],
+    ['user', `Give me a single ${category === 'nouns' ? 'noun' : category === 'verbs' ? 'verb' : 'adjective'} word to practice.`],
+  ]);
+
+  const chain = wordPrompt.pipe(structuredModel);
+  const response = await chain.invoke({});
+
+  if (!response.vietnamese || !response.english) {
+    throw new Error('Failed to generate a word');
+  }
+
+  return { vietnamese: response.vietnamese, english: response.english };
+}
