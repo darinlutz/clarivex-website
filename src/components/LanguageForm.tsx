@@ -9,6 +9,7 @@ export default function LanguageForm() {
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [showEnglish, setShowEnglish] = useState(true);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -54,6 +55,10 @@ export default function LanguageForm() {
     try {
       const response = await fetch('/api/language', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ difficulty }),
       });
 
       const data = await response.json();
@@ -139,6 +144,24 @@ export default function LanguageForm() {
           {message}
         </div>
       )}
+
+      {/* Difficulty Selector */}
+      <div>
+        <label htmlFor="difficulty" className="block text-sm font-medium text-dark-blue mb-2">
+          Difficulty
+        </label>
+        <select
+          id="difficulty"
+          name="difficulty"
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+          className="w-32 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+        >
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
 
       {/* Get New Sentence Button */}
       <div className="pt-4 pb-2">

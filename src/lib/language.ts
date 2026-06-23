@@ -19,7 +19,25 @@ const DATA_START_ROW = 4;
 // they haven't already memorized.
 const EXCLUDED_CATEGORY = 'SENTENCES';
 
-const MAX_WORDS_PER_CATEGORY = 6;
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+const MAX_WORDS_PER_CATEGORY: Record<Difficulty, number> = {
+  easy: 3,
+  medium: 6,
+  hard: 10,
+};
+
+const DIFFICULTY_INSTRUCTIONS: Record<Difficulty, string> = {
+  easy:
+    'Keep the sentence VERY SIMPLE: 3-5 words total, a basic subject-verb-object (or simpler) ' +
+    'structure, and no conjunctions, clauses, or extra descriptive words.',
+  medium:
+    'Make the sentence MODERATELY COMPLEX: about 6-9 words, optionally including one adjective, ' +
+    'preposition, number, or simple conjunction.',
+  hard:
+    'Make the sentence MORE COMPLEX: 10 or more words, combining multiple categories (e.g. numbers, ' +
+    'classifiers, conjunctions, possession statements) with richer grammar and structure.',
+};
 
 interface VocabEntry {
   category: string;
@@ -124,7 +142,7 @@ async function fetchVocabulary(): Promise<VocabEntry[]> {
   return entries;
 }
 
-function sampleVocabulary(entries: VocabEntry[]): VocabEntry[] {
+function sampleVocabulary(entries: VocabEntry[], difficulty: Difficulty): VocabEntry[] {
   const byCategory = new Map<string, VocabEntry[]>();
   for (const entry of entries) {
     if (entry.category === EXCLUDED_CATEGORY) continue;
@@ -133,10 +151,11 @@ function sampleVocabulary(entries: VocabEntry[]): VocabEntry[] {
     byCategory.set(entry.category, list);
   }
 
+  const maxPerCategory = MAX_WORDS_PER_CATEGORY[difficulty];
   const sample: VocabEntry[] = [];
   for (const list of byCategory.values()) {
     const shuffled = [...list].sort(() => Math.random() - 0.5);
-    sample.push(...shuffled.slice(0, MAX_WORDS_PER_CATEGORY));
+    sample.push(...shuffled.slice(0, maxPerCategory));
   }
 
   return sample;
@@ -169,15 +188,18 @@ const promptTemplate = ChatPromptTemplate.fromMessages([
   [
     'system',
     'You are a Vietnamese language tutor helping a student practice with words they already know.\n' +
-      'Using primarily the vocabulary listed below (grouped by part of speech), construct ONE new, ' +
+      'Using ONLY the vocabulary listed below (you may add minimal grammatical glue words such as ' +
+      '"là", "không", or "của" only if strictly necessary for correct grammar), construct ONE new, ' +
       'natural Vietnamese sentence the student has not necessarily seen before. Vary the grammar and ' +
-      'topic each time. It is fine to add small connecting words not in the list if needed for grammar.\n\n' +
+      'topic each time.\n\n' +
+      '{difficultyInstructions}\n\n' +
       'Known vocabulary:\n{vocabulary}',
   ],
   ['user', 'Give me a new sentence to practice.'],
 ]);
 
 const LanguageState = Annotation.Root({
+  difficulty: Annotation<Difficulty>,
   vocabulary: Annotation<VocabEntry[]>,
   vietnamese: Annotation<string>,
   english: Annotation<string>,
@@ -193,19 +215,23 @@ async function fetchVocabularyNode(): Promise<Partial<LanguageStateType>> {
 async function generateSentenceNode(
   state: LanguageStateType
 ): Promise<Partial<LanguageStateType>> {
-  const sample = sampleVocabulary(state.vocabulary);
+  const sample = sampleVocabulary(state.vocabulary, state.difficulty);
   const vocabularyText = formatVocabularyForPrompt(sample);
+  const difficultyInstructions = DIFFICULTY_INSTRUCTIONS[state.difficulty];
 
   const model = new ChatOpenAI({ model: 'gpt-4o', temperature: 1 });
   const structuredModel = model.withStructuredOutput(SentenceSchema);
   const chain = promptTemplate.pipe(structuredModel);
 
-  const response = await chain.invoke({ vocabulary: vocabularyText });
+  const response = await chain.invoke({
+    vocabulary: vocabularyText,
+    difficultyInstructions,
+  });
   return { vietnamese: response.vietnamese, english: response.english };
 }
 
 // fetchVocabulary -> generateSentence today; future steps (e.g. spaced-repetition
-// tracking, difficulty tuning) can be added as additional nodes in this graph.
+// tracking) can be added as additional nodes in this graph.
 const graph = new StateGraph(LanguageState)
   .addNode('fetchVocabulary', fetchVocabularyNode)
   .addNode('generateSentence', generateSentenceNode)
@@ -214,12 +240,14 @@ const graph = new StateGraph(LanguageState)
   .addEdge('generateSentence', END)
   .compile();
 
-export async function getRandomSentence(): Promise<{ vietnamese: string; english: string }> {
+export async function getRandomSentence(
+  difficulty: Difficulty = 'easy'
+): Promise<{ vietnamese: string; english: string }> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const finalState = await graph.invoke({});
+  const finalState = await graph.invoke({ difficulty });
 
   if (!finalState.vietnamese || !finalState.english) {
     throw new Error('Language graph did not return a sentence');

@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getRandomSentence } from '@/lib/language';
+import { getRandomSentence, type Difficulty } from '@/lib/language';
 
-export async function POST() {
+const VALID_DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
+
+export async function POST(request: Request) {
   try {
+    const body = await request.json().catch(() => ({}));
+    const difficulty: Difficulty = VALID_DIFFICULTIES.includes(body.difficulty)
+      ? body.difficulty
+      : 'easy';
+
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       console.error('OPENAI_API_KEY is not configured');
@@ -12,7 +19,7 @@ export async function POST() {
       );
     }
 
-    const sentence = await getRandomSentence();
+    const sentence = await getRandomSentence(difficulty);
 
     return NextResponse.json({ success: true, ...sentence }, { status: 200 });
   } catch (error) {
