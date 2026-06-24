@@ -11,6 +11,14 @@ export default function LanguageForm() {
   const [showEnglish, setShowEnglish] = useState(true);
   const [mode, setMode] = useState<'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'>('nouns');
 
+  // Session memory: words/sentences already generated, so the same common
+  // ones don't keep coming up. Resets on page reload.
+  const [usedWordsByCategory, setUsedWordsByCategory] = useState<
+    Record<'nouns' | 'verbs' | 'adjectives', string[]>
+  >({ nouns: [], verbs: [], adjectives: [] });
+  const [usedSentenceWords, setUsedSentenceWords] = useState<string[]>([]);
+  const [usedSentences, setUsedSentences] = useState<string[]>([]);
+
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
   const handleSpeak = async () => {
@@ -52,13 +60,15 @@ export default function LanguageForm() {
     setStatus('loading');
     setMessage('');
 
+    const category = mode as 'nouns' | 'verbs' | 'adjectives';
+
     try {
       const response = await fetch('/api/language/word', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ category: mode }),
+        body: JSON.stringify({ category, usedWords: usedWordsByCategory[category] }),
       });
 
       const data = await response.json();
@@ -71,6 +81,10 @@ export default function LanguageForm() {
       setEnglish(data.english);
       setShowEnglish(false);
       setStatus('success');
+      setUsedWordsByCategory((prev) => ({
+        ...prev,
+        [category]: [...prev[category], data.vietnamese].slice(-100),
+      }));
     } catch (error) {
       setStatus('error');
       setMessage(
@@ -89,7 +103,11 @@ export default function LanguageForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ complexity: mode }),
+        body: JSON.stringify({
+          complexity: mode,
+          usedWords: usedSentenceWords,
+          usedSentences: usedSentences.slice(-8),
+        }),
       });
 
       const data = await response.json();
@@ -102,6 +120,10 @@ export default function LanguageForm() {
       setEnglish(data.english);
       setShowEnglish(false);
       setStatus('success');
+      setUsedSentences((prev) => [...prev, data.vietnamese].slice(-50));
+      setUsedSentenceWords((prev) =>
+        Array.from(new Set([...prev, ...(data.wordsUsed ?? [])])).slice(-100)
+      );
     } catch (error) {
       setStatus('error');
       setMessage(

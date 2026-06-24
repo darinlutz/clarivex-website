@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRandomWord } from '@/lib/language';
+import { getRandomWord, type WordCategory } from '@/lib/language';
 
-type WordCategory = 'nouns' | 'verbs' | 'adjectives';
 const VALID_CATEGORIES: WordCategory[] = ['nouns', 'verbs', 'adjectives'];
 
 export async function POST(request: Request) {
@@ -10,17 +9,9 @@ export async function POST(request: Request) {
     const category: WordCategory = VALID_CATEGORIES.includes(body.category)
       ? body.category
       : 'nouns';
+    const usedWords: string[] = Array.isArray(body.usedWords) ? body.usedWords : [];
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error('OPENAI_API_KEY is not configured');
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
-        { status: 500 }
-      );
-    }
-
-    const word = await getRandomWord(category);
+    const word = await getRandomWord(category, usedWords);
 
     return NextResponse.json({ success: true, ...word }, { status: 200 });
   } catch (error) {

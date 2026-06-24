@@ -9,6 +9,8 @@ export async function POST(request: Request) {
     const complexity: Difficulty = VALID_DIFFICULTIES.includes(body.complexity)
       ? body.complexity
       : 'easy';
+    const usedWords: string[] = Array.isArray(body.usedWords) ? body.usedWords : [];
+    const usedSentences: string[] = Array.isArray(body.usedSentences) ? body.usedSentences : [];
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -19,7 +21,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const sentence = await getRandomSentence(complexity);
+    const sentence = await getRandomSentence(complexity, usedWords, usedSentences);
 
     return NextResponse.json({ success: true, ...sentence }, { status: 200 });
   } catch (error) {

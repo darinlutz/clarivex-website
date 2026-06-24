@@ -142,7 +142,18 @@ export async function fetchVocabulary(): Promise<VocabEntry[]> {
   return entries;
 }
 
-function sampleVocabulary(entries: VocabEntry[], difficulty: Difficulty): VocabEntry[] {
+function shuffle<T>(items: T[]): T[] {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
+// Prefers vocabulary words that haven't appeared in a recent sentence yet,
+// only falling back to already-used words once a category's fresh words run
+// out, so the same common words don't dominate every sentence.
+function sampleVocabulary(
+  entries: VocabEntry[],
+  difficulty: Difficulty,
+  usedWords: Set<string>
+): VocabEntry[] {
   const byCategory = new Map<string, VocabEntry[]>();
   for (const entry of entries) {
     if (entry.category === EXCLUDED_CATEGORY) continue;
@@ -154,8 +165,10 @@ function sampleVocabulary(entries: VocabEntry[], difficulty: Difficulty): VocabE
   const maxPerCategory = MAX_WORDS_PER_CATEGORY[difficulty];
   const sample: VocabEntry[] = [];
   for (const list of byCategory.values()) {
-    const shuffled = [...list].sort(() => Math.random() - 0.5);
-    sample.push(...shuffled.slice(0, maxPerCategory));
+    const unused = list.filter((entry) => !usedWords.has(entry.vietnamese));
+    const used = list.filter((entry) => usedWords.has(entry.vietnamese));
+    const ordered = [...shuffle(unused), ...shuffle(used)];
+    sample.push(...ordered.slice(0, maxPerCategory));
   }
 
   return sample;
@@ -182,6 +195,11 @@ const SentenceSchema = z.object({
     .string()
     .describe('A new Vietnamese practice sentence, written with correct diacritics'),
   english: z.string().describe('The natural English translation of the Vietnamese sentence'),
+  wordsUsed: z
+    .array(z.string())
+    .describe(
+      'The Vietnamese vocabulary words from the list above (exactly as written there) that you used in the sentence'
+    ),
 });
 
 const promptTemplate = ChatPromptTemplate.fromMessages([
@@ -193,6 +211,8 @@ const promptTemplate = ChatPromptTemplate.fromMessages([
       'natural Vietnamese sentence the student has not necessarily seen before. Vary the grammar and ' +
       'topic each time.\n\n' +
       '{difficultyInstructions}\n\n' +
+      'Sentences already given to the student recently (do NOT repeat any of these or anything ' +
+      'nearly identical):\n{recentSentences}\n\n' +
       'Known vocabulary:\n{vocabulary}',
   ],
   ['user', 'Give me a new sentence to practice.'],
@@ -200,9 +220,12 @@ const promptTemplate = ChatPromptTemplate.fromMessages([
 
 const LanguageState = Annotation.Root({
   difficulty: Annotation<Difficulty>,
+  usedWords: Annotation<string[]>,
+  usedSentences: Annotation<string[]>,
   vocabulary: Annotation<VocabEntry[]>,
   vietnamese: Annotation<string>,
   english: Annotation<string>,
+  wordsUsed: Annotation<string[]>,
 });
 
 type LanguageStateType = typeof LanguageState.State;
@@ -215,9 +238,11 @@ async function fetchVocabularyNode(): Promise<Partial<LanguageStateType>> {
 async function generateSentenceNode(
   state: LanguageStateType
 ): Promise<Partial<LanguageStateType>> {
-  const sample = sampleVocabulary(state.vocabulary, state.difficulty);
+  const sample = sampleVocabulary(state.vocabulary, state.difficulty, new Set(state.usedWords));
   const vocabularyText = formatVocabularyForPrompt(sample);
   const difficultyInstructions = DIFFICULTY_INSTRUCTIONS[state.difficulty];
+  const recentSentences =
+    state.usedSentences.length > 0 ? state.usedSentences.join('\n') : 'None yet.';
 
   const model = new ChatOpenAI({ model: 'gpt-4o', temperature: 1 });
   const structuredModel = model.withStructuredOutput(SentenceSchema);
@@ -226,8 +251,13 @@ async function generateSentenceNode(
   const response = await chain.invoke({
     vocabulary: vocabularyText,
     difficultyInstructions,
+    recentSentences,
   });
-  return { vietnamese: response.vietnamese, english: response.english };
+  return {
+    vietnamese: response.vietnamese,
+    english: response.english,
+    wordsUsed: response.wordsUsed,
+  };
 }
 
 // fetchVocabulary -> generateSentence today; future steps (e.g. spaced-repetition
@@ -241,69 +271,55 @@ const graph = new StateGraph(LanguageState)
   .compile();
 
 export async function getRandomSentence(
-  difficulty: Difficulty = 'easy'
-): Promise<{ vietnamese: string; english: string }> {
+  difficulty: Difficulty = 'easy',
+  usedWords: string[] = [],
+  usedSentences: string[] = []
+): Promise<{ vietnamese: string; english: string; wordsUsed: string[] }> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const finalState = await graph.invoke({ difficulty });
+  const finalState = await graph.invoke({ difficulty, usedWords, usedSentences });
 
   if (!finalState.vietnamese || !finalState.english) {
     throw new Error('Language graph did not return a sentence');
   }
 
-  return { vietnamese: finalState.vietnamese, english: finalState.english };
+  return {
+    vietnamese: finalState.vietnamese,
+    english: finalState.english,
+    wordsUsed: finalState.wordsUsed ?? [],
+  };
 }
 
-type WordCategory = 'nouns' | 'verbs' | 'adjectives';
+export type WordCategory = 'nouns' | 'verbs' | 'adjectives';
 
-const CATEGORY_WORD_EXAMPLES: Record<WordCategory, { pattern: string; examples: string[] }> = {
-  nouns: {
-    pattern: 'Return a single Vietnamese noun (like "sách" (book), "chó" (dog), "nhà" (house)). Include the English translation.',
-    examples: ['sách', 'chó', 'nhà', 'cái bàn', 'con mèo']
-  },
-  verbs: {
-    pattern: 'Return a single Vietnamese verb (like "chạy" (run), "ăn" (eat), "ngủ" (sleep)). Include the English translation.',
-    examples: ['chạy', 'ăn', 'ngủ', 'đi', 'nói']
-  },
-  adjectives: {
-    pattern: 'Return a single Vietnamese adjective (like "đỏ" (red), "to" (big), "nhanh" (fast)). Include the English translation.',
-    examples: ['đỏ', 'to', 'nhanh', 'đen', 'nhỏ']
-  }
+const WORD_CATEGORY_SHEET_NAME: Record<WordCategory, string> = {
+  nouns: 'NOUNS',
+  verbs: 'VERBS',
+  adjectives: 'ADJECTIVES',
 };
 
-const WordSchema = z.object({
-  vietnamese: z.string().describe('A single Vietnamese word with correct diacritics'),
-  english: z.string().describe('The English translation of the Vietnamese word'),
-});
-
+// Draws a real word the student already knows from their vocabulary sheet
+// (rather than letting the model invent one), preferring words not in
+// usedWords so the same common words don't keep coming up; once every word
+// in the category has been used, the pool resets so words can recycle.
 export async function getRandomWord(
-  category: WordCategory = 'nouns'
+  category: WordCategory = 'nouns',
+  usedWords: string[] = []
 ): Promise<{ vietnamese: string; english: string }> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not configured');
+  const entries = await fetchVocabulary();
+  const sheetCategory = WORD_CATEGORY_SHEET_NAME[category];
+  const pool = entries.filter((entry) => entry.category === sheetCategory);
+
+  if (pool.length === 0) {
+    throw new Error(`No ${category} found in the vocabulary sheet`);
   }
 
-  const categoryInfo = CATEGORY_WORD_EXAMPLES[category];
-  
-  const model = new ChatOpenAI({ model: 'gpt-4o', temperature: 1 });
-  const structuredModel = model.withStructuredOutput(WordSchema);
-  
-  const wordPrompt = ChatPromptTemplate.fromMessages([
-    [
-      'system',
-      'You are a Vietnamese language tutor. ' + categoryInfo.pattern
-    ],
-    ['user', `Give me a single ${category === 'nouns' ? 'noun' : category === 'verbs' ? 'verb' : 'adjective'} word to practice.`],
-  ]);
+  const usedSet = new Set(usedWords);
+  const unused = pool.filter((entry) => !usedSet.has(entry.vietnamese));
+  const candidates = unused.length > 0 ? unused : pool;
+  const choice = candidates[Math.floor(Math.random() * candidates.length)];
 
-  const chain = wordPrompt.pipe(structuredModel);
-  const response = await chain.invoke({});
-
-  if (!response.vietnamese || !response.english) {
-    throw new Error('Failed to generate a word');
-  }
-
-  return { vietnamese: response.vietnamese, english: response.english };
+  return { vietnamese: choice.vietnamese, english: choice.english };
 }
