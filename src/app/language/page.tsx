@@ -39,6 +39,8 @@ export default function Language() {
   const [friendInputTranslation, setFriendInputTranslation] = useState('');
   const [friendSpeakStatus, setFriendSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
+  const maskText = (text: string) => text.replace(/\S/g, '•');
+
   const fromLanguage = isSwapped ? 'English' : 'Vietnamese';
   const toLanguage = isSwapped ? 'Vietnamese' : 'English';
   const translatorVietnameseText = isSwapped ? translatorBottomText : translatorTopText;
@@ -434,12 +436,12 @@ export default function Language() {
                         rows={3}
                       />
                     ) : (
-                      <input
-                        type="password"
-                        value={vietnameseText}
+                      <textarea
+                        value={maskText(vietnameseText)}
                         readOnly
                         placeholder="Press Get New Sentence to generate one"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        rows={3}
                       />
                     )}
                   </div>
@@ -697,7 +699,7 @@ export default function Language() {
                       type="button"
                       onClick={handleFriendSpeak}
                       disabled={!friendMessages.some((msg) => msg.role === 'assistant') || friendSpeakStatus === 'loading'}
-                      className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                      className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-end"
                     >
                       {friendSpeakStatus === 'loading' ? (
                         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
