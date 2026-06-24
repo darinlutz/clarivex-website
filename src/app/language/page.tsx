@@ -38,6 +38,8 @@ export default function Language() {
   const [friendDifficulty, setFriendDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [friendInputTranslation, setFriendInputTranslation] = useState('');
   const [friendSpeakStatus, setFriendSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [friendReplyTranslation, setFriendReplyTranslation] = useState('');
+  const [showFriendReplyTranslation, setShowFriendReplyTranslation] = useState(false);
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -228,6 +230,37 @@ export default function Language() {
     }
   };
 
+  const translateFriendReply = async (text: string) => {
+    if (!text.trim()) return;
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          direction: 'vi-to-en',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to translate text');
+      }
+
+      setFriendReplyTranslation(data.translation);
+    } catch {
+      // Silently ignore translation errors so they don't interrupt the chat.
+    }
+  };
+
+  const handleToggleFriendReplyTranslation = () => {
+    setShowFriendReplyTranslation((prev) => !prev);
+  };
+
   const handleFriendSpeak = () => {
     const lastAssistantMessage = [...friendMessages].reverse().find((msg) => msg.role === 'assistant');
     if (lastAssistantMessage) {
@@ -258,6 +291,7 @@ export default function Language() {
       setFriendStarted(true);
       setFriendStatus('idle');
       playFriendSpeech(data.reply);
+      translateFriendReply(data.reply);
     } catch (error) {
       setFriendStatus('error');
       setFriendMessage(
@@ -294,6 +328,7 @@ export default function Language() {
       setFriendMessages([...updatedMessages, { role: 'assistant', content: data.reply }]);
       setFriendStatus('idle');
       playFriendSpeech(data.reply);
+      translateFriendReply(data.reply);
     } catch (error) {
       setFriendStatus('error');
       setFriendMessage(
@@ -695,19 +730,40 @@ export default function Language() {
                         ))
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleFriendSpeak}
-                      disabled={!friendMessages.some((msg) => msg.role === 'assistant') || friendSpeakStatus === 'loading'}
-                      className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-end"
-                    >
-                      {friendSpeakStatus === 'loading' ? (
-                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
-                      ) : (
-                        'Speak'
-                      )}
-                    </button>
+                    <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
+                      <button
+                        type="button"
+                        onClick={handleFriendSpeak}
+                        disabled={!friendMessages.some((msg) => msg.role === 'assistant') || friendSpeakStatus === 'loading'}
+                        className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                      >
+                        {friendSpeakStatus === 'loading' ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                        ) : (
+                          'Speak'
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleToggleFriendReplyTranslation}
+                        disabled={!friendMessages.some((msg) => msg.role === 'assistant')}
+                        className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                      >
+                        {showFriendReplyTranslation ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* English Translation of the chatbot's most recent message */}
+                  {showFriendReplyTranslation && (
+                    <input
+                      type="text"
+                      value={friendReplyTranslation}
+                      readOnly
+                      placeholder="The English translation will appear here"
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                    />
+                  )}
 
                   {/* Status Message */}
                   {friendMessage && (
