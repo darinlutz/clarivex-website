@@ -11,7 +11,7 @@ export default function Contact() {
             Get in Touch
           </h1>
           <p className="text-lg text-slate-600">
-            Ready to discuss your project? We'd love to hear about your challenges and how we can help.
+            Ready to discuss your project? We&apos;d love to hear about your challenges and how we can help.
           </p>
         </div>
       </section>
@@ -114,10 +114,10 @@ export default function Contact() {
       <section className="py-8 px-2 sm:px-3 lg:px-4 bg-slate-100 border-t border-slate-200 flex flex-col items-center">
         <div className="w-full max-w-4xl text-center">
           <h2 className="text-3xl font-bold mb-3 text-dark-blue">
-            Don't see your question answered?
+            Don&apos;t see your question answered?
           </h2>
           <p className="text-lg text-slate-600 mb-4">
-            Reach out directly and we'll be happy to help.
+            Reach out directly and we&apos;ll be happy to help.
           </p>
           <Link
             href="/contact"

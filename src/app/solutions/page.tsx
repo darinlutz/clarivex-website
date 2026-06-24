@@ -95,7 +95,7 @@ export default function Solutions() {
       <section className="py-8 px-2 sm:px-3 lg:px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-wrap justify-center gap-8 lg:gap-12">
-            {solutions.map((solution, idx) => (
+            {solutions.map((solution) => (
               <div
                 key={solution.id}
                 className="bg-slate-50 rounded-xl border border-slate-200 hover:border-powder-300 p-6 transition-all duration-300 transform hover:-translate-y-2 group w-full md:w-[calc(50%-1rem)] lg:w-[calc(50%-1.5rem)]"
@@ -184,7 +184,7 @@ export default function Solutions() {
             Which solution is right for you?
           </h2>
           <p className="text-lg text-slate-600 mb-4">
-            Let's explore how these solutions can address your specific business needs.
+            Let&apos;s explore how these solutions can address your specific business needs.
           </p>
           <Link
             href="/contact"

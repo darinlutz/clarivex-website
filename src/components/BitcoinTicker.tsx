@@ -14,34 +14,41 @@ export default function BitcoinTicker() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const fetchBitcoinPrice = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const apiUrl = new URL('/api/bitcoin', window.location.origin).toString();
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error('Failed to fetch Bitcoin price');
-
-      const data: BitcoinPrice = await response.json();
-      setPrice(data.price);
-      setLastUpdate(new Date());
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch price');
-      console.error('Bitcoin price fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let ignore = false;
+
+    const fetchBitcoinPrice = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const apiUrl = new URL('/api/bitcoin', window.location.origin).toString();
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error('Failed to fetch Bitcoin price');
+
+        const data: BitcoinPrice = await response.json();
+        if (ignore) return;
+        setPrice(data.price);
+        setLastUpdate(new Date());
+        setError(null);
+      } catch (err) {
+        if (ignore) return;
+        setError(err instanceof Error ? err.message : 'Failed to fetch price');
+        console.error('Bitcoin price fetch error:', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
     fetchBitcoinPrice();
 
     // Poll every 30 seconds
     const interval = setInterval(fetchBitcoinPrice, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      ignore = true;
+      clearInterval(interval);
+    };
   }, []);
 
   return (

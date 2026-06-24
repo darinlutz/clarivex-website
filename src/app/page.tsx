@@ -115,7 +115,7 @@ export default function Home() {
             Ready to Transform Your Business?
           </h2>
           <p className="text-lg text-slate-600 mb-8">
-            Let's discuss how Clarivex can help you automate, streamline, and scale your operations.
+            Let&apos;s discuss how Clarivex can help you automate, streamline, and scale your operations.
           </p>
           <Link
             href="/contact"
