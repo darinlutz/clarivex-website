@@ -17,7 +17,7 @@ export default function TripPlanner() {
 
       {/* Trip Planner Content */}
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
-        <div className="w-full max-w-xl">
+        <div className="w-full max-w-4xl">
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
             <h2 className="text-2xl font-bold text-dark-blue mb-2">Plan Your Trip</h2>
             <p className="text-slate-600 mb-8">

@@ -397,8 +397,14 @@ export default function Language() {
                       <textarea
                         id="translatorFrom"
                         name="translatorFrom"
+                        lang={isSwapped ? 'en' : 'vi'}
                         value={translatorTopText}
                         onChange={(e) => setTranslatorTopText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ') {
+                            handleTranslate();
+                          }
+                        }}
                         placeholder={`Type ${fromLanguage} text here`}
                         rows={3}
                         className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
