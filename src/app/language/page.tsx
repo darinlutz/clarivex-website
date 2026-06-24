@@ -4,22 +4,64 @@ import { useState } from 'react';
 import LanguageForm from '@/components/LanguageForm';
 
 export default function Language() {
-  const [activeTab, setActiveTab] = useState<'reading' | 'writing'>('reading');
+  const [activeTab, setActiveTab] = useState<'reading' | 'writing' | 'translator'>('reading');
   const [vietnameseText, setVietnameseText] = useState('');
   const [userInput, setUserInput] = useState('');
-  const [showEnglish, setShowEnglish] = useState(false);
   const [showVietnamese, setShowVietnamese] = useState(true);
   const [englishText, setEnglishText] = useState('');
-  const [complexity, setComplexity] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [complexity, setComplexity] = useState<
+    'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
+  >('easy');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+
+  const [translatorVietnamese, setTranslatorVietnamese] = useState('');
+  const [translatorEnglish, setTranslatorEnglish] = useState('');
+  const [translatorStatus, setTranslatorStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle');
+  const [translatorMessage, setTranslatorMessage] = useState('');
+  const [translatorSpeakStatus, setTranslatorSpeakStatus] = useState<
+    'idle' | 'loading' | 'error'
+  >('idle');
+
+  const handleGetWord = async () => {
+    setStatus('loading');
+    setMessage('');
+    setUserInput('');
+    setShowVietnamese(false);
+
+    try {
+      const response = await fetch('/api/language/word', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ category: complexity }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate a new word');
+      }
+
+      setVietnameseText(data.vietnamese);
+      setEnglishText(data.english);
+      setStatus('success');
+    } catch (error) {
+      setStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to generate a new word. Please try again.'
+      );
+    }
+  };
 
   const handleGetSentence = async () => {
     setStatus('loading');
     setMessage('');
     setUserInput('');
-    setShowEnglish(false);
-    setShowVietnamese(true);
+    setShowVietnamese(false);
 
     try {
       const response = await fetch('/api/language', {
@@ -43,6 +85,81 @@ export default function Language() {
       setStatus('error');
       setMessage(
         error instanceof Error ? error.message : 'Failed to generate a new sentence. Please try again.'
+      );
+    }
+  };
+
+  const handleGetLanguageItem = async () => {
+    const isWordMode = ['nouns', 'verbs', 'adjectives'].includes(complexity);
+    if (isWordMode) {
+      await handleGetWord();
+    } else {
+      await handleGetSentence();
+    }
+  };
+
+  const handleTranslatorSpeak = async () => {
+    if (!translatorVietnamese.trim()) return;
+
+    setTranslatorSpeakStatus('loading');
+    setTranslatorMessage('');
+
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: translatorVietnamese }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => URL.revokeObjectURL(audioUrl);
+      await audio.play();
+
+      setTranslatorSpeakStatus('idle');
+    } catch (error) {
+      setTranslatorSpeakStatus('error');
+      setTranslatorMessage(
+        error instanceof Error ? error.message : 'Failed to play audio. Please try again.'
+      );
+    }
+  };
+
+  const handleTranslate = async () => {
+    if (!translatorVietnamese.trim()) return;
+
+    setTranslatorStatus('loading');
+    setTranslatorMessage('');
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: translatorVietnamese }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to translate text');
+      }
+
+      setTranslatorEnglish(data.english);
+      setTranslatorStatus('success');
+    } catch (error) {
+      setTranslatorStatus('error');
+      setTranslatorMessage(
+        error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
       );
     }
   };
@@ -87,6 +204,16 @@ export default function Language() {
               }`}
             >
               Writing
+            </button>
+            <button
+              onClick={() => setActiveTab('translator')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'translator'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Translator
             </button>
           </div>
 
@@ -161,6 +288,18 @@ export default function Language() {
                     </div>
                   </div>
 
+                  {/* English Display */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">English</label>
+                    <textarea
+                      value={englishText}
+                      readOnly
+                      placeholder="The translation will appear here"
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                      rows={3}
+                    />
+                  </div>
+
                   {/* Complexity Selector */}
                   <div>
                     <label htmlFor="complexity" className="block text-sm font-medium text-dark-blue mb-2">
@@ -169,30 +308,19 @@ export default function Language() {
                     <select
                       id="complexity"
                       value={complexity}
-                      onChange={(e) => setComplexity(e.target.value as 'easy' | 'medium' | 'hard')}
+                      onChange={(e) =>
+                        setComplexity(
+                          e.target.value as 'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
+                        )
+                      }
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     >
+                      <option value="nouns">Nouns/Verbs/Adjectives</option>
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
                       <option value="hard">Hard</option>
                     </select>
                   </div>
-
-                  {/* English Display */}
-                  {showEnglish && (
-                    <div>
-                      <label className="block text-sm font-medium text-dark-blue mb-2">
-                        English
-                      </label>
-                      <textarea
-                        value={englishText}
-                        readOnly
-                        placeholder="The translation will appear here"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={3}
-                      />
-                    </div>
-                  )}
 
                   {/* Status Message */}
                   {message && (
@@ -201,11 +329,11 @@ export default function Language() {
                     </div>
                   )}
 
-                  {/* Get New Sentence Button */}
+                  {/* Get New Word/Sentence Button */}
                   <div className="pt-4">
                     <button
                       type="button"
-                      onClick={handleGetSentence}
+                      onClick={handleGetLanguageItem}
                       disabled={status === 'loading'}
                       className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                     >
@@ -214,8 +342,94 @@ export default function Language() {
                           <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                           Generating...
                         </span>
+                      ) : ['nouns', 'verbs', 'adjectives'].includes(complexity) ? (
+                        'Get New Word'
                       ) : (
                         'Get New Sentence'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Translator Tab */}
+            {activeTab === 'translator' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Translator</h2>
+                <p className="text-slate-600 mb-8">
+                  Type Vietnamese text below and press Translate to see the English translation.
+                </p>
+
+                <div className="space-y-6">
+                  {/* Vietnamese Field */}
+                  <div>
+                    <label htmlFor="translatorVietnamese" className="block text-sm font-medium text-dark-blue mb-2">
+                      Vietnamese
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <textarea
+                        id="translatorVietnamese"
+                        name="translatorVietnamese"
+                        value={translatorVietnamese}
+                        onChange={(e) => setTranslatorVietnamese(e.target.value)}
+                        placeholder="Type Vietnamese text here"
+                        rows={3}
+                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTranslatorSpeak}
+                        disabled={!translatorVietnamese.trim() || translatorSpeakStatus === 'loading'}
+                        className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                      >
+                        {translatorSpeakStatus === 'loading' ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                        ) : (
+                          'Speak'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* English Field */}
+                  <div>
+                    <label htmlFor="translatorEnglish" className="block text-sm font-medium text-dark-blue mb-2">
+                      English
+                    </label>
+                    <textarea
+                      id="translatorEnglish"
+                      name="translatorEnglish"
+                      value={translatorEnglish}
+                      readOnly
+                      placeholder="The translation will appear here"
+                      rows={3}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                    />
+                  </div>
+
+                  {/* Status Messages */}
+                  {translatorMessage && (
+                    <div className="p-4 rounded-lg bg-red-100 border border-red-300 text-red-800">
+                      {translatorMessage}
+                    </div>
+                  )}
+
+                  {/* Translate Button */}
+                  <div className="pt-4 pb-2">
+                    <button
+                      type="button"
+                      onClick={handleTranslate}
+                      disabled={!translatorVietnamese.trim() || translatorStatus === 'loading'}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                    >
+                      {translatorStatus === 'loading' ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Translating...
+                        </span>
+                      ) : (
+                        'Translate'
                       )}
                     </button>
                   </div>
