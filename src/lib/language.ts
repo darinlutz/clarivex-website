@@ -39,7 +39,7 @@ const DIFFICULTY_INSTRUCTIONS: Record<Difficulty, string> = {
     'classifiers, conjunctions, possession statements) with richer grammar and structure.',
 };
 
-interface VocabEntry {
+export interface VocabEntry {
   category: string;
   english: string;
   vietnamese: string;
@@ -107,7 +107,7 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
-async function fetchVocabulary(): Promise<VocabEntry[]> {
+export async function fetchVocabulary(): Promise<VocabEntry[]> {
   const res = await fetch(VOCAB_SHEET_CSV_URL);
   if (!res.ok) {
     throw new Error(`Failed to fetch Vietnamese notes sheet (${res.status})`);

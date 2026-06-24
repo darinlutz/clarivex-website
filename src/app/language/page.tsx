@@ -4,7 +4,9 @@ import { useState } from 'react';
 import LanguageForm from '@/components/LanguageForm';
 
 export default function Language() {
-  const [activeTab, setActiveTab] = useState<'reading' | 'writing' | 'translator'>('reading');
+  const [activeTab, setActiveTab] = useState<'reading' | 'writing' | 'translator' | 'friend'>(
+    'reading'
+  );
   const [vietnameseText, setVietnameseText] = useState('');
   const [userInput, setUserInput] = useState('');
   const [showVietnamese, setShowVietnamese] = useState(true);
@@ -25,6 +27,17 @@ export default function Language() {
   const [translatorSpeakStatus, setTranslatorSpeakStatus] = useState<
     'idle' | 'loading' | 'error'
   >('idle');
+
+  const [friendMessages, setFriendMessages] = useState<
+    { role: 'user' | 'assistant'; content: string }[]
+  >([]);
+  const [friendStarted, setFriendStarted] = useState(false);
+  const [friendInput, setFriendInput] = useState('');
+  const [friendStatus, setFriendStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [friendMessage, setFriendMessage] = useState('');
+  const [friendDifficulty, setFriendDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [friendInputTranslation, setFriendInputTranslation] = useState('');
+  const [friendSpeakStatus, setFriendSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
   const fromLanguage = isSwapped ? 'English' : 'Vietnamese';
   const toLanguage = isSwapped ? 'Vietnamese' : 'English';
@@ -179,6 +192,141 @@ export default function Language() {
     setTranslatorMessage('');
   };
 
+  const playFriendSpeech = async (text: string) => {
+    if (!text.trim()) return;
+
+    setFriendSpeakStatus('loading');
+
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => URL.revokeObjectURL(audioUrl);
+      await audio.play();
+
+      setFriendSpeakStatus('idle');
+    } catch (error) {
+      setFriendSpeakStatus('error');
+      setFriendMessage(
+        error instanceof Error ? error.message : 'Failed to play audio. Please try again.'
+      );
+    }
+  };
+
+  const handleFriendSpeak = () => {
+    const lastAssistantMessage = [...friendMessages].reverse().find((msg) => msg.role === 'assistant');
+    if (lastAssistantMessage) {
+      playFriendSpeech(lastAssistantMessage.content);
+    }
+  };
+
+  const handleFriendStart = async () => {
+    setFriendStatus('loading');
+    setFriendMessage('');
+
+    try {
+      const response = await fetch('/api/friend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ history: [], difficulty: friendDifficulty }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start the conversation');
+      }
+
+      setFriendMessages([{ role: 'assistant', content: data.reply }]);
+      setFriendStarted(true);
+      setFriendStatus('idle');
+      playFriendSpeech(data.reply);
+    } catch (error) {
+      setFriendStatus('error');
+      setFriendMessage(
+        error instanceof Error ? error.message : 'Failed to start the conversation. Please try again.'
+      );
+    }
+  };
+
+  const handleFriendSend = async () => {
+    if (!friendInput.trim()) return;
+
+    const updatedMessages = [...friendMessages, { role: 'user' as const, content: friendInput }];
+    setFriendMessages(updatedMessages);
+    setFriendInput('');
+    setFriendInputTranslation('');
+    setFriendStatus('loading');
+    setFriendMessage('');
+
+    try {
+      const response = await fetch('/api/friend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ history: updatedMessages, difficulty: friendDifficulty }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get a reply');
+      }
+
+      setFriendMessages([...updatedMessages, { role: 'assistant', content: data.reply }]);
+      setFriendStatus('idle');
+      playFriendSpeech(data.reply);
+    } catch (error) {
+      setFriendStatus('error');
+      setFriendMessage(
+        error instanceof Error ? error.message : 'Failed to get a reply. Please try again.'
+      );
+    }
+  };
+
+  const handleFriendTranslateInput = async () => {
+    if (!friendInput.trim()) return;
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: friendInput,
+          direction: 'vi-to-en',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to translate text');
+      }
+
+      setFriendInputTranslation(data.translation);
+    } catch {
+      // Silently ignore translation errors so they don't interrupt the chat.
+    }
+  };
+
   const isMatch = vietnameseText === userInput && userInput.length > 0;
 
   return (
@@ -229,6 +377,16 @@ export default function Language() {
               }`}
             >
               Translator
+            </button>
+            <button
+              onClick={() => setActiveTab('friend')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'friend'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Friend
             </button>
           </div>
 
@@ -483,6 +641,144 @@ export default function Language() {
                       )}
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Friend Tab */}
+            {activeTab === 'friend' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Friend</h2>
+                <p className="text-slate-600 mb-8">
+                  Chat with a Vietnamese-speaking friend who asks you questions using words from your
+                  vocabulary notes. Reply in Vietnamese in the text box below.
+                </p>
+
+                <div className="space-y-4">
+                  {/* Difficulty Selector */}
+                  <div>
+                    <label htmlFor="friendDifficulty" className="block text-sm font-medium text-dark-blue mb-2">
+                      Difficulty
+                    </label>
+                    <select
+                      id="friendDifficulty"
+                      value={friendDifficulty}
+                      onChange={(e) => setFriendDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+
+                  {/* Chat History */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1 space-y-3 max-h-96 overflow-y-auto p-4 bg-white border border-slate-300 rounded-lg">
+                      {friendMessages.length === 0 ? (
+                        <p className="text-slate-400 text-sm">Press Start Chat to begin.</p>
+                      ) : (
+                        friendMessages.map((msg, i) => (
+                          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div
+                              className={`max-w-[80%] px-4 py-2 rounded-lg whitespace-pre-wrap ${
+                                msg.role === 'user'
+                                  ? 'bg-powder-500 text-white'
+                                  : 'bg-slate-100 text-dark-blue'
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleFriendSpeak}
+                      disabled={!friendMessages.some((msg) => msg.role === 'assistant') || friendSpeakStatus === 'loading'}
+                      className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                    >
+                      {friendSpeakStatus === 'loading' ? (
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                      ) : (
+                        'Speak'
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Status Message */}
+                  {friendMessage && (
+                    <div className="p-4 rounded-lg bg-red-100 border border-red-300 text-red-800">
+                      {friendMessage}
+                    </div>
+                  )}
+
+                  {!friendStarted ? (
+                    <button
+                      type="button"
+                      onClick={handleFriendStart}
+                      disabled={friendStatus === 'loading'}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                    >
+                      {friendStatus === 'loading' ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Starting...
+                        </span>
+                      ) : (
+                        'Start Chat'
+                      )}
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <textarea
+                          value={friendInput}
+                          onChange={(e) => setFriendInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === ' ') {
+                              handleFriendTranslateInput();
+                            }
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleFriendSend();
+                            }
+                          }}
+                          placeholder="Type your response in Vietnamese"
+                          rows={2}
+                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleFriendSend}
+                          disabled={!friendInput.trim() || friendStatus === 'loading'}
+                          className="px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                        >
+                          {friendStatus === 'loading' ? (
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                          ) : (
+                            'Send'
+                          )}
+                        </button>
+                      </div>
+
+                      {/* English Translation (read-only, updates as you type) */}
+                      <div>
+                        <label htmlFor="friendInputTranslation" className="block text-sm font-medium text-dark-blue mb-2">
+                          English Translation
+                        </label>
+                        <textarea
+                          id="friendInputTranslation"
+                          value={friendInputTranslation}
+                          readOnly
+                          placeholder="The English translation will appear here as you type"
+                          rows={2}
+                          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
