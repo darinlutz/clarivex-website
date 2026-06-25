@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { translateText, type TranslationDirection } from '@/lib/translate';
+import { translateText, type Language } from '@/lib/translate';
 
-const VALID_DIRECTIONS: TranslationDirection[] = ['vi-to-en', 'en-to-vi'];
+const VALID_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const text = body.text;
-    const direction: TranslationDirection = VALID_DIRECTIONS.includes(body.direction)
-      ? body.direction
-      : 'vi-to-en';
+    const from: Language = VALID_LANGUAGES.includes(body.from) ? body.from : 'Vietnamese';
+    const to: Language = VALID_LANGUAGES.includes(body.to) ? body.to : 'English';
 
     if (!text || typeof text !== 'string' || !text.trim()) {
       return NextResponse.json(
@@ -27,7 +26,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const translation = await translateText(text, direction);
+    const translation = await translateText(text, from, to);
 
     return NextResponse.json({ success: true, translation }, { status: 200 });
   } catch (error) {

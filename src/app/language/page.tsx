@@ -2,6 +2,17 @@
 
 import { useState } from 'react';
 import LanguageForm from '@/components/LanguageForm';
+import type { Language } from '@/lib/translate';
+
+const TRANSLATOR_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+
+const LANGUAGE_CODES: Record<Language, string> = {
+  Arabic: 'ar',
+  English: 'en',
+  German: 'de',
+  Japanese: 'ja',
+  Vietnamese: 'vi',
+};
 
 export default function Language() {
   const [activeTab, setActiveTab] = useState<'reading' | 'writing' | 'translator' | 'friend'>(
@@ -19,6 +30,8 @@ export default function Language() {
 
   const [translatorTopText, setTranslatorTopText] = useState('');
   const [translatorBottomText, setTranslatorBottomText] = useState('');
+  const [translatorLanguage, setTranslatorLanguage] = useState<Language>('Vietnamese');
+  const [translatorSecondLanguage, setTranslatorSecondLanguage] = useState<Language>('English');
   const [isSwapped, setIsSwapped] = useState(false);
   const [translatorStatus, setTranslatorStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -43,9 +56,28 @@ export default function Language() {
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
-  const fromLanguage = isSwapped ? 'English' : 'Vietnamese';
-  const toLanguage = isSwapped ? 'Vietnamese' : 'English';
-  const translatorVietnameseText = isSwapped ? translatorBottomText : translatorTopText;
+  const fromLanguage: Language = isSwapped ? translatorSecondLanguage : translatorLanguage;
+  const toLanguage: Language = isSwapped ? translatorLanguage : translatorSecondLanguage;
+
+  const handleFromLanguageChange = (lang: Language) => {
+    if (isSwapped) {
+      setTranslatorSecondLanguage(lang);
+    } else {
+      setTranslatorLanguage(lang);
+    }
+    setTranslatorTopText('');
+    setTranslatorBottomText('');
+    setTranslatorMessage('');
+  };
+
+  const handleToLanguageChange = (lang: Language) => {
+    if (isSwapped) {
+      setTranslatorLanguage(lang);
+    } else {
+      setTranslatorSecondLanguage(lang);
+    }
+    handleTranslate(lang);
+  };
 
   const handleGetWord = async () => {
     setStatus('loading');
@@ -120,8 +152,8 @@ export default function Language() {
     }
   };
 
-  const handleTranslatorSpeak = async () => {
-    if (!translatorVietnameseText.trim()) return;
+  const handleTranslatorSpeak = async (text: string) => {
+    if (!text.trim()) return;
 
     setTranslatorSpeakStatus('loading');
     setTranslatorMessage('');
@@ -132,7 +164,7 @@ export default function Language() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: translatorVietnameseText }),
+        body: JSON.stringify({ text }),
       });
 
       if (!response.ok) {
@@ -155,7 +187,7 @@ export default function Language() {
     }
   };
 
-  const handleTranslate = async () => {
+  const handleTranslate = async (toLanguageOverride?: Language) => {
     if (!translatorTopText.trim()) return;
 
     setTranslatorStatus('loading');
@@ -169,7 +201,8 @@ export default function Language() {
         },
         body: JSON.stringify({
           text: translatorTopText,
-          direction: isSwapped ? 'en-to-vi' : 'vi-to-en',
+          from: fromLanguage,
+          to: toLanguageOverride ?? toLanguage,
         }),
       });
 
@@ -241,7 +274,8 @@ export default function Language() {
         },
         body: JSON.stringify({
           text,
-          direction: 'vi-to-en',
+          from: 'Vietnamese',
+          to: 'English',
         }),
       });
 
@@ -348,7 +382,8 @@ export default function Language() {
         },
         body: JSON.stringify({
           text: friendInput,
-          direction: 'vi-to-en',
+          from: 'Vietnamese',
+          to: 'English',
         }),
       });
 
@@ -572,27 +607,31 @@ export default function Language() {
                 </p>
 
                 <div className="space-y-6">
-                  {/* Swap Button */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={handleSwap}
-                      className="px-4 py-2 text-sm bg-powder-500 text-white rounded-lg hover:bg-powder-600 transition-colors"
-                    >
-                      Swap
-                    </button>
-                  </div>
-
                   {/* From Field (top, editable) */}
                   <div>
-                    <label htmlFor="translatorFrom" className="block text-sm font-medium text-dark-blue mb-2">
-                      From {fromLanguage}
-                    </label>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <label htmlFor="translatorFrom" className="block text-sm font-medium text-dark-blue">
+                        From
+                      </label>
+                      <select
+                        id="translatorFromLanguage"
+                        name="translatorFromLanguage"
+                        value={fromLanguage}
+                        onChange={(e) => handleFromLanguageChange(e.target.value as Language)}
+                        className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                      >
+                        {TRANSLATOR_LANGUAGES.map((lang) => (
+                          <option key={lang} value={lang}>
+                            {lang}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <textarea
                         id="translatorFrom"
                         name="translatorFrom"
-                        lang={isSwapped ? 'en' : 'vi'}
+                        lang={LANGUAGE_CODES[fromLanguage]}
                         value={translatorTopText}
                         onChange={(e) => setTranslatorTopText(e.target.value)}
                         onKeyDown={(e) => {
@@ -604,52 +643,75 @@ export default function Language() {
                         rows={3}
                         className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
                       />
-                      {!isSwapped && (
-                        <button
-                          type="button"
-                          onClick={handleTranslatorSpeak}
-                          disabled={!translatorTopText.trim() || translatorSpeakStatus === 'loading'}
-                          className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
-                        >
-                          {translatorSpeakStatus === 'loading' ? (
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
-                          ) : (
-                            'Speak'
-                          )}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleTranslatorSpeak(translatorTopText)}
+                        disabled={!translatorTopText.trim() || translatorSpeakStatus === 'loading'}
+                        className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                      >
+                        {translatorSpeakStatus === 'loading' ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                        ) : (
+                          'Speak'
+                        )}
+                      </button>
                     </div>
+                  </div>
+
+                  {/* Swap Button */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={handleSwap}
+                      className="px-4 py-2 text-sm bg-powder-500 text-white rounded-lg hover:bg-powder-600 transition-colors"
+                    >
+                      Swap
+                    </button>
                   </div>
 
                   {/* To Field (bottom, read-only) */}
                   <div>
-                    <label htmlFor="translatorTo" className="block text-sm font-medium text-dark-blue mb-2">
-                      To {toLanguage}
-                    </label>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <label htmlFor="translatorTo" className="block text-sm font-medium text-dark-blue">
+                        To
+                      </label>
+                      <select
+                        id="translatorToLanguage"
+                        name="translatorToLanguage"
+                        value={toLanguage}
+                        onChange={(e) => handleToLanguageChange(e.target.value as Language)}
+                        className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                      >
+                        {TRANSLATOR_LANGUAGES.map((lang) => (
+                          <option key={lang} value={lang}>
+                            {lang}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <textarea
                         id="translatorTo"
                         name="translatorTo"
+                        lang={LANGUAGE_CODES[toLanguage]}
                         value={translatorBottomText}
                         readOnly
                         placeholder="The translation will appear here"
                         rows={3}
                         className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
                       />
-                      {isSwapped && (
-                        <button
-                          type="button"
-                          onClick={handleTranslatorSpeak}
-                          disabled={!translatorBottomText.trim() || translatorSpeakStatus === 'loading'}
-                          className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
-                        >
-                          {translatorSpeakStatus === 'loading' ? (
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
-                          ) : (
-                            'Speak'
-                          )}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleTranslatorSpeak(translatorBottomText)}
+                        disabled={!translatorBottomText.trim() || translatorSpeakStatus === 'loading'}
+                        className="px-5 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                      >
+                        {translatorSpeakStatus === 'loading' ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                        ) : (
+                          'Speak'
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -664,7 +726,7 @@ export default function Language() {
                   <div className="pt-4 pb-2">
                     <button
                       type="button"
-                      onClick={handleTranslate}
+                      onClick={() => handleTranslate()}
                       disabled={!translatorTopText.trim() || translatorStatus === 'loading'}
                       className="w-full px-6 py-3 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                     >
