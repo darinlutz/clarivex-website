@@ -3,6 +3,7 @@ import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 import { Difficulty, fetchVocabulary, VocabEntry } from './language';
+import { Language } from './translate';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -39,12 +40,12 @@ function formatVocabularyForPrompt(entries: VocabEntry[]): string {
 const promptTemplate = ChatPromptTemplate.fromMessages([
   [
     'system',
-    'You are a friendly Vietnamese-speaking pen pal helping the user practice conversational ' +
-      'Vietnamese. Ask the user questions in Vietnamese, drawing mainly from the vocabulary words ' +
+    'You are a friendly {language}-speaking pen pal helping the user practice conversational ' +
+      '{language}. Ask the user questions in {language}, drawing mainly from the vocabulary words ' +
       "listed below. After the user replies, briefly react to their answer (acknowledge it, gently " +
       'correct any mistakes) and then ask a new question on a different topic. Always write every ' +
-      'message in Vietnamese only, with correct diacritics, and keep each message short ' +
-      '(1-3 sentences).\n\n{difficultyInstructions}\n\nKnown vocabulary:\n{vocabulary}',
+      'message in {language} only, with correct spelling, diacritics, or script for that language, ' +
+      'and keep each message short (1-3 sentences).\n\n{difficultyInstructions}\n\nKnown vocabulary:\n{vocabulary}',
   ],
   new MessagesPlaceholder('history'),
 ]);
@@ -52,6 +53,7 @@ const promptTemplate = ChatPromptTemplate.fromMessages([
 const FriendState = Annotation.Root({
   history: Annotation<ChatMessage[]>,
   difficulty: Annotation<Difficulty>,
+  language: Annotation<Language>,
   vocabulary: Annotation<VocabEntry[]>,
   reply: Annotation<string>,
 });
@@ -73,7 +75,12 @@ async function chatNode(state: FriendStateType): Promise<Partial<FriendStateType
   const model = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.7 });
   const chain = promptTemplate.pipe(model);
 
-  const response = await chain.invoke({ vocabulary: vocabularyText, difficultyInstructions, history });
+  const response = await chain.invoke({
+    vocabulary: vocabularyText,
+    difficultyInstructions,
+    history,
+    language: state.language,
+  });
   const reply =
     typeof response.content === 'string' ? response.content : JSON.stringify(response.content);
 
@@ -92,13 +99,14 @@ const graph = new StateGraph(FriendState)
 
 export async function chatWithFriend(
   history: ChatMessage[],
-  difficulty: Difficulty = 'medium'
+  difficulty: Difficulty = 'medium',
+  language: Language = 'Vietnamese'
 ): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const finalState = await graph.invoke({ history, difficulty });
+  const finalState = await graph.invoke({ history, difficulty, language });
 
   if (!finalState.reply) {
     throw new Error('Friend chat graph did not return a reply');

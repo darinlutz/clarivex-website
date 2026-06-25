@@ -49,6 +49,7 @@ export default function Language() {
   const [friendStatus, setFriendStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [friendMessage, setFriendMessage] = useState('');
   const [friendDifficulty, setFriendDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [friendLanguage, setFriendLanguage] = useState<Language>('Vietnamese');
   const [friendInputTranslation, setFriendInputTranslation] = useState('');
   const [friendSpeakStatus, setFriendSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [friendReplyTranslation, setFriendReplyTranslation] = useState('');
@@ -274,7 +275,7 @@ export default function Language() {
         },
         body: JSON.stringify({
           text,
-          from: 'Vietnamese',
+          from: friendLanguage,
           to: 'English',
         }),
       });
@@ -312,7 +313,7 @@ export default function Language() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ history: [], difficulty: friendDifficulty }),
+        body: JSON.stringify({ history: [], difficulty: friendDifficulty, language: friendLanguage }),
       });
 
       const data = await response.json();
@@ -350,7 +351,11 @@ export default function Language() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ history: updatedMessages, difficulty: friendDifficulty }),
+        body: JSON.stringify({
+          history: updatedMessages,
+          difficulty: friendDifficulty,
+          language: friendLanguage,
+        }),
       });
 
       const data = await response.json();
@@ -382,7 +387,7 @@ export default function Language() {
         },
         body: JSON.stringify({
           text: friendInput,
-          from: 'Vietnamese',
+          from: friendLanguage,
           to: 'English',
         }),
       });
@@ -749,21 +754,40 @@ export default function Language() {
               <div>
                 <h2 className="text-2xl font-bold text-dark-blue mb-2">Friend</h2>
                 <p className="text-slate-600 mb-8">
-                  Chat with a Vietnamese-speaking friend who asks you questions using words from your
-                  vocabulary notes. Reply in Vietnamese in the text box below.
+                  Chat with a {friendLanguage}-speaking friend who asks you questions using words from your
+                  vocabulary notes. Reply in {friendLanguage} in the text box below.
                 </p>
 
                 <div className="space-y-4">
+                  {/* Language Selector */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label htmlFor="friendLanguage" className="block text-sm font-medium text-dark-blue">
+                      Language
+                    </label>
+                    <select
+                      id="friendLanguage"
+                      value={friendLanguage}
+                      onChange={(e) => setFriendLanguage(e.target.value as Language)}
+                      className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                    >
+                      {TRANSLATOR_LANGUAGES.map((lang) => (
+                        <option key={lang} value={lang}>
+                          {lang}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Difficulty Selector */}
-                  <div>
-                    <label htmlFor="friendDifficulty" className="block text-sm font-medium text-dark-blue mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label htmlFor="friendDifficulty" className="block text-sm font-medium text-dark-blue">
                       Difficulty
                     </label>
                     <select
                       id="friendDifficulty"
                       value={friendDifficulty}
                       onChange={(e) => setFriendDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                      className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     >
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
@@ -865,7 +889,7 @@ export default function Language() {
                               handleFriendSend();
                             }
                           }}
-                          placeholder="Type your response in Vietnamese"
+                          placeholder={`Type your response in ${friendLanguage}`}
                           rows={2}
                           className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
                         />
