@@ -550,10 +550,10 @@ export default function Language() {
                     />
                   </div>
 
-                  {/* Complexity Selector */}
-                  <div>
-                    <label htmlFor="complexity" className="block text-sm font-medium text-dark-blue mb-2">
-                      Complexity
+                  {/* Difficulty Selector */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label htmlFor="complexity" className="block text-sm font-medium text-dark-blue">
+                      Difficulty
                     </label>
                     <select
                       id="complexity"
@@ -563,7 +563,7 @@ export default function Language() {
                           e.target.value as 'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
                         )
                       }
-                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                      className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     >
                       <option value="nouns">Nouns/Verbs/Adjectives</option>
                       <option value="easy">Easy</option>
