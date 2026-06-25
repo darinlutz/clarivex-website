@@ -135,7 +135,7 @@ export default function Solutions() {
                 {/* CTA Button */}
                 <Link
                   href="/contact"
-                  className="inline-block px-3 py-1 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
+                  className="inline-block px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
                 >
                   Learn More
                 </Link>
@@ -163,7 +163,7 @@ export default function Solutions() {
             ].map((item) => (
               <div key={item.step} className="text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-powder-500 to-powder-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-powder-500/30">
-                  <span className="text-2xl font-bold">
+                  <span className="text-2xl font-bold text-white">
                     {item.step}
                   </span>
                 </div>

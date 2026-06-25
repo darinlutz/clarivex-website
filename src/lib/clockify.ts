@@ -2,7 +2,7 @@ const WORKSPACE_ID = '5f5fb2a73ab33d735bc7ca3a';
 const BASE_URL = 'https://api.clockify.me/api/v1';
 
 // UTC offset for your local timezone (e.g. -7 for MST, -5 for EST)
-const UTC_OFFSET_HOURS = -6;
+const UTC_OFFSET_HOURS = -8;
 
 // US federal holidays (static list — update yearly as needed)
 const FEDERAL_HOLIDAYS = new Set([

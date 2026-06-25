@@ -51,8 +51,8 @@ export default function Footer() {
             <h3 className="text-lg font-bold text-powder-600 mb-4">Contact</h3>
             <p className="text-slate-600 mb-2">
               Email:{' '}
-              <a href="mailto:darinlutz@yahoo.com" className="text-powder-600 hover:text-powder-700">
-                darinlutz@yahoo.com
+              <a href="mailto:client12ramsey@gmail.com" className="text-powder-600 hover:text-powder-700">
+                client12ramsey@gmail.com
               </a>
             </p>
             <p className="text-slate-600">
