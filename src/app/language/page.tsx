@@ -51,6 +51,7 @@ export default function Language() {
   const [activeTab, setActiveTab] = useState<'reading' | 'writing' | 'translator' | 'friend'>(
     'reading'
   );
+  const [userLanguage, setUserLanguage] = useState<Language>('English');
   const [vietnameseText, setVietnameseText] = useState('');
   const [userInput, setUserInput] = useState('');
   const [showVietnamese, setShowVietnamese] = useState(true);
@@ -339,7 +340,7 @@ export default function Language() {
     }
   };
 
-  const translateFriendReply = async (text: string) => {
+  const translateFriendReply = async (text: string, toLanguageOverride?: Language) => {
     if (!text.trim()) return;
 
     try {
@@ -351,7 +352,7 @@ export default function Language() {
         body: JSON.stringify({
           text,
           from: friendLanguage,
-          to: 'English',
+          to: toLanguageOverride ?? friendInputTranslationLanguage,
         }),
       });
 
@@ -484,6 +485,11 @@ export default function Language() {
   const handleFriendInputTranslationLanguageChange = (newLanguage: Language) => {
     setFriendInputTranslationLanguage(newLanguage);
     handleFriendTranslateInput(newLanguage);
+
+    const lastAssistantMessage = [...friendMessages].reverse().find((msg) => msg.role === 'assistant');
+    if (lastAssistantMessage) {
+      translateFriendReply(lastAssistantMessage.content, newLanguage);
+    }
   };
 
   const isMatch = writingWordText === userInput && userInput.length > 0;
@@ -499,6 +505,24 @@ export default function Language() {
           <p className="text-lg text-slate-600">
             Practice Vietnamese with a new sentence built from words you already know.
           </p>
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <label htmlFor="userLanguage" className="text-sm font-medium text-dark-blue">
+              I currently speak
+            </label>
+            <select
+              id="userLanguage"
+              name="userLanguage"
+              value={userLanguage}
+              onChange={(e) => setUserLanguage(e.target.value as Language)}
+              className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+            >
+              {TRANSLATOR_LANGUAGES.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
 
@@ -558,7 +582,7 @@ export default function Language() {
                 <p className="text-slate-600 mb-8">
                   Press the button below to generate a new sentence based on your vocabulary notes.
                 </p>
-                <LanguageForm />
+                <LanguageForm answerLanguage={userLanguage} />
               </div>
             )}
 
@@ -946,13 +970,13 @@ export default function Language() {
                     </div>
                   </div>
 
-                  {/* English Translation of the chatbot's most recent message */}
+                  {/* Translation of the chatbot's most recent message */}
                   {showFriendReplyTranslation && (
                     <input
                       type="text"
                       value={friendReplyTranslation}
                       readOnly
-                      placeholder="The English translation will appear here"
+                      placeholder="The translation will appear here"
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     />
                   )}

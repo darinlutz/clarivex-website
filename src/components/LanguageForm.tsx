@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Language } from '@/lib/translate';
 
 const READING_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
@@ -38,13 +38,18 @@ async function resolveAnswerText(
   return translateText(englishText, 'English', language);
 }
 
-export default function LanguageForm() {
+interface LanguageFormProps {
+  answerLanguage?: Language;
+}
+
+export default function LanguageForm({ answerLanguage: requestedAnswerLanguage }: LanguageFormProps) {
   const [vietnameseSource, setVietnameseSource] = useState('');
   const [englishSource, setEnglishSource] = useState('');
   const [word, setWord] = useState('');
   const [wordLanguage, setWordLanguage] = useState<Language>('Vietnamese');
   const [answerText, setAnswerText] = useState('');
-  const [answerLanguage, setAnswerLanguage] = useState<Language>('English');
+  const [answerLanguage, setAnswerLanguage] = useState<Language>(requestedAnswerLanguage ?? 'English');
+  const [appliedAnswerLanguage, setAppliedAnswerLanguage] = useState(requestedAnswerLanguage);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -58,6 +63,13 @@ export default function LanguageForm() {
   >({ nouns: [], verbs: [], adjectives: [] });
   const [usedSentenceWords, setUsedSentenceWords] = useState<string[]>([]);
   const [usedSentences, setUsedSentences] = useState<string[]>([]);
+
+  // Lets the page-level "I currently speak" selector drive this field's
+  // language without taking away the user's ability to change it locally.
+  if (requestedAnswerLanguage && requestedAnswerLanguage !== appliedAnswerLanguage) {
+    setAppliedAnswerLanguage(requestedAnswerLanguage);
+    setAnswerLanguage(requestedAnswerLanguage);
+  }
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -120,7 +132,6 @@ export default function LanguageForm() {
       setVietnameseSource(data.vietnamese);
       setEnglishSource(data.english);
       setWord(await translateText(data.vietnamese, 'Vietnamese', wordLanguage));
-      setAnswerText(await resolveAnswerText(data.vietnamese, data.english, answerLanguage));
       setShowAnswer(false);
       setStatus('success');
       setUsedWordsByCategory((prev) => ({
@@ -161,7 +172,6 @@ export default function LanguageForm() {
       setVietnameseSource(data.vietnamese);
       setEnglishSource(data.english);
       setWord(await translateText(data.vietnamese, 'Vietnamese', wordLanguage));
-      setAnswerText(await resolveAnswerText(data.vietnamese, data.english, answerLanguage));
       setShowAnswer(false);
       setStatus('success');
       setUsedSentences((prev) => [...prev, data.vietnamese].slice(-50));
@@ -199,19 +209,27 @@ export default function LanguageForm() {
     }
   };
 
-  const handleAnswerLanguageChange = async (newLanguage: Language) => {
-    setAnswerLanguage(newLanguage);
+  // Keeps the answer field's translation in sync with its language and with
+  // whatever word/sentence was last generated.
+  useEffect(() => {
+    let isCurrent = true;
 
-    if (!vietnameseSource.trim() && !englishSource.trim()) return;
+    resolveAnswerText(vietnameseSource, englishSource, answerLanguage)
+      .then((text) => {
+        if (isCurrent) setAnswerText(text);
+      })
+      .catch((error) => {
+        if (isCurrent) {
+          setMessage(
+            error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
+          );
+        }
+      });
 
-    try {
-      setAnswerText(await resolveAnswerText(vietnameseSource, englishSource, newLanguage));
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
-      );
-    }
-  };
+    return () => {
+      isCurrent = false;
+    };
+  }, [vietnameseSource, englishSource, answerLanguage]);
 
   return (
     <div className="space-y-6">
@@ -261,7 +279,7 @@ export default function LanguageForm() {
           id="answerLanguage"
           name="answerLanguage"
           value={answerLanguage}
-          onChange={(e) => handleAnswerLanguageChange(e.target.value as Language)}
+          onChange={(e) => setAnswerLanguage(e.target.value as Language)}
           className="mb-2 px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
         >
           {READING_LANGUAGES.map((lang) => (
