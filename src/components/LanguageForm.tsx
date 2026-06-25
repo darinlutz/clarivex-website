@@ -1,14 +1,54 @@
 'use client';
 
 import { useState } from 'react';
+import type { Language } from '@/lib/translate';
+
+const READING_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+
+async function translateText(text: string, from: Language, to: Language): Promise<string> {
+  if (!text.trim() || from === to) return text;
+
+  const response = await fetch('/api/translate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text, from, to }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to translate text');
+  }
+
+  return data.translation;
+}
+
+// The vocabulary API only ever returns Vietnamese/English pairs, so resolving
+// the answer field to Vietnamese or English is a lookup; any other language
+// requires translating from the known English text.
+async function resolveAnswerText(
+  vietnameseText: string,
+  englishText: string,
+  language: Language
+): Promise<string> {
+  if (language === 'Vietnamese') return vietnameseText;
+  if (language === 'English') return englishText;
+  return translateText(englishText, 'English', language);
+}
 
 export default function LanguageForm() {
-  const [vietnamese, setVietnamese] = useState('');
-  const [english, setEnglish] = useState('');
+  const [vietnameseSource, setVietnameseSource] = useState('');
+  const [englishSource, setEnglishSource] = useState('');
+  const [word, setWord] = useState('');
+  const [wordLanguage, setWordLanguage] = useState<Language>('Vietnamese');
+  const [answerText, setAnswerText] = useState('');
+  const [answerLanguage, setAnswerLanguage] = useState<Language>('English');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-  const [showEnglish, setShowEnglish] = useState(true);
+  const [showAnswer, setShowAnswer] = useState(true);
   const [mode, setMode] = useState<'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'>('nouns');
 
   // Session memory: words/sentences already generated, so the same common
@@ -22,7 +62,7 @@ export default function LanguageForm() {
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
   const handleSpeak = async () => {
-    if (!vietnamese.trim()) return;
+    if (!word.trim()) return;
 
     setSpeakStatus('loading');
     setMessage('');
@@ -33,7 +73,7 @@ export default function LanguageForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: vietnamese }),
+        body: JSON.stringify({ text: word }),
       });
 
       if (!response.ok) {
@@ -77,9 +117,11 @@ export default function LanguageForm() {
         throw new Error(data.error || 'Failed to generate a new word');
       }
 
-      setVietnamese(data.vietnamese);
-      setEnglish(data.english);
-      setShowEnglish(false);
+      setVietnameseSource(data.vietnamese);
+      setEnglishSource(data.english);
+      setWord(await translateText(data.vietnamese, 'Vietnamese', wordLanguage));
+      setAnswerText(await resolveAnswerText(data.vietnamese, data.english, answerLanguage));
+      setShowAnswer(false);
       setStatus('success');
       setUsedWordsByCategory((prev) => ({
         ...prev,
@@ -116,9 +158,11 @@ export default function LanguageForm() {
         throw new Error(data.error || 'Failed to generate a new sentence');
       }
 
-      setVietnamese(data.vietnamese);
-      setEnglish(data.english);
-      setShowEnglish(false);
+      setVietnameseSource(data.vietnamese);
+      setEnglishSource(data.english);
+      setWord(await translateText(data.vietnamese, 'Vietnamese', wordLanguage));
+      setAnswerText(await resolveAnswerText(data.vietnamese, data.english, answerLanguage));
+      setShowAnswer(false);
       setStatus('success');
       setUsedSentences((prev) => [...prev, data.vietnamese].slice(-50));
       setUsedSentenceWords((prev) =>
@@ -141,19 +185,57 @@ export default function LanguageForm() {
     }
   };
 
+  const handleWordLanguageChange = async (newLanguage: Language) => {
+    setWordLanguage(newLanguage);
+
+    if (!vietnameseSource.trim()) return;
+
+    try {
+      setWord(await translateText(vietnameseSource, 'Vietnamese', newLanguage));
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
+      );
+    }
+  };
+
+  const handleAnswerLanguageChange = async (newLanguage: Language) => {
+    setAnswerLanguage(newLanguage);
+
+    if (!vietnameseSource.trim() && !englishSource.trim()) return;
+
+    try {
+      setAnswerText(await resolveAnswerText(vietnameseSource, englishSource, newLanguage));
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
+      );
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Vietnamese Field */}
+      {/* Word/Sentence Field */}
       <div>
-        <label htmlFor="vietnamese" className="block text-sm font-medium text-dark-blue mb-2">
-          Vietnamese
-        </label>
+        <select
+          id="wordLanguage"
+          name="wordLanguage"
+          value={wordLanguage}
+          onChange={(e) => handleWordLanguageChange(e.target.value as Language)}
+          className="mb-2 px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+        >
+          {READING_LANGUAGES.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </select>
         <div className="flex flex-col sm:flex-row gap-3">
           <textarea
-            id="vietnamese"
-            name="vietnamese"
-            value={vietnamese}
-            onChange={(e) => setVietnamese(e.target.value)}
+            id="word"
+            name="word"
+            value={word}
+            onChange={(e) => setWord(e.target.value)}
             placeholder="Press Get New Sentence to generate one"
             rows={3}
             className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
@@ -161,7 +243,7 @@ export default function LanguageForm() {
           <button
             type="button"
             onClick={handleSpeak}
-            disabled={!vietnamese.trim() || speakStatus === 'loading'}
+            disabled={!word.trim() || speakStatus === 'loading'}
             className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
           >
             {speakStatus === 'loading' ? (
@@ -173,29 +255,39 @@ export default function LanguageForm() {
         </div>
       </div>
 
-      {/* English Field */}
+      {/* Answer Field */}
       <div>
-        <label htmlFor="english" className="block text-sm font-medium text-dark-blue mb-2">
-          English
-        </label>
+        <select
+          id="answerLanguage"
+          name="answerLanguage"
+          value={answerLanguage}
+          onChange={(e) => handleAnswerLanguageChange(e.target.value as Language)}
+          className="mb-2 px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+        >
+          {READING_LANGUAGES.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang}
+            </option>
+          ))}
+        </select>
         <div className="flex flex-col sm:flex-row gap-3">
           <textarea
-            id="english"
-            name="english"
-            value={showEnglish ? english : maskText(english)}
-            onChange={(e) => showEnglish && setEnglish(e.target.value)}
-            readOnly={!showEnglish}
+            id="answer"
+            name="answer"
+            value={showAnswer ? answerText : maskText(answerText)}
+            onChange={(e) => showAnswer && setAnswerText(e.target.value)}
+            readOnly={!showAnswer}
             placeholder="The translation will appear here"
             rows={3}
             className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
           />
           <button
             type="button"
-            onClick={() => setShowEnglish(!showEnglish)}
-            disabled={!english.trim()}
+            onClick={() => setShowAnswer(!showAnswer)}
+            disabled={!answerText.trim()}
             className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
           >
-            {showEnglish ? 'Hide' : 'Show'}
+            {showAnswer ? 'Hide' : 'Show'}
           </button>
         </div>
       </div>

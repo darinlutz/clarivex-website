@@ -14,6 +14,39 @@ const LANGUAGE_CODES: Record<Language, string> = {
   Vietnamese: 'vi',
 };
 
+async function translateText(text: string, from: Language, to: Language): Promise<string> {
+  if (!text.trim() || from === to) return text;
+
+  const response = await fetch('/api/translate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text, from, to }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to translate text');
+  }
+
+  return data.translation;
+}
+
+// The vocabulary API only ever returns Vietnamese/English pairs, so resolving
+// the Writing tab's answer field to Vietnamese or English is a lookup; any
+// other language requires translating from the known English text.
+async function resolveWritingAnswerText(
+  vietnameseText: string,
+  englishText: string,
+  language: Language
+): Promise<string> {
+  if (language === 'Vietnamese') return vietnameseText;
+  if (language === 'English') return englishText;
+  return translateText(englishText, 'English', language);
+}
+
 export default function Language() {
   const [activeTab, setActiveTab] = useState<'reading' | 'writing' | 'translator' | 'friend'>(
     'reading'
@@ -21,7 +54,11 @@ export default function Language() {
   const [vietnameseText, setVietnameseText] = useState('');
   const [userInput, setUserInput] = useState('');
   const [showVietnamese, setShowVietnamese] = useState(true);
-  const [englishText, setEnglishText] = useState('');
+  const [writingWordText, setWritingWordText] = useState('');
+  const [writingWordLanguage, setWritingWordLanguage] = useState<Language>('Vietnamese');
+  const [englishSource, setEnglishSource] = useState('');
+  const [writingAnswerText, setWritingAnswerText] = useState('');
+  const [writingAnswerLanguage, setWritingAnswerLanguage] = useState<Language>('English');
   const [complexity, setComplexity] = useState<
     'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
   >('easy');
@@ -51,6 +88,8 @@ export default function Language() {
   const [friendDifficulty, setFriendDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [friendLanguage, setFriendLanguage] = useState<Language>('Vietnamese');
   const [friendInputTranslation, setFriendInputTranslation] = useState('');
+  const [friendInputTranslationLanguage, setFriendInputTranslationLanguage] =
+    useState<Language>('English');
   const [friendSpeakStatus, setFriendSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [friendReplyTranslation, setFriendReplyTranslation] = useState('');
   const [showFriendReplyTranslation, setShowFriendReplyTranslation] = useState(false);
@@ -102,7 +141,11 @@ export default function Language() {
       }
 
       setVietnameseText(data.vietnamese);
-      setEnglishText(data.english);
+      setEnglishSource(data.english);
+      setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
+      setWritingAnswerText(
+        await resolveWritingAnswerText(data.vietnamese, data.english, writingAnswerLanguage)
+      );
       setStatus('success');
     } catch (error) {
       setStatus('error');
@@ -134,7 +177,11 @@ export default function Language() {
       }
 
       setVietnameseText(data.vietnamese);
-      setEnglishText(data.english);
+      setEnglishSource(data.english);
+      setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
+      setWritingAnswerText(
+        await resolveWritingAnswerText(data.vietnamese, data.english, writingAnswerLanguage)
+      );
       setStatus('success');
     } catch (error) {
       setStatus('error');
@@ -150,6 +197,34 @@ export default function Language() {
       await handleGetWord();
     } else {
       await handleGetSentence();
+    }
+  };
+
+  const handleWritingWordLanguageChange = async (newLanguage: Language) => {
+    setWritingWordLanguage(newLanguage);
+
+    if (!vietnameseText.trim()) return;
+
+    try {
+      setWritingWordText(await translateText(vietnameseText, 'Vietnamese', newLanguage));
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
+      );
+    }
+  };
+
+  const handleWritingAnswerLanguageChange = async (newLanguage: Language) => {
+    setWritingAnswerLanguage(newLanguage);
+
+    if (!vietnameseText.trim() && !englishSource.trim()) return;
+
+    try {
+      setWritingAnswerText(await resolveWritingAnswerText(vietnameseText, englishSource, newLanguage));
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
+      );
     }
   };
 
@@ -338,12 +413,14 @@ export default function Language() {
   const handleFriendSend = async () => {
     if (!friendInput.trim()) return;
 
-    const updatedMessages = [...friendMessages, { role: 'user' as const, content: friendInput }];
+    const messageText = friendInput;
+    const updatedMessages = [...friendMessages, { role: 'user' as const, content: messageText }];
     setFriendMessages(updatedMessages);
     setFriendInput('');
     setFriendInputTranslation('');
     setFriendStatus('loading');
     setFriendMessage('');
+    playFriendSpeech(messageText);
 
     try {
       const response = await fetch('/api/friend', {
@@ -376,7 +453,7 @@ export default function Language() {
     }
   };
 
-  const handleFriendTranslateInput = async () => {
+  const handleFriendTranslateInput = async (toLanguageOverride?: Language) => {
     if (!friendInput.trim()) return;
 
     try {
@@ -388,7 +465,7 @@ export default function Language() {
         body: JSON.stringify({
           text: friendInput,
           from: friendLanguage,
-          to: 'English',
+          to: toLanguageOverride ?? friendInputTranslationLanguage,
         }),
       });
 
@@ -404,7 +481,12 @@ export default function Language() {
     }
   };
 
-  const isMatch = vietnameseText === userInput && userInput.length > 0;
+  const handleFriendInputTranslationLanguageChange = (newLanguage: Language) => {
+    setFriendInputTranslationLanguage(newLanguage);
+    handleFriendTranslateInput(newLanguage);
+  };
+
+  const isMatch = writingWordText === userInput && userInput.length > 0;
 
   return (
     <div className="w-full">
@@ -485,18 +567,30 @@ export default function Language() {
               <div>
                 <h2 className="text-2xl font-bold text-dark-blue mb-2">Writing</h2>
                 <p className="text-slate-600 mb-8">
-                  Translate the Vietnamese sentence shown below by typing it in the text box.
+                  Translate the {writingWordLanguage} sentence shown below by typing it in the text box.
                 </p>
 
                 <div className="space-y-4">
-                  {/* Vietnamese Display */}
+                  {/* Word/Sentence Display */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-dark-blue">Vietnamese</label>
+                    <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                      <select
+                        id="writingWordLanguage"
+                        name="writingWordLanguage"
+                        value={writingWordLanguage}
+                        onChange={(e) => handleWritingWordLanguageChange(e.target.value as Language)}
+                        className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                      >
+                        {TRANSLATOR_LANGUAGES.map((lang) => (
+                          <option key={lang} value={lang}>
+                            {lang}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         onClick={() => setShowVietnamese(!showVietnamese)}
-                        disabled={status === 'loading' || !vietnameseText}
+                        disabled={status === 'loading' || !writingWordText}
                         className="px-3 py-1 text-sm bg-powder-500 text-white rounded hover:bg-powder-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         {showVietnamese ? 'Hide' : 'Show'}
@@ -504,7 +598,7 @@ export default function Language() {
                     </div>
                     {showVietnamese ? (
                       <textarea
-                        value={vietnameseText}
+                        value={writingWordText}
                         readOnly
                         placeholder="Press Get New Sentence to generate one"
                         className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
@@ -512,7 +606,7 @@ export default function Language() {
                       />
                     ) : (
                       <textarea
-                        value={maskText(vietnameseText)}
+                        value={maskText(writingWordText)}
                         readOnly
                         placeholder="Press Get New Sentence to generate one"
                         className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
@@ -524,12 +618,12 @@ export default function Language() {
                   {/* User Input Box */}
                   <div>
                     <label className="block text-sm font-medium text-dark-blue mb-2">
-                      Type Vietnamese Here
+                      Type {writingWordLanguage} Here
                     </label>
                     <textarea
                       value={userInput}
                       onChange={(e) => setUserInput(e.target.value)}
-                      placeholder="Type your Vietnamese translation here"
+                      placeholder={`Type your ${writingWordLanguage} translation here`}
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
                       rows={3}
                     />
@@ -538,11 +632,23 @@ export default function Language() {
                     </div>
                   </div>
 
-                  {/* English Display */}
+                  {/* Answer Display */}
                   <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">English</label>
+                    <select
+                      id="writingAnswerLanguage"
+                      name="writingAnswerLanguage"
+                      value={writingAnswerLanguage}
+                      onChange={(e) => handleWritingAnswerLanguageChange(e.target.value as Language)}
+                      className="mb-2 px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                    >
+                      {TRANSLATOR_LANGUAGES.map((lang) => (
+                        <option key={lang} value={lang}>
+                          {lang}
+                        </option>
+                      ))}
+                    </select>
                     <textarea
-                      value={englishText}
+                      value={writingAnswerText}
                       readOnly
                       placeholder="The translation will appear here"
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
@@ -907,16 +1013,33 @@ export default function Language() {
                         </button>
                       </div>
 
-                      {/* English Translation (read-only, updates as you type) */}
+                      {/* Translation (read-only, updates as you type) */}
                       <div>
-                        <label htmlFor="friendInputTranslation" className="block text-sm font-medium text-dark-blue mb-2">
-                          English Translation
-                        </label>
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <select
+                            id="friendInputTranslationLanguage"
+                            name="friendInputTranslationLanguage"
+                            value={friendInputTranslationLanguage}
+                            onChange={(e) =>
+                              handleFriendInputTranslationLanguageChange(e.target.value as Language)
+                            }
+                            className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                          >
+                            {TRANSLATOR_LANGUAGES.map((lang) => (
+                              <option key={lang} value={lang}>
+                                {lang}
+                              </option>
+                            ))}
+                          </select>
+                          <label htmlFor="friendInputTranslation" className="block text-sm font-medium text-dark-blue">
+                            Translation
+                          </label>
+                        </div>
                         <textarea
                           id="friendInputTranslation"
                           value={friendInputTranslation}
                           readOnly
-                          placeholder="The English translation will appear here as you type"
+                          placeholder="The translation will appear here as you type"
                           rows={2}
                           className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
                         />
