@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import LanguageForm from '@/components/LanguageForm';
 import type { Language } from '@/lib/translate';
 
@@ -107,6 +108,11 @@ export default function Language() {
   const [matchingDifficulty, setMatchingDifficulty] = useState<
     'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
   >('easy');
+  const [matchingSentence, setMatchingSentence] = useState('');
+  const [matchingStatus, setMatchingStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [matchingMessage, setMatchingMessage] = useState('');
+  const [matchingImageUrl, setMatchingImageUrl] = useState<string | null>(null);
+  const [matchingImageStatus, setMatchingImageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -268,6 +274,64 @@ export default function Language() {
       await handleGetWord();
     } else {
       await handleGetSentence();
+    }
+  };
+
+  const handleGenerateMatchingSentence = async () => {
+    setMatchingStatus('loading');
+    setMatchingMessage('');
+    setMatchingImageUrl(null);
+
+    try {
+      const response = await fetch('/api/language', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ complexity: matchingDifficulty }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate a new sentence');
+      }
+
+      setMatchingSentence(await translateText(data.vietnamese, 'Vietnamese', matchingLanguage));
+      setMatchingStatus('idle');
+
+      void handleFindMatchingImage(data.english);
+    } catch (error) {
+      setMatchingStatus('error');
+      setMatchingMessage(
+        error instanceof Error ? error.message : 'Failed to generate a new sentence. Please try again.'
+      );
+    }
+  };
+
+  const handleFindMatchingImage = async (englishSentence: string) => {
+    setMatchingImageStatus('loading');
+
+    try {
+      const response = await fetch('/api/language/image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: englishSentence }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find an image');
+      }
+
+      setMatchingImageUrl(data.imageUrl ?? null);
+      setMatchingImageStatus('idle');
+    } catch {
+      setMatchingImageUrl(null);
+      setMatchingImageStatus('error');
     }
   };
 
@@ -1264,6 +1328,72 @@ export default function Language() {
                       <option value="medium">Medium</option>
                       <option value="hard">Hard</option>
                     </select>
+                  </div>
+
+                  {/* Generated Sentence Display */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence</label>
+                    <textarea
+                      value={matchingSentence}
+                      readOnly
+                      placeholder="Press Generate to create a random sentence"
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Matching Image Display */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Image</label>
+                    <div className="w-full min-h-[10rem] flex items-center justify-center p-4 rounded-lg bg-white border border-slate-300 overflow-hidden">
+                      {matchingImageStatus === 'loading' ? (
+                        <span className="flex items-center gap-2 text-slate-400 text-sm">
+                          <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
+                          Finding an image...
+                        </span>
+                      ) : matchingImageUrl ? (
+                        <Image
+                          src={matchingImageUrl}
+                          alt={matchingSentence || 'Image matching the generated sentence'}
+                          width={800}
+                          height={600}
+                          unoptimized
+                          className="max-w-full max-h-96 w-auto h-auto object-contain rounded-lg"
+                        />
+                      ) : matchingImageStatus === 'error' ? (
+                        <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
+                      ) : (
+                        <span className="text-slate-400 text-sm">
+                          An image matching the sentence will appear here.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status Message */}
+                  {matchingMessage && (
+                    <div className="p-3 rounded-lg text-sm bg-red-100 text-red-700">
+                      {matchingMessage}
+                    </div>
+                  )}
+
+                  {/* Generate Button */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={handleGenerateMatchingSentence}
+                      disabled={matchingStatus === 'loading'}
+                      className="w-full px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                    >
+                      {matchingStatus === 'loading' ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Generating...
+                        </span>
+                      ) : (
+                        'Generate'
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
