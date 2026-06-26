@@ -33,6 +33,9 @@ npm run lint         # Run ESLint
 **Environment Variables** (`.env.local`):
 - `CLOCKIFY_API_KEY` - Clockify workspace API key
 - `RESEND_API_KEY` - Resend email service API key
+- `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: translate, friend, trip planner, financial analysis)
+- `TAVILY_API_KEY` - Tavily web search API key (Financial Analysis web search agent)
+- `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
 
 ## Project Structure
 

@@ -75,6 +75,13 @@ export default function Navigation() {
             >
               Language
             </Link>
+            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+            <Link
+              href="/financial-analysis"
+              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+            >
+              Financial Analysis
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -145,6 +152,13 @@ export default function Navigation() {
               onClick={closeMenu}
             >
               Language
+            </Link>
+            <Link
+              href="/financial-analysis"
+              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+              onClick={closeMenu}
+            >
+              Financial Analysis
             </Link>
           </div>
         </div>
