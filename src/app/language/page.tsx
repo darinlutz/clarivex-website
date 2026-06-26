@@ -113,6 +113,8 @@ export default function Language() {
   const [matchingMessage, setMatchingMessage] = useState('');
   const [matchingImageUrl, setMatchingImageUrl] = useState<string | null>(null);
   const [matchingImageStatus, setMatchingImageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [matchingTranslation, setMatchingTranslation] = useState('');
+  const [showMatchingTranslation, setShowMatchingTranslation] = useState(false);
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -298,6 +300,7 @@ export default function Language() {
       }
 
       setMatchingSentence(await translateText(data.vietnamese, 'Vietnamese', matchingLanguage));
+      setMatchingTranslation(await translateText(data.english, 'English', userLanguage));
       setMatchingStatus('idle');
 
       void handleFindMatchingImage(data.english);
@@ -307,6 +310,10 @@ export default function Language() {
         error instanceof Error ? error.message : 'Failed to generate a new sentence. Please try again.'
       );
     }
+  };
+
+  const handleToggleMatchingTranslation = () => {
+    setShowMatchingTranslation((prev) => !prev);
   };
 
   const handleFindMatchingImage = async (englishSentence: string) => {
@@ -1333,14 +1340,40 @@ export default function Language() {
                   {/* Generated Sentence Display */}
                   <div>
                     <label className="block text-sm font-medium text-dark-blue mb-2">Sentence</label>
-                    <textarea
-                      value={matchingSentence}
-                      readOnly
-                      placeholder="Press Generate to create a random sentence"
-                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                      rows={3}
-                    />
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <textarea
+                        value={matchingSentence}
+                        readOnly
+                        placeholder="Press Generate to create a random sentence"
+                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        rows={3}
+                      />
+                      <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
+                        <button
+                          type="button"
+                          onClick={handleToggleMatchingTranslation}
+                          disabled={!matchingSentence}
+                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                          {showMatchingTranslation ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Translation of the generated sentence */}
+                  {showMatchingTranslation && (
+                    <div>
+                      <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
+                      <textarea
+                        value={matchingTranslation}
+                        readOnly
+                        placeholder="The translation will appear here"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        rows={3}
+                      />
+                    </div>
+                  )}
 
                   {/* Matching Image Display */}
                   <div>
