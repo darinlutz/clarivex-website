@@ -799,7 +799,7 @@ export default function Language() {
 
       {/* Language Practice Content */}
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-5xl">
           {/* Tab Navigation */}
           <div className="flex gap-4 mb-6 border-b border-slate-200">
             <button
@@ -1387,7 +1387,7 @@ export default function Language() {
                 </p>
 
                 <div className="space-y-4">
-                  {/* Language Selector */}
+                  {/* Language & Difficulty Selectors */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <label htmlFor="matchingLanguage" className="block text-sm font-medium text-dark-blue">
                       Language
@@ -1405,11 +1405,8 @@ export default function Language() {
                         </option>
                       ))}
                     </select>
-                  </div>
 
-                  {/* Difficulty Selector */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <label htmlFor="matchingDifficulty" className="block text-sm font-medium text-dark-blue">
+                    <label htmlFor="matchingDifficulty" className="block text-sm font-medium text-dark-blue ml-4">
                       Difficulty
                     </label>
                     <select
@@ -1430,211 +1427,6 @@ export default function Language() {
                     </select>
                   </div>
 
-                  {/* Generated Sentence Display */}
-                  <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 1</label>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <textarea
-                        value={matchingSentence}
-                        readOnly
-                        placeholder="Press Generate to create a random sentence"
-                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                      <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
-                        <button
-                          type="button"
-                          onClick={handleToggleMatchingTranslation}
-                          disabled={!matchingSentence}
-                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
-                        >
-                          {showMatchingTranslation ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Translation of the generated sentence */}
-                  {showMatchingTranslation && (
-                    <div>
-                      <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
-                      <textarea
-                        value={matchingTranslation}
-                        readOnly
-                        placeholder="The translation will appear here"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                    </div>
-                  )}
-
-                  {/* Matching Image Display */}
-                  <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Image 1</label>
-                    <div className="w-full min-h-[10rem] flex items-center justify-center p-4 rounded-lg bg-white border border-slate-300 overflow-hidden">
-                      {matchingImageStatus === 'loading' ? (
-                        <span className="flex items-center gap-2 text-slate-400 text-sm">
-                          <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
-                          Finding an image...
-                        </span>
-                      ) : matchingImageUrl ? (
-                        <Image
-                          src={matchingImageUrl}
-                          alt={matchingSentence || 'Image matching the generated sentence'}
-                          width={267}
-                          height={200}
-                          unoptimized
-                          className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
-                        />
-                      ) : matchingImageStatus === 'error' ? (
-                        <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
-                      ) : (
-                        <span className="text-slate-400 text-sm">
-                          An image matching the sentence will appear here.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Generated Sentence 2 Display */}
-                  <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 2</label>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <textarea
-                        value={matchingSentence2}
-                        readOnly
-                        placeholder="Press Generate to create a random sentence"
-                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                      <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
-                        <button
-                          type="button"
-                          onClick={handleToggleMatchingTranslation2}
-                          disabled={!matchingSentence2}
-                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
-                        >
-                          {showMatchingTranslation2 ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Translation of the second generated sentence */}
-                  {showMatchingTranslation2 && (
-                    <div>
-                      <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
-                      <textarea
-                        value={matchingTranslation2}
-                        readOnly
-                        placeholder="The translation will appear here"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                    </div>
-                  )}
-
-                  {/* Matching Image 2 Display */}
-                  <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Image 2</label>
-                    <div className="w-full min-h-[10rem] flex items-center justify-center p-4 rounded-lg bg-white border border-slate-300 overflow-hidden">
-                      {matchingImageStatus2 === 'loading' ? (
-                        <span className="flex items-center gap-2 text-slate-400 text-sm">
-                          <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
-                          Finding an image...
-                        </span>
-                      ) : matchingImageUrl2 ? (
-                        <Image
-                          src={matchingImageUrl2}
-                          alt={matchingSentence2 || 'Image matching the generated sentence'}
-                          width={267}
-                          height={200}
-                          unoptimized
-                          className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
-                        />
-                      ) : matchingImageStatus2 === 'error' ? (
-                        <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
-                      ) : (
-                        <span className="text-slate-400 text-sm">
-                          An image matching the sentence will appear here.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Generated Sentence 3 Display */}
-                  <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 3</label>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <textarea
-                        value={matchingSentence3}
-                        readOnly
-                        placeholder="Press Generate to create a random sentence"
-                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                      <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
-                        <button
-                          type="button"
-                          onClick={handleToggleMatchingTranslation3}
-                          disabled={!matchingSentence3}
-                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
-                        >
-                          {showMatchingTranslation3 ? 'Hide' : 'Show'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Translation of the third generated sentence */}
-                  {showMatchingTranslation3 && (
-                    <div>
-                      <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
-                      <textarea
-                        value={matchingTranslation3}
-                        readOnly
-                        placeholder="The translation will appear here"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                    </div>
-                  )}
-
-                  {/* Matching Image 3 Display */}
-                  <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Image 3</label>
-                    <div className="w-full min-h-[10rem] flex items-center justify-center p-4 rounded-lg bg-white border border-slate-300 overflow-hidden">
-                      {matchingImageStatus3 === 'loading' ? (
-                        <span className="flex items-center gap-2 text-slate-400 text-sm">
-                          <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
-                          Finding an image...
-                        </span>
-                      ) : matchingImageUrl3 ? (
-                        <Image
-                          src={matchingImageUrl3}
-                          alt={matchingSentence3 || 'Image matching the generated sentence'}
-                          width={267}
-                          height={200}
-                          unoptimized
-                          className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
-                        />
-                      ) : matchingImageStatus3 === 'error' ? (
-                        <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
-                      ) : (
-                        <span className="text-slate-400 text-sm">
-                          An image matching the sentence will appear here.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Status Message */}
-                  {matchingMessage && (
-                    <div className="p-3 rounded-lg text-sm bg-red-100 text-red-700">
-                      {matchingMessage}
-                    </div>
-                  )}
-
                   {/* Generate Button */}
                   <div className="pt-2">
                     <button
@@ -1653,6 +1445,220 @@ export default function Language() {
                       )}
                     </button>
                   </div>
+
+                  {/* Sentences/Translations (left) and Images (right) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left: Sentences, Translations & Show buttons */}
+                    <div className="space-y-4">
+                      {/* Generated Sentence Display */}
+                      <div>
+                        <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 1</label>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <textarea
+                            value={matchingSentence}
+                            readOnly
+                            placeholder="Press Generate to create a random sentence"
+                            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                            rows={2}
+                          />
+                          <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
+                            <button
+                              type="button"
+                              onClick={handleToggleMatchingTranslation}
+                              disabled={!matchingSentence}
+                              className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                            >
+                              {showMatchingTranslation ? 'Hide' : 'Show'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Translation of the generated sentence */}
+                      {showMatchingTranslation && (
+                        <div>
+                          <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
+                          <textarea
+                            value={matchingTranslation}
+                            readOnly
+                            placeholder="The translation will appear here"
+                            className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                            rows={2}
+                          />
+                        </div>
+                      )}
+
+                      {/* Generated Sentence 2 Display */}
+                      <div>
+                        <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 2</label>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <textarea
+                            value={matchingSentence2}
+                            readOnly
+                            placeholder="Press Generate to create a random sentence"
+                            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                            rows={2}
+                          />
+                          <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
+                            <button
+                              type="button"
+                              onClick={handleToggleMatchingTranslation2}
+                              disabled={!matchingSentence2}
+                              className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                            >
+                              {showMatchingTranslation2 ? 'Hide' : 'Show'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Translation of the second generated sentence */}
+                      {showMatchingTranslation2 && (
+                        <div>
+                          <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
+                          <textarea
+                            value={matchingTranslation2}
+                            readOnly
+                            placeholder="The translation will appear here"
+                            className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                            rows={2}
+                          />
+                        </div>
+                      )}
+
+                      {/* Generated Sentence 3 Display */}
+                      <div>
+                        <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 3</label>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <textarea
+                            value={matchingSentence3}
+                            readOnly
+                            placeholder="Press Generate to create a random sentence"
+                            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                            rows={2}
+                          />
+                          <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
+                            <button
+                              type="button"
+                              onClick={handleToggleMatchingTranslation3}
+                              disabled={!matchingSentence3}
+                              className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                            >
+                              {showMatchingTranslation3 ? 'Hide' : 'Show'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Translation of the third generated sentence */}
+                      {showMatchingTranslation3 && (
+                        <div>
+                          <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
+                          <textarea
+                            value={matchingTranslation3}
+                            readOnly
+                            placeholder="The translation will appear here"
+                            className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                            rows={2}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Images */}
+                    <div className="space-y-4">
+                      {/* Matching Image Display */}
+                      <div>
+                        <label className="block text-sm font-medium text-dark-blue mb-2">Image 1</label>
+                        <div className="w-full max-w-[200px] mx-auto min-h-[8rem] flex items-center justify-center p-3 rounded-lg bg-white border border-slate-300 overflow-hidden">
+                          {matchingImageStatus === 'loading' ? (
+                            <span className="flex items-center gap-2 text-slate-400 text-sm">
+                              <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
+                              Finding an image...
+                            </span>
+                          ) : matchingImageUrl ? (
+                            <Image
+                              src={matchingImageUrl}
+                              alt={matchingSentence || 'Image matching the generated sentence'}
+                              width={267}
+                              height={200}
+                              unoptimized
+                              className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
+                            />
+                          ) : matchingImageStatus === 'error' ? (
+                            <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
+                          ) : (
+                            <span className="text-slate-400 text-sm">
+                              An image matching the sentence will appear here.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Matching Image 2 Display */}
+                      <div>
+                        <label className="block text-sm font-medium text-dark-blue mb-2">Image 2</label>
+                        <div className="w-full max-w-[200px] mx-auto min-h-[8rem] flex items-center justify-center p-3 rounded-lg bg-white border border-slate-300 overflow-hidden">
+                          {matchingImageStatus2 === 'loading' ? (
+                            <span className="flex items-center gap-2 text-slate-400 text-sm">
+                              <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
+                              Finding an image...
+                            </span>
+                          ) : matchingImageUrl2 ? (
+                            <Image
+                              src={matchingImageUrl2}
+                              alt={matchingSentence2 || 'Image matching the generated sentence'}
+                              width={267}
+                              height={200}
+                              unoptimized
+                              className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
+                            />
+                          ) : matchingImageStatus2 === 'error' ? (
+                            <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
+                          ) : (
+                            <span className="text-slate-400 text-sm">
+                              An image matching the sentence will appear here.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Matching Image 3 Display */}
+                      <div>
+                        <label className="block text-sm font-medium text-dark-blue mb-2">Image 3</label>
+                        <div className="w-full max-w-[200px] mx-auto min-h-[8rem] flex items-center justify-center p-3 rounded-lg bg-white border border-slate-300 overflow-hidden">
+                          {matchingImageStatus3 === 'loading' ? (
+                            <span className="flex items-center gap-2 text-slate-400 text-sm">
+                              <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
+                              Finding an image...
+                            </span>
+                          ) : matchingImageUrl3 ? (
+                            <Image
+                              src={matchingImageUrl3}
+                              alt={matchingSentence3 || 'Image matching the generated sentence'}
+                              width={267}
+                              height={200}
+                              unoptimized
+                              className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
+                            />
+                          ) : matchingImageStatus3 === 'error' ? (
+                            <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
+                          ) : (
+                            <span className="text-slate-400 text-sm">
+                              An image matching the sentence will appear here.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Message */}
+                  {matchingMessage && (
+                    <div className="p-3 rounded-lg text-sm bg-red-100 text-red-700">
+                      {matchingMessage}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
