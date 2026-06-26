@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function FinancialAnalysisForm() {
   const [instructions, setInstructions] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [results, setResults] = useState('');
+  const [chart, setChart] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -19,6 +21,7 @@ export default function FinancialAnalysisForm() {
     setStatus('loading');
     setMessage('');
     setResults('');
+    setChart(null);
 
     try {
       const response = await fetch('/api/financial-analysis', {
@@ -37,6 +40,7 @@ export default function FinancialAnalysisForm() {
 
       setStatus('success');
       setResults(data.result);
+      setChart(data.chart ?? null);
     } catch (error) {
       setStatus('error');
       setMessage(
@@ -91,9 +95,21 @@ export default function FinancialAnalysisForm() {
       {/* Results Section */}
       <div>
         <label className="block text-sm font-medium text-dark-blue mb-2">Results</label>
-        <div className="w-full min-h-[8rem] p-4 rounded-lg bg-white border border-slate-300 text-dark-blue whitespace-pre-wrap leading-relaxed">
-          {results || (
+        <div className="w-full min-h-[8rem] p-4 rounded-lg bg-white border border-slate-300 text-dark-blue space-y-4">
+          {results ? (
+            <p className="whitespace-pre-wrap leading-relaxed">{results}</p>
+          ) : (
             <span className="text-slate-400">Results will appear here after you submit a query.</span>
+          )}
+          {chart && (
+            <Image
+              src={chart}
+              alt="Generated stock chart"
+              width={1200}
+              height={600}
+              unoptimized
+              className="w-full h-auto rounded-lg border border-slate-200"
+            />
           )}
         </div>
       </div>

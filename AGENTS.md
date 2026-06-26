@@ -64,7 +64,8 @@ src/
 
 **Python Components** (backend automation):
 - `clockify_entry.py` - Automated Clockify time entry management
-- `requirements.txt` - Python dependencies
+- `plot_stock.py` - Generates a stock closing-price chart (PNG, base64 over stdout) from live Alpha Vantage data; invoked as a subprocess from `src/lib/financialAnalysis.ts`'s CodeAgent node
+- `requirements.txt` - Python dependencies (requires `pandas`/`matplotlib` for `plot_stock.py`)
 
 ## Development Conventions
 

@@ -1,3 +1,5 @@
+import { execFile } from 'node:child_process';
+import path from 'node:path';
 import { Annotation, StateGraph, START, END, messagesStateReducer } from '@langchain/langgraph';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
@@ -6,6 +8,8 @@ import { createAgent, tool } from 'langchain';
 import { z } from 'zod';
 
 const MODEL_NAME = 'gpt-4o';
+const PLOT_SCRIPT_PATH = path.join(process.cwd(), 'plot_stock.py');
+const TICKER_PATTERN = /^[A-Za-z.]{1,10}$/;
 
 const getCurrentDateTool = tool(
   async () =>
@@ -115,20 +119,74 @@ const financialAgent = createAgent({
     'and return a clear, text-based analysis or result.',
 });
 
-const codeAgent = createAgent({
-  model: baseModel(),
-  tools: [],
-  systemPrompt:
-    'You are a visualization agent. Your role is to write Python code that creates visual representations of ' +
-    'data. You do not have access to a code execution tool, so never claim to have run the code or produced an ' +
-    'image. Do not perform any data analysis or gather information yourself. Your sole purpose is to take the ' +
-    'given data and return the code for an appropriate visualization, without executing it.',
+interface ChartScriptResult {
+  image?: string;
+  error?: string;
+}
+
+function generateStockChart(ticker: string, days: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!TICKER_PATTERN.test(ticker)) {
+      reject(new Error(`Invalid ticker symbol: "${ticker}"`));
+      return;
+    }
+
+    const clampedDays = Math.min(Math.max(Math.round(days) || 365, 1), 1825);
+
+    execFile(
+      'python',
+      [PLOT_SCRIPT_PATH, '--ticker', ticker, '--days', String(clampedDays)],
+      { env: process.env, timeout: 30000, maxBuffer: 10 * 1024 * 1024 },
+      (error, stdout, stderr) => {
+        let parsed: ChartScriptResult | undefined;
+        try {
+          parsed = JSON.parse(stdout.trim());
+        } catch {
+          parsed = undefined;
+        }
+
+        if (parsed?.error) {
+          reject(new Error(parsed.error));
+          return;
+        }
+
+        if (error) {
+          reject(new Error(stderr.trim() || error.message));
+          return;
+        }
+        if (!parsed?.image) {
+          reject(new Error('Chart script returned no image data'));
+          return;
+        }
+
+        resolve(`data:image/png;base64,${parsed.image}`);
+      }
+    );
+  });
+}
+
+const ChartRequestSchema = z.object({
+  ticker: z.string().describe('The stock ticker symbol to chart, e.g. AAPL'),
+  days: z
+    .number()
+    .int()
+    .describe('The number of trailing days of closing-price data to plot, e.g. 365 for "the last year"'),
 });
+
+const chartExtractionPrompt = ChatPromptTemplate.fromMessages([
+  [
+    'system',
+    'You determine the parameters for a stock price chart based on the conversation so far, including any ' +
+      "ticker symbols or data already gathered by the financial analysis agent. Identify the stock ticker " +
+      'the user wants charted and how many trailing days of data to include (default to 365 if unspecified).',
+  ],
+  new MessagesPlaceholder('messages'),
+]);
 
 const MEMBERS = {
   WebSearchAgent: 'An agent that performs web searches to gather information',
   FinancialAgent: 'An agent that analyzes financial data using the Alpha Vantage tool to acquire stock market information',
-  CodeAgent: 'An agent that writes Python visualization code. Use this to produce plots and tables as code',
+  CodeAgent: 'An agent that generates a real stock closing-price chart image from live market data. Use this when the user asks for a plot, chart, or graph',
 } as const;
 
 type MemberName = keyof typeof MEMBERS;
@@ -150,8 +208,12 @@ const supervisorSystemPrompt =
   "1. Analyze the user's request and the ongoing conversation.\n" +
   '2. Determine which agent is best suited to handle the next task.\n' +
   '3. Ensure a logical flow of information and task execution.\n' +
-  "4. Correctly detect task completion and respond with 'FINISH', especially once a clear answer has been given.\n" +
-  '5. Facilitate seamless transitions between agents as needed.\n' +
+  "4. Respond with 'FINISH' as soon as an agent has provided a sufficient answer to the user's request. In " +
+  "particular, once the CodeAgent has generated a chart (whether it succeeded or reported an error), the " +
+  "visualization task is complete and you must respond with 'FINISH' — never call CodeAgent, FinancialAgent, " +
+  'or WebSearchAgent again for the same request after that.\n' +
+  '5. Facilitate seamless transitions between agents as needed, but never call the same agent twice in a row ' +
+  'for the same request.\n' +
   "6. Conclude the process by responding with 'FINISH' when all objectives are met. Remember, each agent has " +
   'unique capabilities, so choose wisely based on the current needs of the task.';
 
@@ -169,6 +231,10 @@ const AgentState = Annotation.Root({
   next: Annotation<string>({
     reducer: (_current, update) => update,
     default: () => '',
+  }),
+  chart: Annotation<string | null>({
+    reducer: (_current, update) => update,
+    default: () => null,
   }),
 });
 
@@ -198,9 +264,22 @@ async function financialNode(state: AgentStateType): Promise<Partial<AgentStateT
 }
 
 async function codeNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
-  const result = await codeAgent.invoke({ messages: state.messages });
-  const lastMessage = result.messages[result.messages.length - 1];
-  return { messages: [toAgentMessage(lastMessage.content, 'CodeAgent')] };
+  const structuredModel = baseModel().withStructuredOutput(ChartRequestSchema);
+  const chain = chartExtractionPrompt.pipe(structuredModel);
+  const { ticker, days } = await chain.invoke({ messages: state.messages });
+
+  try {
+    const chart = await generateStockChart(ticker, days);
+    return {
+      chart,
+      messages: [toAgentMessage(`Generated a ${days}-day closing price chart for ${ticker.toUpperCase()}.`, 'CodeAgent')],
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    return {
+      messages: [toAgentMessage(`Could not generate a chart for ${ticker.toUpperCase()}: ${reason}`, 'CodeAgent')],
+    };
+  }
 }
 
 const graph = new StateGraph(AgentState)
@@ -222,7 +301,12 @@ const graph = new StateGraph(AgentState)
 
 const MAX_STEPS = 10;
 
-export async function runFinancialAnalysis(query: string): Promise<string> {
+export interface FinancialAnalysisResult {
+  result: string;
+  chart: string | null;
+}
+
+export async function runFinancialAnalysis(query: string): Promise<FinancialAnalysisResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
@@ -247,7 +331,10 @@ export async function runFinancialAnalysis(query: string): Promise<string> {
     throw new Error('Financial analysis graph did not return a result');
   }
 
-  return typeof lastAgentMessage.content === 'string'
-    ? lastAgentMessage.content
-    : JSON.stringify(lastAgentMessage.content);
+  const result =
+    typeof lastAgentMessage.content === 'string'
+      ? lastAgentMessage.content
+      : JSON.stringify(lastAgentMessage.content);
+
+  return { result, chart: finalState.chart };
 }

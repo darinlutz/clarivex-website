@@ -26,9 +26,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Alpha Vantage API key not configured' }, { status: 500 });
     }
 
-    const result = await runFinancialAnalysis(body.query);
+    const { result, chart } = await runFinancialAnalysis(body.query);
 
-    return NextResponse.json({ success: true, result }, { status: 200 });
+    return NextResponse.json({ success: true, result, chart }, { status: 200 });
   } catch (error) {
     console.error('Financial analysis error:', error);
 
