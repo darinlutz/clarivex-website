@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import LanguageForm from '@/components/LanguageForm';
 import type { Language } from '@/lib/translate';
 
@@ -48,10 +48,11 @@ async function resolveWritingAnswerText(
 }
 
 export default function Language() {
-  const [activeTab, setActiveTab] = useState<'reading' | 'writing' | 'translator' | 'friend'>(
-    'reading'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'reading' | 'writing' | 'translator' | 'friend' | 'matching'
+  >('reading');
   const [userLanguage, setUserLanguage] = useState<Language>('English');
+  const [learnLanguage, setLearnLanguage] = useState<Language>('Vietnamese');
   const [vietnameseText, setVietnameseText] = useState('');
   const [userInput, setUserInput] = useState('');
   const [showVietnamese, setShowVietnamese] = useState(true);
@@ -59,7 +60,9 @@ export default function Language() {
   const [writingWordLanguage, setWritingWordLanguage] = useState<Language>('Vietnamese');
   const [englishSource, setEnglishSource] = useState('');
   const [writingAnswerText, setWritingAnswerText] = useState('');
-  const [writingAnswerLanguage, setWritingAnswerLanguage] = useState<Language>('English');
+  const [writingAnswerLanguage, setWritingAnswerLanguage] = useState<Language>(userLanguage);
+  const [appliedWritingAnswerLanguage, setAppliedWritingAnswerLanguage] = useState(userLanguage);
+  const [appliedWritingWordLanguage, setAppliedWritingWordLanguage] = useState(learnLanguage);
   const [complexity, setComplexity] = useState<
     'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
   >('easy');
@@ -70,6 +73,8 @@ export default function Language() {
   const [translatorBottomText, setTranslatorBottomText] = useState('');
   const [translatorLanguage, setTranslatorLanguage] = useState<Language>('Vietnamese');
   const [translatorSecondLanguage, setTranslatorSecondLanguage] = useState<Language>('English');
+  const [appliedTranslatorBottomLanguage, setAppliedTranslatorBottomLanguage] = useState(userLanguage);
+  const [appliedTranslatorTopLanguage, setAppliedTranslatorTopLanguage] = useState(learnLanguage);
   const [isSwapped, setIsSwapped] = useState(false);
   const [translatorStatus, setTranslatorStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -91,11 +96,82 @@ export default function Language() {
   const [friendInputTranslation, setFriendInputTranslation] = useState('');
   const [friendInputTranslationLanguage, setFriendInputTranslationLanguage] =
     useState<Language>('English');
+  const [appliedFriendBottomLanguage, setAppliedFriendBottomLanguage] = useState(userLanguage);
+  const [appliedFriendTopLanguage, setAppliedFriendTopLanguage] = useState(learnLanguage);
   const [friendSpeakStatus, setFriendSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [friendReplyTranslation, setFriendReplyTranslation] = useState('');
   const [showFriendReplyTranslation, setShowFriendReplyTranslation] = useState(false);
 
+  const [matchingLanguage, setMatchingLanguage] = useState<Language>(learnLanguage);
+  const [appliedMatchingLanguage, setAppliedMatchingLanguage] = useState(learnLanguage);
+  const [matchingDifficulty, setMatchingDifficulty] = useState<
+    'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
+  >('easy');
+
   const maskText = (text: string) => text.replace(/\S/g, '•');
+
+  // Lets the "I currently speak" selector drive the Writing tab's answer
+  // language without taking away the user's ability to change it locally.
+  if (userLanguage !== appliedWritingAnswerLanguage) {
+    setAppliedWritingAnswerLanguage(userLanguage);
+    setWritingAnswerLanguage(userLanguage);
+  }
+
+  // Lets the "I currently speak" selector drive the Translator tab's bottom
+  // (To) combobox, wherever that currently maps to, without taking away the
+  // user's ability to change it locally.
+  if (userLanguage !== appliedTranslatorBottomLanguage) {
+    setAppliedTranslatorBottomLanguage(userLanguage);
+    if (isSwapped) {
+      setTranslatorLanguage(userLanguage);
+    } else {
+      setTranslatorSecondLanguage(userLanguage);
+    }
+  }
+
+  // Lets the "I currently speak" selector drive the Friend tab's bottom
+  // (Translation) combobox without taking away the user's ability to change
+  // it locally.
+  if (userLanguage !== appliedFriendBottomLanguage) {
+    setAppliedFriendBottomLanguage(userLanguage);
+    setFriendInputTranslationLanguage(userLanguage);
+  }
+
+  // Lets the "I want to learn" selector drive the Writing tab's top
+  // (word/sentence) combobox without taking away the user's ability to
+  // change it locally.
+  if (learnLanguage !== appliedWritingWordLanguage) {
+    setAppliedWritingWordLanguage(learnLanguage);
+    setWritingWordLanguage(learnLanguage);
+  }
+
+  // Lets the "I want to learn" selector drive the Translator tab's top
+  // (From) combobox, wherever that currently maps to, without taking away
+  // the user's ability to change it locally.
+  if (learnLanguage !== appliedTranslatorTopLanguage) {
+    setAppliedTranslatorTopLanguage(learnLanguage);
+    if (isSwapped) {
+      setTranslatorSecondLanguage(learnLanguage);
+    } else {
+      setTranslatorLanguage(learnLanguage);
+    }
+  }
+
+  // Lets the "I want to learn" selector drive the Friend tab's top
+  // (Language) combobox without taking away the user's ability to change it
+  // locally.
+  if (learnLanguage !== appliedFriendTopLanguage) {
+    setAppliedFriendTopLanguage(learnLanguage);
+    setFriendLanguage(learnLanguage);
+  }
+
+  // Lets the "I want to learn" selector drive the Matching Game tab's
+  // Language combobox without taking away the user's ability to change it
+  // locally.
+  if (learnLanguage !== appliedMatchingLanguage) {
+    setAppliedMatchingLanguage(learnLanguage);
+    setMatchingLanguage(learnLanguage);
+  }
 
   const fromLanguage: Language = isSwapped ? translatorSecondLanguage : translatorLanguage;
   const toLanguage: Language = isSwapped ? translatorLanguage : translatorSecondLanguage;
@@ -144,9 +220,6 @@ export default function Language() {
       setVietnameseText(data.vietnamese);
       setEnglishSource(data.english);
       setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
-      setWritingAnswerText(
-        await resolveWritingAnswerText(data.vietnamese, data.english, writingAnswerLanguage)
-      );
       setStatus('success');
     } catch (error) {
       setStatus('error');
@@ -180,9 +253,6 @@ export default function Language() {
       setVietnameseText(data.vietnamese);
       setEnglishSource(data.english);
       setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
-      setWritingAnswerText(
-        await resolveWritingAnswerText(data.vietnamese, data.english, writingAnswerLanguage)
-      );
       setStatus('success');
     } catch (error) {
       setStatus('error');
@@ -215,19 +285,27 @@ export default function Language() {
     }
   };
 
-  const handleWritingAnswerLanguageChange = async (newLanguage: Language) => {
-    setWritingAnswerLanguage(newLanguage);
+  // Keeps the Writing tab's answer field in sync with its language and with
+  // whatever word/sentence was last generated.
+  useEffect(() => {
+    let isCurrent = true;
 
-    if (!vietnameseText.trim() && !englishSource.trim()) return;
+    resolveWritingAnswerText(vietnameseText, englishSource, writingAnswerLanguage)
+      .then((text) => {
+        if (isCurrent) setWritingAnswerText(text);
+      })
+      .catch((error) => {
+        if (isCurrent) {
+          setMessage(
+            error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
+          );
+        }
+      });
 
-    try {
-      setWritingAnswerText(await resolveWritingAnswerText(vietnameseText, englishSource, newLanguage));
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : 'Failed to translate text. Please try again.'
-      );
-    }
-  };
+    return () => {
+      isCurrent = false;
+    };
+  }, [vietnameseText, englishSource, writingAnswerLanguage]);
 
   const handleTranslatorSpeak = async (text: string) => {
     if (!text.trim()) return;
@@ -328,8 +406,20 @@ export default function Language() {
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      audio.onended = () => URL.revokeObjectURL(audioUrl);
-      await audio.play();
+
+      // Wait for playback to finish (not just start) so callers can chain
+      // audio clips sequentially instead of overlapping them.
+      await new Promise<void>((resolve, reject) => {
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          resolve();
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(audioUrl);
+          reject(new Error('Failed to play audio'));
+        };
+        audio.play().catch(reject);
+      });
 
       setFriendSpeakStatus('idle');
     } catch (error) {
@@ -421,7 +511,7 @@ export default function Language() {
     setFriendInputTranslation('');
     setFriendStatus('loading');
     setFriendMessage('');
-    playFriendSpeech(messageText);
+    const userMessageSpeech = playFriendSpeech(messageText);
 
     try {
       const response = await fetch('/api/friend', {
@@ -444,6 +534,7 @@ export default function Language() {
 
       setFriendMessages([...updatedMessages, { role: 'assistant', content: data.reply }]);
       setFriendStatus('idle');
+      await userMessageSpeech;
       playFriendSpeech(data.reply);
       translateFriendReply(data.reply);
     } catch (error) {
@@ -499,21 +590,37 @@ export default function Language() {
       {/* Header Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 pb-2 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
             Language
           </h1>
           <p className="text-lg text-slate-600">
-            Practice Vietnamese with a new sentence built from words you already know.
+            Practice {learnLanguage} with a new sentence built from words you already know.
           </p>
-          <div className="flex items-center justify-center gap-2 mt-4">
+          <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
             <label htmlFor="userLanguage" className="text-sm font-medium text-dark-blue">
-              I currently speak
+              I speak
             </label>
             <select
               id="userLanguage"
               name="userLanguage"
               value={userLanguage}
               onChange={(e) => setUserLanguage(e.target.value as Language)}
+              className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+            >
+              {TRANSLATOR_LANGUAGES.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="learnLanguage" className="text-sm font-medium text-dark-blue ml-4">
+              and want to learn
+            </label>
+            <select
+              id="learnLanguage"
+              name="learnLanguage"
+              value={learnLanguage}
+              onChange={(e) => setLearnLanguage(e.target.value as Language)}
               className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
             >
               {TRANSLATOR_LANGUAGES.map((lang) => (
@@ -571,6 +678,16 @@ export default function Language() {
             >
               Friend
             </button>
+            <button
+              onClick={() => setActiveTab('matching')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'matching'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Matching Game
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -582,7 +699,7 @@ export default function Language() {
                 <p className="text-slate-600 mb-8">
                   Press the button below to generate a new sentence based on your vocabulary notes.
                 </p>
-                <LanguageForm answerLanguage={userLanguage} />
+                <LanguageForm answerLanguage={userLanguage} wordLanguage={learnLanguage} />
               </div>
             )}
 
@@ -662,7 +779,7 @@ export default function Language() {
                       id="writingAnswerLanguage"
                       name="writingAnswerLanguage"
                       value={writingAnswerLanguage}
-                      onChange={(e) => handleWritingAnswerLanguageChange(e.target.value as Language)}
+                      onChange={(e) => setWritingAnswerLanguage(e.target.value as Language)}
                       className="mb-2 px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     >
                       {TRANSLATOR_LANGUAGES.map((lang) => (
@@ -972,13 +1089,36 @@ export default function Language() {
 
                   {/* Translation of the chatbot's most recent message */}
                   {showFriendReplyTranslation && (
-                    <input
-                      type="text"
-                      value={friendReplyTranslation}
-                      readOnly
-                      placeholder="The translation will appear here"
-                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-                    />
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <textarea
+                        value={friendReplyTranslation}
+                        readOnly
+                        placeholder="The translation will appear here"
+                        rows={3}
+                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                      />
+                      {/* Invisible spacer matching the chat window's button column so the
+                          translation box lines up with the chat window above it. */}
+                      <div
+                        aria-hidden="true"
+                        className="invisible flex flex-row sm:flex-col gap-3 flex-shrink-0"
+                      >
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          className="px-4 py-2 font-bold rounded-lg"
+                        >
+                          Speak
+                        </button>
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          className="px-4 py-2 font-bold rounded-lg"
+                        >
+                          {showFriendReplyTranslation ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   {/* Status Message */}
@@ -1070,6 +1210,61 @@ export default function Language() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Matching Game Tab */}
+            {activeTab === 'matching' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Matching Game</h2>
+                <p className="text-slate-600 mb-8">
+                  Match words and their translations to practice your vocabulary.
+                </p>
+
+                <div className="space-y-4">
+                  {/* Language Selector */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label htmlFor="matchingLanguage" className="block text-sm font-medium text-dark-blue">
+                      Language
+                    </label>
+                    <select
+                      id="matchingLanguage"
+                      name="matchingLanguage"
+                      value={matchingLanguage}
+                      onChange={(e) => setMatchingLanguage(e.target.value as Language)}
+                      className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                    >
+                      {TRANSLATOR_LANGUAGES.map((lang) => (
+                        <option key={lang} value={lang}>
+                          {lang}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Difficulty Selector */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label htmlFor="matchingDifficulty" className="block text-sm font-medium text-dark-blue">
+                      Difficulty
+                    </label>
+                    <select
+                      id="matchingDifficulty"
+                      name="matchingDifficulty"
+                      value={matchingDifficulty}
+                      onChange={(e) =>
+                        setMatchingDifficulty(
+                          e.target.value as 'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
+                        )
+                      }
+                      className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                    >
+                      <option value="nouns">Noun/Verb/Adjective</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
