@@ -115,6 +115,16 @@ export default function Language() {
   const [matchingImageStatus, setMatchingImageStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [matchingTranslation, setMatchingTranslation] = useState('');
   const [showMatchingTranslation, setShowMatchingTranslation] = useState(false);
+  const [matchingSentence2, setMatchingSentence2] = useState('');
+  const [matchingImageUrl2, setMatchingImageUrl2] = useState<string | null>(null);
+  const [matchingImageStatus2, setMatchingImageStatus2] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [matchingTranslation2, setMatchingTranslation2] = useState('');
+  const [showMatchingTranslation2, setShowMatchingTranslation2] = useState(false);
+  const [matchingSentence3, setMatchingSentence3] = useState('');
+  const [matchingImageUrl3, setMatchingImageUrl3] = useState<string | null>(null);
+  const [matchingImageStatus3, setMatchingImageStatus3] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [matchingTranslation3, setMatchingTranslation3] = useState('');
+  const [showMatchingTranslation3, setShowMatchingTranslation3] = useState(false);
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -279,31 +289,54 @@ export default function Language() {
     }
   };
 
+  const fetchMatchingSentence = async (
+    usedWords: string[] = [],
+    usedSentences: string[] = []
+  ): Promise<{ vietnamese: string; english: string; wordsUsed: string[] }> => {
+    const response = await fetch('/api/language', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ complexity: matchingDifficulty, usedWords, usedSentences }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to generate a new sentence');
+    }
+
+    return data;
+  };
+
   const handleGenerateMatchingSentence = async () => {
     setMatchingStatus('loading');
     setMatchingMessage('');
     setMatchingImageUrl(null);
+    setMatchingImageUrl2(null);
+    setMatchingImageUrl3(null);
 
     try {
-      const response = await fetch('/api/language', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ complexity: matchingDifficulty }),
-      });
+      const sentence1 = await fetchMatchingSentence();
+      setMatchingSentence(await translateText(sentence1.vietnamese, 'Vietnamese', matchingLanguage));
+      setMatchingTranslation(await translateText(sentence1.english, 'English', userLanguage));
+      void handleFindMatchingImage(sentence1.english);
 
-      const data = await response.json();
+      const sentence2 = await fetchMatchingSentence(sentence1.wordsUsed, [sentence1.vietnamese]);
+      setMatchingSentence2(await translateText(sentence2.vietnamese, 'Vietnamese', matchingLanguage));
+      setMatchingTranslation2(await translateText(sentence2.english, 'English', userLanguage));
+      void handleFindMatchingImage2(sentence2.english);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate a new sentence');
-      }
+      const sentence3 = await fetchMatchingSentence(
+        [...sentence1.wordsUsed, ...sentence2.wordsUsed],
+        [sentence1.vietnamese, sentence2.vietnamese]
+      );
+      setMatchingSentence3(await translateText(sentence3.vietnamese, 'Vietnamese', matchingLanguage));
+      setMatchingTranslation3(await translateText(sentence3.english, 'English', userLanguage));
+      void handleFindMatchingImage3(sentence3.english);
 
-      setMatchingSentence(await translateText(data.vietnamese, 'Vietnamese', matchingLanguage));
-      setMatchingTranslation(await translateText(data.english, 'English', userLanguage));
       setMatchingStatus('idle');
-
-      void handleFindMatchingImage(data.english);
     } catch (error) {
       setMatchingStatus('error');
       setMatchingMessage(
@@ -314,6 +347,14 @@ export default function Language() {
 
   const handleToggleMatchingTranslation = () => {
     setShowMatchingTranslation((prev) => !prev);
+  };
+
+  const handleToggleMatchingTranslation2 = () => {
+    setShowMatchingTranslation2((prev) => !prev);
+  };
+
+  const handleToggleMatchingTranslation3 = () => {
+    setShowMatchingTranslation3((prev) => !prev);
   };
 
   const handleFindMatchingImage = async (englishSentence: string) => {
@@ -339,6 +380,58 @@ export default function Language() {
     } catch {
       setMatchingImageUrl(null);
       setMatchingImageStatus('error');
+    }
+  };
+
+  const handleFindMatchingImage2 = async (englishSentence: string) => {
+    setMatchingImageStatus2('loading');
+
+    try {
+      const response = await fetch('/api/language/image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: englishSentence }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find an image');
+      }
+
+      setMatchingImageUrl2(data.imageUrl ?? null);
+      setMatchingImageStatus2('idle');
+    } catch {
+      setMatchingImageUrl2(null);
+      setMatchingImageStatus2('error');
+    }
+  };
+
+  const handleFindMatchingImage3 = async (englishSentence: string) => {
+    setMatchingImageStatus3('loading');
+
+    try {
+      const response = await fetch('/api/language/image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: englishSentence }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to find an image');
+      }
+
+      setMatchingImageUrl3(data.imageUrl ?? null);
+      setMatchingImageStatus3('idle');
+    } catch {
+      setMatchingImageUrl3(null);
+      setMatchingImageStatus3('error');
     }
   };
 
@@ -1339,14 +1432,14 @@ export default function Language() {
 
                   {/* Generated Sentence Display */}
                   <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence</label>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 1</label>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <textarea
                         value={matchingSentence}
                         readOnly
                         placeholder="Press Generate to create a random sentence"
                         className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={3}
+                        rows={2}
                       />
                       <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
                         <button
@@ -1370,14 +1463,14 @@ export default function Language() {
                         readOnly
                         placeholder="The translation will appear here"
                         className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={3}
+                        rows={2}
                       />
                     </div>
                   )}
 
                   {/* Matching Image Display */}
                   <div>
-                    <label className="block text-sm font-medium text-dark-blue mb-2">Image</label>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Image 1</label>
                     <div className="w-full min-h-[10rem] flex items-center justify-center p-4 rounded-lg bg-white border border-slate-300 overflow-hidden">
                       {matchingImageStatus === 'loading' ? (
                         <span className="flex items-center gap-2 text-slate-400 text-sm">
@@ -1388,12 +1481,144 @@ export default function Language() {
                         <Image
                           src={matchingImageUrl}
                           alt={matchingSentence || 'Image matching the generated sentence'}
-                          width={800}
-                          height={600}
+                          width={267}
+                          height={200}
                           unoptimized
-                          className="max-w-full max-h-96 w-auto h-auto object-contain rounded-lg"
+                          className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
                         />
                       ) : matchingImageStatus === 'error' ? (
+                        <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
+                      ) : (
+                        <span className="text-slate-400 text-sm">
+                          An image matching the sentence will appear here.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Generated Sentence 2 Display */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 2</label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <textarea
+                        value={matchingSentence2}
+                        readOnly
+                        placeholder="Press Generate to create a random sentence"
+                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        rows={2}
+                      />
+                      <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
+                        <button
+                          type="button"
+                          onClick={handleToggleMatchingTranslation2}
+                          disabled={!matchingSentence2}
+                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                          {showMatchingTranslation2 ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Translation of the second generated sentence */}
+                  {showMatchingTranslation2 && (
+                    <div>
+                      <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
+                      <textarea
+                        value={matchingTranslation2}
+                        readOnly
+                        placeholder="The translation will appear here"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        rows={2}
+                      />
+                    </div>
+                  )}
+
+                  {/* Matching Image 2 Display */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Image 2</label>
+                    <div className="w-full min-h-[10rem] flex items-center justify-center p-4 rounded-lg bg-white border border-slate-300 overflow-hidden">
+                      {matchingImageStatus2 === 'loading' ? (
+                        <span className="flex items-center gap-2 text-slate-400 text-sm">
+                          <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
+                          Finding an image...
+                        </span>
+                      ) : matchingImageUrl2 ? (
+                        <Image
+                          src={matchingImageUrl2}
+                          alt={matchingSentence2 || 'Image matching the generated sentence'}
+                          width={267}
+                          height={200}
+                          unoptimized
+                          className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
+                        />
+                      ) : matchingImageStatus2 === 'error' ? (
+                        <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
+                      ) : (
+                        <span className="text-slate-400 text-sm">
+                          An image matching the sentence will appear here.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Generated Sentence 3 Display */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Sentence 3</label>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <textarea
+                        value={matchingSentence3}
+                        readOnly
+                        placeholder="Press Generate to create a random sentence"
+                        className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        rows={2}
+                      />
+                      <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-end">
+                        <button
+                          type="button"
+                          onClick={handleToggleMatchingTranslation3}
+                          disabled={!matchingSentence3}
+                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                          {showMatchingTranslation3 ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Translation of the third generated sentence */}
+                  {showMatchingTranslation3 && (
+                    <div>
+                      <label className="block text-sm font-medium text-dark-blue mb-2">Translation</label>
+                      <textarea
+                        value={matchingTranslation3}
+                        readOnly
+                        placeholder="The translation will appear here"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                        rows={2}
+                      />
+                    </div>
+                  )}
+
+                  {/* Matching Image 3 Display */}
+                  <div>
+                    <label className="block text-sm font-medium text-dark-blue mb-2">Image 3</label>
+                    <div className="w-full min-h-[10rem] flex items-center justify-center p-4 rounded-lg bg-white border border-slate-300 overflow-hidden">
+                      {matchingImageStatus3 === 'loading' ? (
+                        <span className="flex items-center gap-2 text-slate-400 text-sm">
+                          <span className="w-4 h-4 border-2 border-powder-500 border-t-transparent rounded-full animate-spin"></span>
+                          Finding an image...
+                        </span>
+                      ) : matchingImageUrl3 ? (
+                        <Image
+                          src={matchingImageUrl3}
+                          alt={matchingSentence3 || 'Image matching the generated sentence'}
+                          width={267}
+                          height={200}
+                          unoptimized
+                          className="max-w-full max-h-32 w-auto h-auto object-contain rounded-lg"
+                        />
+                      ) : matchingImageStatus3 === 'error' ? (
                         <span className="text-slate-400 text-sm">Could not find an image for this sentence.</span>
                       ) : (
                         <span className="text-slate-400 text-sm">
