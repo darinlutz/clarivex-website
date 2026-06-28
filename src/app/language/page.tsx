@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import LanguageForm from '@/components/LanguageForm';
 import type { Language } from '@/lib/translate';
+import type { GrammarToken } from '@/lib/grammarCheck';
 
 const TRANSLATOR_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
 
@@ -88,6 +89,7 @@ export default function Language() {
   const [friendMessages, setFriendMessages] = useState<
     { role: 'user' | 'assistant'; content: string }[]
   >([]);
+  const [friendCorrections, setFriendCorrections] = useState<Record<number, GrammarToken[]>>({});
   const [friendStarted, setFriendStarted] = useState(false);
   const [friendInput, setFriendInput] = useState('');
   const [friendStatus, setFriendStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -636,6 +638,7 @@ export default function Language() {
   const handleFriendStart = async () => {
     setFriendStatus('loading');
     setFriendMessage('');
+    setFriendCorrections({});
 
     try {
       const response = await fetch('/api/friend', {
@@ -665,17 +668,43 @@ export default function Language() {
     }
   };
 
+  // Checks the user's message for spelling, grammar, and diacritic errors so
+  // it can be rendered word-by-word (correct in green, incorrect in red with
+  // the fix shown alongside in blue). Runs in the background and doesn't
+  // block or interrupt the chat if it fails.
+  const checkFriendMessage = async (text: string, messageIndex: number) => {
+    try {
+      const response = await fetch('/api/friend/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, language: friendLanguage }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) return;
+
+      setFriendCorrections((prev) => ({ ...prev, [messageIndex]: data.tokens }));
+    } catch {
+      // Silently ignore grammar check errors so they don't interrupt the chat.
+    }
+  };
+
   const handleFriendSend = async () => {
     if (!friendInput.trim()) return;
 
     const messageText = friendInput;
     const updatedMessages = [...friendMessages, { role: 'user' as const, content: messageText }];
+    const userMessageIndex = updatedMessages.length - 1;
     setFriendMessages(updatedMessages);
     setFriendInput('');
     setFriendInputTranslation('');
     setFriendStatus('loading');
     setFriendMessage('');
     const userMessageSpeech = playFriendSpeech(messageText);
+    checkFriendMessage(messageText, userMessageIndex);
 
     try {
       const response = await fetch('/api/friend', {
@@ -1170,40 +1199,41 @@ export default function Language() {
                 </p>
 
                 <div className="space-y-4">
-                  {/* Language Selector */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <label htmlFor="friendLanguage" className="block text-sm font-medium text-dark-blue">
-                      Language
-                    </label>
-                    <select
-                      id="friendLanguage"
-                      value={friendLanguage}
-                      onChange={(e) => setFriendLanguage(e.target.value as Language)}
-                      className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-                    >
-                      {TRANSLATOR_LANGUAGES.map((lang) => (
-                        <option key={lang} value={lang}>
-                          {lang}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Language & Difficulty Selectors */}
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label htmlFor="friendLanguage" className="block text-sm font-medium text-dark-blue">
+                        Language
+                      </label>
+                      <select
+                        id="friendLanguage"
+                        value={friendLanguage}
+                        onChange={(e) => setFriendLanguage(e.target.value as Language)}
+                        className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                      >
+                        {TRANSLATOR_LANGUAGES.map((lang) => (
+                          <option key={lang} value={lang}>
+                            {lang}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                  {/* Difficulty Selector */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <label htmlFor="friendDifficulty" className="block text-sm font-medium text-dark-blue">
-                      Difficulty
-                    </label>
-                    <select
-                      id="friendDifficulty"
-                      value={friendDifficulty}
-                      onChange={(e) => setFriendDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-                      className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-                    >
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <label htmlFor="friendDifficulty" className="block text-sm font-medium text-dark-blue">
+                        Difficulty
+                      </label>
+                      <select
+                        id="friendDifficulty"
+                        value={friendDifficulty}
+                        onChange={(e) => setFriendDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                        className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                      >
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                      </select>
+                    </div>
                   </div>
 
                   {/* Chat History */}
@@ -1221,7 +1251,25 @@ export default function Language() {
                                   : 'bg-slate-100 text-dark-blue'
                               }`}
                             >
-                              {msg.content}
+                              {msg.role === 'user' && friendCorrections[i] ? (
+                                friendCorrections[i].map((token, idx) => (
+                                  <span key={idx}>
+                                    {token.isCorrect ? (
+                                      <span className="text-green-300">{token.word}</span>
+                                    ) : (
+                                      <>
+                                        <span className="text-red-300">{token.word}</span>{' '}
+                                        <span className="bg-white text-blue-700 px-1 rounded">
+                                          {token.correct}
+                                        </span>
+                                      </>
+                                    )}
+                                    {idx < friendCorrections[i].length - 1 ? ' ' : ''}
+                                  </span>
+                                ))
+                              ) : (
+                                msg.content
+                              )}
                             </div>
                           </div>
                         ))
