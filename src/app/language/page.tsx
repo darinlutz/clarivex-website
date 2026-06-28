@@ -658,6 +658,7 @@ export default function Language() {
       setFriendMessages([{ role: 'assistant', content: data.reply }]);
       setFriendStarted(true);
       setFriendStatus('idle');
+      setShowFriendReplyTranslation(false);
       playFriendSpeech(data.reply);
       translateFriendReply(data.reply);
     } catch (error) {
@@ -727,6 +728,7 @@ export default function Language() {
 
       setFriendMessages([...updatedMessages, { role: 'assistant', content: data.reply }]);
       setFriendStatus('idle');
+      setShowFriendReplyTranslation(false);
       await userMessageSpeech;
       playFriendSpeech(data.reply);
       translateFriendReply(data.reply);
