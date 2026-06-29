@@ -49,5 +49,11 @@ export async function checkGrammar(text: string, language: Language): Promise<Gr
   const chain = PROMPT_TEMPLATE.pipe(structuredModel);
 
   const response = await chain.invoke({ text, language });
-  return response.tokens;
+
+  // The model occasionally marks a word as incorrect while leaving `correct`
+  // identical to `word` (no actual fix to show). Treat those as correct so
+  // the UI never renders the same text in both red and blue.
+  return response.tokens.map((token) =>
+    token.correct === token.word ? { ...token, isCorrect: true } : token
+  );
 }
