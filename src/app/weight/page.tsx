@@ -7,7 +7,11 @@ async function getMostRecentWeight(): Promise<string> {
   if (!latest) {
     return 'No weight recorded yet.';
   }
-  const recordedAt = new Date(latest.recordedAt).toLocaleString();
+  const recordedAt = new Date(latest.recordedAt).toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    dateStyle: 'short',
+    timeStyle: 'short',
+  });
   return `${latest.weightLb.toFixed(1)} lb (recorded ${recordedAt})`;
 }
 
