@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew list *)",
+      "Read(//opt/homebrew/Cellar/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(mitmdump --help)",
+      "Bash(grep -iA2 \"detail\\\\|verbose\\\\|filter\\\\|dumper\")",
+      "Bash(mitmdump -nr /private/tmp/claude-501/-Users-darinlutz-Desktop-Clarivex-clarivex-website/b286f389-5ad9-4c04-9587-0d6f0ab999ab/scratchpad/vesync_flows.mitm --flow-detail 1)",
+      "Bash(pkill -f \"mitmdump\")",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python -c \"import etekcity_esf551_ble as m; print\\(m.__file__\\)\")",
+      "Bash(xargs -I{} echo {})",
+      "Bash(.venv/bin/pip show *)",
+      "Bash(SCALE_BLE_ADDRESS=D0:4D:00:1C:5F:4E timeout 30 .venv/bin/python src/app/scaleVeSync.py)",
+      "Bash(SCALE_BLE_ADDRESS=D0:4D:00:1C:5F:4E .venv/bin/python src/app/scaleVeSync.py)",
+      "Bash(cat)",
+      "Bash(/Users/darinlutz/Desktop/Clarivex/clarivex-website/.venv/bin/python /tmp/scan.py)",
+      "Bash(SCALE_BLE_ADDRESS=9BF8B32D-6A1B-C276-0872-FE19536AEB0F .venv/bin/python src/app/scaleVeSync.py)"
+    ]
+  }
+}

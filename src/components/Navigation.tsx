@@ -82,6 +82,13 @@ export default function Navigation() {
             >
               Financial Analysis
             </Link>
+            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+            <Link
+              href="/weight"
+              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+            >
+              Weight
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -159,6 +166,13 @@ export default function Navigation() {
               onClick={closeMenu}
             >
               Financial Analysis
+            </Link>
+            <Link
+              href="/weight"
+              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+              onClick={closeMenu}
+            >
+              Weight
             </Link>
           </div>
         </div>
