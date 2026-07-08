@@ -50,8 +50,8 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: 'noreply@clarivex.com',
-        to: 'darinlutz648@yahoo.com',
+        from: 'onboarding@resend.dev',
+        to: 'darinlutz@yahoo.com',
         subject: `New Contact Form Submission from ${body.name}`,
         html: `
           <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 20px;">

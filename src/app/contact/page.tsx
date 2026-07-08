@@ -5,7 +5,7 @@ export default function Contact() {
   return (
     <div className="w-full">
       {/* Header Section */}
-      <section className="py-8 px-2 sm:px-3 lg:px-4 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
+      <section id="contact-top" className="py-8 px-2 sm:px-3 lg:px-4 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
             Get in Touch
@@ -120,7 +120,7 @@ export default function Contact() {
             Reach out directly and we&apos;ll be happy to help.
           </p>
           <Link
-            href="/contact"
+            href="/contact#contact-top"
             className="inline-block px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all transform hover:scale-105"
           >
             Send a Message

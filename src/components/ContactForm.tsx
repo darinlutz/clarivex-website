@@ -10,8 +10,6 @@ export default function ContactForm() {
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
-  const [inquiryStatus, setInquiryStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [inquiryMessage, setInquiryMessage] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -50,43 +48,6 @@ export default function ContactForm() {
       setStatus('error');
       setMessage(
         error instanceof Error ? error.message : 'Failed to send message. Please try again.'
-      );
-    }
-  };
-
-  const handleInquiry = async () => {
-    if (!formData.name || !formData.email || !formData.phone) {
-      setInquiryStatus('error');
-      setInquiryMessage('Please fill out your full name, email, and phone number first.');
-      return;
-    }
-
-    setInquiryStatus('loading');
-
-    try {
-      const response = await fetch('/api/inquiry', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send inquiry');
-      }
-
-      setInquiryStatus('success');
-      setInquiryMessage('Thank you! Your inquiry has been sent successfully.');
-
-      setTimeout(() => {
-        setInquiryStatus('idle');
-        setInquiryMessage('');
-      }, 5000);
-    } catch (error) {
-      setInquiryStatus('error');
-      setInquiryMessage(
-        error instanceof Error ? error.message : 'Failed to send inquiry. Please try again.'
       );
     }
   };
@@ -176,36 +137,6 @@ export default function ContactForm() {
       <p className="text-xs text-slate-500 text-center">
         We will respond to your inquiry within 24 hours.
       </p>
-
-      {/* Inquiry Status Message */}
-      {inquiryMessage && (
-        <div
-          className={`p-4 rounded-lg ${
-            inquiryStatus === 'success'
-              ? 'bg-green-100 border border-green-300 text-green-800'
-              : 'bg-red-100 border border-red-300 text-red-800'
-          }`}
-        >
-          {inquiryMessage}
-        </div>
-      )}
-
-      {/* Email Inquiry Button */}
-      <button
-        type="button"
-        onClick={handleInquiry}
-        disabled={inquiryStatus === 'loading'}
-        className="w-full px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
-      >
-        {inquiryStatus === 'loading' ? (
-          <span className="flex items-center justify-center gap-2">
-            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            Sending...
-          </span>
-        ) : (
-          'Email Us Your Info'
-        )}
-      </button>
     </form>
   );
 }
