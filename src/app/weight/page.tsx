@@ -1,5 +1,6 @@
 import { readLatestWeight } from '@/lib/weightStore';
 import PythonRunner from '@/components/PythonRunner';
+import FriendsRoster from '@/components/FriendsRoster';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,8 +62,16 @@ export default async function WeightPage() {
       </section>
 
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
-        <div className="w-full max-w-4xl">
+        <div className="w-full max-w-4xl space-y-12">
           <PythonRunner />
+
+          <div>
+            <h2 className="text-2xl font-bold text-dark-blue mb-2">Friends</h2>
+            <p className="text-slate-600 mb-6">
+              Keep track of your friends. This list is shared across everyone who visits.
+            </p>
+            <FriendsRoster />
+          </div>
         </div>
       </section>
     </div>

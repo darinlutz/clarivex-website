@@ -5,8 +5,19 @@ import Image from 'next/image';
 import LanguageForm from '@/components/LanguageForm';
 import type { Language } from '@/lib/translate';
 import type { GrammarToken } from '@/lib/grammarCheck';
+import type { WordCategory } from '@/lib/language';
 
 const TRANSLATOR_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+
+const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
+  { value: 'all', label: 'All Words' },
+  { value: 'numbers', label: 'Numbers' },
+  { value: 'food', label: 'Food' },
+  { value: 'verbs', label: 'Verbs' },
+  { value: 'nouns', label: 'Nouns' },
+  { value: 'adjectives', label: 'Adjectives' },
+  { value: 'colors', label: 'Colors' },
+];
 
 const LANGUAGE_CODES: Record<Language, string> = {
   Arabic: 'ar',
@@ -65,9 +76,8 @@ export default function Language() {
   const [writingAnswerLanguage, setWritingAnswerLanguage] = useState<Language>(userLanguage);
   const [appliedWritingAnswerLanguage, setAppliedWritingAnswerLanguage] = useState(userLanguage);
   const [appliedWritingWordLanguage, setAppliedWritingWordLanguage] = useState(learnLanguage);
-  const [complexity, setComplexity] = useState<
-    'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
-  >('easy');
+  const [complexity, setComplexity] = useState<'words' | 'easy' | 'medium' | 'hard'>('easy');
+  const [wordCategory, setWordCategory] = useState<WordCategory>('all');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -228,7 +238,7 @@ export default function Language() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ category: complexity }),
+        body: JSON.stringify({ category: wordCategory }),
       });
 
       const data = await response.json();
@@ -283,8 +293,7 @@ export default function Language() {
   };
 
   const handleGetLanguageItem = async () => {
-    const isWordMode = ['nouns', 'verbs', 'adjectives'].includes(complexity);
-    if (isWordMode) {
+    if (complexity === 'words') {
       await handleGetWord();
     } else {
       await handleGetSentence();
@@ -992,7 +1001,7 @@ export default function Language() {
                     />
                   </div>
 
-                  {/* Difficulty Selector */}
+                  {/* Difficulty / Word Category Selectors */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <label htmlFor="complexity" className="block text-sm font-medium text-dark-blue">
                       Difficulty
@@ -1001,17 +1010,35 @@ export default function Language() {
                       id="complexity"
                       value={complexity}
                       onChange={(e) =>
-                        setComplexity(
-                          e.target.value as 'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'
-                        )
+                        setComplexity(e.target.value as 'words' | 'easy' | 'medium' | 'hard')
                       }
                       className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     >
-                      <option value="nouns">Nouns/Verbs/Adjectives</option>
+                      <option value="words">Words</option>
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
                       <option value="hard">Hard</option>
                     </select>
+
+                    {complexity === 'words' && (
+                      <>
+                        <label htmlFor="wordCategory" className="block text-sm font-medium text-dark-blue">
+                          Word Category
+                        </label>
+                        <select
+                          id="wordCategory"
+                          value={wordCategory}
+                          onChange={(e) => setWordCategory(e.target.value as WordCategory)}
+                          className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                        >
+                          {WORD_CATEGORIES.map(({ value, label }) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
                   </div>
 
                   {/* Status Message */}
@@ -1034,7 +1061,7 @@ export default function Language() {
                           <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                           Generating...
                         </span>
-                      ) : ['nouns', 'verbs', 'adjectives'].includes(complexity) ? (
+                      ) : complexity === 'words' ? (
                         'Get New Word'
                       ) : (
                         'Get New Sentence'

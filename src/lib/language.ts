@@ -292,25 +292,55 @@ export async function getRandomSentence(
   };
 }
 
-export type WordCategory = 'nouns' | 'verbs' | 'adjectives';
+export type WordCategory = 'all' | 'nouns' | 'verbs' | 'adjectives' | 'numbers' | 'food' | 'colors';
 
-const WORD_CATEGORY_SHEET_NAME: Record<WordCategory, string> = {
+const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   nouns: 'NOUNS',
   verbs: 'VERBS',
   adjectives: 'ADJECTIVES',
+  numbers: 'NUMBERS',
 };
+
+// The sheet has no dedicated FOOD or COLORS columns; those words live inside
+// the NOUNS and ADJECTIVES columns respectively, so they're picked out by
+// name instead. Keep in sync with the sheet if food/color entries change.
+const FOOD_WORDS = new Set([
+  'apple', 'bread', 'chicken', 'coffee', 'egg', 'fish', 'milk', 'rice', 'sandwich', 'tea', 'water',
+]);
+
+const COLOR_WORDS = new Set([
+  'black', 'blue', 'brown', 'green', 'grey', 'orange', 'pink', 'purple',
+  'red', 'silver', 'sky blue', 'white', 'yellow',
+]);
+
+function poolForCategory(entries: VocabEntry[], category: WordCategory): VocabEntry[] {
+  if (category === 'all') {
+    return entries.filter((entry) => entry.category !== EXCLUDED_CATEGORY);
+  }
+  if (category === 'food') {
+    return entries.filter(
+      (entry) => entry.category === 'NOUNS' && FOOD_WORDS.has(entry.english.toLowerCase())
+    );
+  }
+  if (category === 'colors') {
+    return entries.filter(
+      (entry) => entry.category === 'ADJECTIVES' && COLOR_WORDS.has(entry.english.toLowerCase())
+    );
+  }
+  const sheetCategory = WORD_CATEGORY_SHEET_NAME[category];
+  return entries.filter((entry) => entry.category === sheetCategory);
+}
 
 // Draws a real word the student already knows from their vocabulary sheet
 // (rather than letting the model invent one), preferring words not in
 // usedWords so the same common words don't keep coming up; once every word
 // in the category has been used, the pool resets so words can recycle.
 export async function getRandomWord(
-  category: WordCategory = 'nouns',
+  category: WordCategory = 'all',
   usedWords: string[] = []
 ): Promise<{ vietnamese: string; english: string }> {
   const entries = await fetchVocabulary();
-  const sheetCategory = WORD_CATEGORY_SHEET_NAME[category];
-  const pool = entries.filter((entry) => entry.category === sheetCategory);
+  const pool = poolForCategory(entries, category);
 
   if (pool.length === 0) {
     throw new Error(`No ${category} found in the vocabulary sheet`);

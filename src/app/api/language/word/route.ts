@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getRandomWord, type WordCategory } from '@/lib/language';
 
-const VALID_CATEGORIES: WordCategory[] = ['nouns', 'verbs', 'adjectives'];
+const VALID_CATEGORIES: WordCategory[] = [
+  'all',
+  'nouns',
+  'verbs',
+  'adjectives',
+  'numbers',
+  'food',
+  'colors',
+];
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const category: WordCategory = VALID_CATEGORIES.includes(body.category)
       ? body.category
-      : 'nouns';
+      : 'all';
     const usedWords: string[] = Array.isArray(body.usedWords) ? body.usedWords : [];
 
     const word = await getRandomWord(category, usedWords);
