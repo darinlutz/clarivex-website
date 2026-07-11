@@ -35,7 +35,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 # Scripts invoked via execFile('python', ...) at runtime
-COPY plot_stock.py app.py ./
+COPY plot_stock.py app.py GetBankFromRoutingNumber.py ./
 
 EXPOSE 3000
 ENV PORT=3000
