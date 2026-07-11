@@ -292,43 +292,50 @@ export async function getRandomSentence(
   };
 }
 
-export type WordCategory = 'all' | 'nouns' | 'verbs' | 'adjectives' | 'numbers' | 'food' | 'colors';
+export type WordCategory =
+  | 'all'
+  | 'nouns'
+  | 'verbs'
+  | 'adjectives'
+  | 'numbers'
+  | 'food'
+  | 'colors'
+  | 'clothing'
+  | 'conjunctionsPrepositions'
+  | 'foodDrink'
+  | 'household'
+  | 'peopleAnimals'
+  | 'places'
+  | 'pronouns'
+  | 'things'
+  | 'timeRelated';
 
+// Each category maps directly to a section header in the vocabulary sheet;
+// picking a category pulls only from that section's column pair.
 const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   nouns: 'NOUNS',
   verbs: 'VERBS',
   adjectives: 'ADJECTIVES',
   numbers: 'NUMBERS',
+  food: 'FOOD & DRINK',
+  colors: 'COLORS',
+  clothing: 'CLOTHING',
+  conjunctionsPrepositions: 'CONJUNCTIONS & PREPOSITIONS',
+  foodDrink: 'FOOD & DRINK',
+  household: 'HOUSEHOLD',
+  peopleAnimals: 'PEOPLE & ANIMALS',
+  places: 'PLACES',
+  pronouns: 'PRONOUNS',
+  things: 'THINGS',
+  timeRelated: 'TIME RELATED',
 };
-
-// The sheet has no dedicated FOOD or COLORS columns; those words live inside
-// the NOUNS and ADJECTIVES columns respectively, so they're picked out by
-// name instead. Keep in sync with the sheet if food/color entries change.
-const FOOD_WORDS = new Set([
-  'apple', 'bread', 'chicken', 'coffee', 'egg', 'fish', 'milk', 'rice', 'sandwich', 'tea', 'water',
-]);
-
-const COLOR_WORDS = new Set([
-  'black', 'blue', 'brown', 'green', 'grey', 'orange', 'pink', 'purple',
-  'red', 'silver', 'sky blue', 'white', 'yellow',
-]);
 
 function poolForCategory(entries: VocabEntry[], category: WordCategory): VocabEntry[] {
   if (category === 'all') {
     return entries.filter((entry) => entry.category !== EXCLUDED_CATEGORY);
   }
-  if (category === 'food') {
-    return entries.filter(
-      (entry) => entry.category === 'NOUNS' && FOOD_WORDS.has(entry.english.toLowerCase())
-    );
-  }
-  if (category === 'colors') {
-    return entries.filter(
-      (entry) => entry.category === 'ADJECTIVES' && COLOR_WORDS.has(entry.english.toLowerCase())
-    );
-  }
   const sheetCategory = WORD_CATEGORY_SHEET_NAME[category];
-  return entries.filter((entry) => entry.category === sheetCategory);
+  return entries.filter((entry) => entry.category.trim().toUpperCase() === sheetCategory);
 }
 
 // Draws a real word the student already knows from their vocabulary sheet

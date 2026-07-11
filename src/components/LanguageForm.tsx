@@ -2,8 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import type { Language } from '@/lib/translate';
+import type { WordCategory } from '@/lib/language';
 
 const READING_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+
+const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
+  { value: 'adjectives', label: 'Adjectives' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'colors', label: 'Colors' },
+  { value: 'conjunctionsPrepositions', label: 'Conjunctions & Prepositions' },
+  { value: 'foodDrink', label: 'Food & Drink' },
+  { value: 'household', label: 'Household' },
+  { value: 'numbers', label: 'Numbers' },
+  { value: 'peopleAnimals', label: 'People & Animals' },
+  { value: 'places', label: 'Places' },
+  { value: 'pronouns', label: 'Pronouns' },
+  { value: 'things', label: 'Things' },
+  { value: 'timeRelated', label: 'Time Related' },
+  { value: 'verbs', label: 'Verbs' },
+];
 
 async function translateText(text: string, from: Language, to: Language): Promise<string> {
   if (!text.trim() || from === to) return text;
@@ -59,13 +76,14 @@ export default function LanguageForm({
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [showAnswer, setShowAnswer] = useState(true);
-  const [mode, setMode] = useState<'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard'>('nouns');
+  const [mode, setMode] = useState<'words' | 'easy' | 'medium' | 'hard'>('words');
+  const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
 
   // Session memory: words/sentences already generated, so the same common
   // ones don't keep coming up. Resets on page reload.
   const [usedWordsByCategory, setUsedWordsByCategory] = useState<
-    Record<'nouns' | 'verbs' | 'adjectives', string[]>
-  >({ nouns: [], verbs: [], adjectives: [] });
+    Partial<Record<WordCategory, string[]>>
+  >({});
   const [usedSentenceWords, setUsedSentenceWords] = useState<string[]>([]);
   const [usedSentences, setUsedSentences] = useState<string[]>([]);
 
@@ -124,15 +142,16 @@ export default function LanguageForm({
     setStatus('loading');
     setMessage('');
 
-    const category = mode as 'nouns' | 'verbs' | 'adjectives';
-
     try {
       const response = await fetch('/api/language/word', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ category, usedWords: usedWordsByCategory[category] }),
+        body: JSON.stringify({
+          category: wordCategory,
+          usedWords: usedWordsByCategory[wordCategory] ?? [],
+        }),
       });
 
       const data = await response.json();
@@ -147,7 +166,7 @@ export default function LanguageForm({
       setStatus('success');
       setUsedWordsByCategory((prev) => ({
         ...prev,
-        [category]: [...prev[category], data.vietnamese].slice(-100),
+        [wordCategory]: [...(prev[wordCategory] ?? []), data.vietnamese].slice(-100),
       }));
     } catch (error) {
       setStatus('error');
@@ -197,8 +216,7 @@ export default function LanguageForm({
   };
 
   const handleGetLanguageItem = async () => {
-    const isWordMode = ['nouns', 'verbs', 'adjectives'].includes(mode);
-    if (isWordMode) {
+    if (mode === 'words') {
       await handleGetWord();
     } else {
       await handleGetSentence();
@@ -335,7 +353,7 @@ export default function LanguageForm({
         </div>
       )}
 
-      {/* Difficulty Categories Selector */}
+      {/* Difficulty / Word Categories Selectors */}
       <div className="flex items-center gap-2 flex-wrap">
         <label htmlFor="mode" className="block text-sm font-medium text-dark-blue">
           Difficulty
@@ -344,14 +362,35 @@ export default function LanguageForm({
           id="mode"
           name="mode"
           value={mode}
-          onChange={(e) => setMode(e.target.value as 'nouns' | 'verbs' | 'adjectives' | 'easy' | 'medium' | 'hard')}
+          onChange={(e) => setMode(e.target.value as 'words' | 'easy' | 'medium' | 'hard')}
           className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
         >
-          <option value="nouns">Nouns/Verbs/Adjectives</option>
+          <option value="words">Words</option>
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
+
+        {mode === 'words' && (
+          <>
+            <label htmlFor="wordCategory" className="block text-sm font-medium text-dark-blue">
+              Word Categories
+            </label>
+            <select
+              id="wordCategory"
+              name="wordCategory"
+              value={wordCategory}
+              onChange={(e) => setWordCategory(e.target.value as WordCategory)}
+              className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+            >
+              {WORD_CATEGORIES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {/* Get New Item Button */}
@@ -367,8 +406,10 @@ export default function LanguageForm({
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
               Generating...
             </span>
+          ) : mode === 'words' ? (
+            'Get New Word'
           ) : (
-            ['nouns', 'verbs', 'adjectives'].includes(mode) ? 'Get New Word' : 'Get New Sentence'
+            'Get New Sentence'
           )}
         </button>
       </div>

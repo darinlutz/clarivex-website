@@ -9,6 +9,15 @@ const VALID_CATEGORIES: WordCategory[] = [
   'numbers',
   'food',
   'colors',
+  'clothing',
+  'conjunctionsPrepositions',
+  'foodDrink',
+  'household',
+  'peopleAnimals',
+  'places',
+  'pronouns',
+  'things',
+  'timeRelated',
 ];
 
 export async function POST(request: Request) {
