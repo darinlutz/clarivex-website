@@ -9,9 +9,9 @@ import os
 import requests
 
 ROUTING_NUMBERS = [
-    "021000021",
-    "091000022",
-    "121000248",
+    "283079227",
+    "111000025",
+    "111900659"
 ]
 
 API_URL = "https://api.apiverve.com/v1/routinglookup"
