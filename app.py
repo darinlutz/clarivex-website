@@ -1,5 +1,3 @@
+from GetBankFromRoutingNumber import main
 
-name="hello lil nicca."
-print(name)
-
-
+main()
