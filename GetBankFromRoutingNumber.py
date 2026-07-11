@@ -4,9 +4,11 @@ routing numbers using the APIVerve Routing Number Lookup API.
 Reads the APIVerve API key from the APIVERVE_API_KEY environment variable.
 """
 
+import json
 import os
-
-import requests
+import urllib.error
+import urllib.parse
+import urllib.request
 
 ROUTING_NUMBERS = [
     "283079227",
@@ -18,14 +20,19 @@ API_URL = "https://api.apiverve.com/v1/routinglookup"
 
 
 def lookup_bank(routing_number: str, api_key: str) -> str:
-    response = requests.get(
-        API_URL,
-        params={"routing": routing_number},
+    query = urllib.parse.urlencode({"routing": routing_number})
+    request = urllib.request.Request(
+        f"{API_URL}?{query}",
         headers={"X-API-Key": api_key},
-        timeout=30,
     )
-    response.raise_for_status()
-    payload = response.json()
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8")
+
+    payload = json.loads(body)
 
     if payload.get("status") != "ok":
         raise RuntimeError(payload.get("error") or "Unknown API error")
