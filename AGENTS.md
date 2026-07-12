@@ -36,6 +36,8 @@ npm run lint         # Run ESLint
 - `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: translate, friend, trip planner, financial analysis)
 - `TAVILY_API_KEY` - Tavily web search API key (Financial Analysis web search agent)
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
+- `TURSO_DATABASE_URL` - Turso/libSQL database URL (Friends roster persistence). Omit locally to fall back to a `local.db` file
+- `TURSO_AUTH_TOKEN` - Turso auth token, paired with `TURSO_DATABASE_URL`
 
 ## Project Structure
 
