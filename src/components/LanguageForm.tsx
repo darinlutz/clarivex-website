@@ -9,10 +9,7 @@ const READING_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese'
 const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
   { value: 'adjectives', label: 'Adjectives' },
   { value: 'clothing', label: 'Clothing' },
-  { value: 'colors', label: 'Colors' },
   { value: 'conjunctionsPrepositions', label: 'Conjunctions & Prepositions' },
-  { value: 'foodDrink', label: 'Food & Drink' },
-  { value: 'household', label: 'Household' },
   { value: 'numbers', label: 'Numbers' },
   { value: 'peopleAnimals', label: 'People & Animals' },
   { value: 'places', label: 'Places' },
@@ -291,7 +288,7 @@ export default function LanguageForm({
             value={word}
             onChange={(e) => setWord(e.target.value)}
             placeholder="Press Get New Sentence to generate one"
-            rows={3}
+            rows={2}
             className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
           />
           <button
@@ -332,7 +329,7 @@ export default function LanguageForm({
             onChange={(e) => showAnswer && setAnswerText(e.target.value)}
             readOnly={!showAnswer}
             placeholder="The translation will appear here"
-            rows={3}
+            rows={2}
             className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
           />
           <button

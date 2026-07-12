@@ -13,13 +13,16 @@ import urllib.request
 ROUTING_NUMBERS = [
     "283079227",
     "111000025",
-    "111900659"
+    "111900659",
+    "111000614",
+    "121000248",
+    "021000021"
 ]
 
 API_URL = "https://api.apiverve.com/v1/routinglookup"
 
 
-def lookup_bank(routing_number: str, api_key: str) -> str:
+def lookup_bank(routing_number: str, api_key: str) -> dict:
     query = urllib.parse.urlencode({"routing": routing_number})
     request = urllib.request.Request(
         f"{API_URL}?{query}",
@@ -37,7 +40,8 @@ def lookup_bank(routing_number: str, api_key: str) -> str:
     if payload.get("status") != "ok":
         raise RuntimeError(payload.get("error") or "Unknown API error")
 
-    return payload["data"]["bank"]
+    data = payload["data"]
+    return {"bank": data["bank"], "city": data["city"], "state": data["state"]}
 
 
 def main() -> None:
@@ -48,8 +52,8 @@ def main() -> None:
 
     for routing_number in ROUTING_NUMBERS:
         try:
-            bank_name = lookup_bank(routing_number, api_key)
-            print(f"{routing_number}: {bank_name}")
+            info = lookup_bank(routing_number, api_key)
+            print(f"{routing_number}: {info['bank']} ({info['city']}, {info['state']})")
         except Exception as exc:
             print(f"{routing_number}: Error - {exc}")
 
