@@ -34,6 +34,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# @libsql/client's native binding (e.g. @libsql/linux-x64-gnu) is resolved via
+# a dynamic require inside the `libsql` package, which Next's standalone file
+# tracer can miss. Copy the fully-installed packages from `deps` (built for
+# this same linux/amd64 image) so the native addon is always present.
+COPY --from=deps /app/node_modules/libsql ./node_modules/libsql
+COPY --from=deps /app/node_modules/@libsql ./node_modules/@libsql
+
 # Scripts invoked via execFile('python', ...) at runtime
 COPY plot_stock.py app.py GetBankFromRoutingNumber.py ./
 
