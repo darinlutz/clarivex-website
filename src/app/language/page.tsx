@@ -82,6 +82,7 @@ export default function Language() {
   const [complexity, setComplexity] = useState<'words' | 'easy' | 'medium' | 'hard'>('words');
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [writingSpeakStatus, setWritingSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
   const [translatorTopText, setTranslatorTopText] = useState('');
@@ -300,6 +301,41 @@ export default function Language() {
       await handleGetWord();
     } else {
       await handleGetSentence();
+    }
+  };
+
+  const handleWritingSpeak = async () => {
+    if (!writingWordText.trim()) return;
+
+    setWritingSpeakStatus('loading');
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: writingWordText }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => URL.revokeObjectURL(audioUrl);
+      await audio.play();
+
+      setWritingSpeakStatus('idle');
+    } catch (error) {
+      setWritingSpeakStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to play audio. Please try again.'
+      );
     }
   };
 
@@ -944,23 +980,37 @@ export default function Language() {
                         {showVietnamese ? 'Hide' : 'Show'}
                       </button>
                     </div>
-                    {showVietnamese ? (
-                      <textarea
-                        value={writingWordText}
-                        readOnly
-                        placeholder="Press Get New Sentence to generate one"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                    ) : (
-                      <textarea
-                        value={maskText(writingWordText)}
-                        readOnly
-                        placeholder="Press Get New Sentence to generate one"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={2}
-                      />
-                    )}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {showVietnamese ? (
+                        <textarea
+                          value={writingWordText}
+                          readOnly
+                          placeholder="Press Get New Sentence to generate one"
+                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                          rows={2}
+                        />
+                      ) : (
+                        <textarea
+                          value={maskText(writingWordText)}
+                          readOnly
+                          placeholder="Press Get New Sentence to generate one"
+                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                          rows={2}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleWritingSpeak}
+                        disabled={!writingWordText.trim() || writingSpeakStatus === 'loading'}
+                        className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                      >
+                        {writingSpeakStatus === 'loading' ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                        ) : (
+                          'Speak'
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* User Input Box */}
