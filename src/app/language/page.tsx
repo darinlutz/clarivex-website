@@ -10,13 +10,16 @@ import type { WordCategory } from '@/lib/language';
 const TRANSLATOR_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
 
 const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
-  { value: 'all', label: 'All Words' },
-  { value: 'numbers', label: 'Numbers' },
-  { value: 'food', label: 'Food' },
-  { value: 'verbs', label: 'Verbs' },
-  { value: 'nouns', label: 'Nouns' },
   { value: 'adjectives', label: 'Adjectives' },
-  { value: 'colors', label: 'Colors' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'conjunctionsPrepositions', label: 'Conjunctions & Prepositions' },
+  { value: 'numbers', label: 'Numbers' },
+  { value: 'peopleAnimals', label: 'People & Animals' },
+  { value: 'places', label: 'Places' },
+  { value: 'pronouns', label: 'Pronouns' },
+  { value: 'things', label: 'Things' },
+  { value: 'timeRelated', label: 'Time Related' },
+  { value: 'verbs', label: 'Verbs' },
 ];
 
 const LANGUAGE_CODES: Record<Language, string> = {
@@ -76,8 +79,8 @@ export default function Language() {
   const [writingAnswerLanguage, setWritingAnswerLanguage] = useState<Language>(userLanguage);
   const [appliedWritingAnswerLanguage, setAppliedWritingAnswerLanguage] = useState(userLanguage);
   const [appliedWritingWordLanguage, setAppliedWritingWordLanguage] = useState(learnLanguage);
-  const [complexity, setComplexity] = useState<'words' | 'easy' | 'medium' | 'hard'>('easy');
-  const [wordCategory, setWordCategory] = useState<WordCategory>('all');
+  const [complexity, setComplexity] = useState<'words' | 'easy' | 'medium' | 'hard'>('words');
+  const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
@@ -947,7 +950,7 @@ export default function Language() {
                         readOnly
                         placeholder="Press Get New Sentence to generate one"
                         className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={3}
+                        rows={2}
                       />
                     ) : (
                       <textarea
@@ -955,7 +958,7 @@ export default function Language() {
                         readOnly
                         placeholder="Press Get New Sentence to generate one"
                         className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={3}
+                        rows={2}
                       />
                     )}
                   </div>
@@ -970,7 +973,7 @@ export default function Language() {
                       onChange={(e) => setUserInput(e.target.value)}
                       placeholder={`Type your ${writingWordLanguage} translation here`}
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                      rows={3}
+                      rows={2}
                     />
                     <div className={`mt-2 text-sm font-semibold ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
                       {isMatch ? 'MATCH' : 'No Match'}
@@ -997,7 +1000,7 @@ export default function Language() {
                       readOnly
                       placeholder="The translation will appear here"
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                      rows={3}
+                      rows={2}
                     />
                   </div>
 
@@ -1023,7 +1026,7 @@ export default function Language() {
                     {complexity === 'words' && (
                       <>
                         <label htmlFor="wordCategory" className="block text-sm font-medium text-dark-blue">
-                          Word Category
+                          Word Categories
                         </label>
                         <select
                           id="wordCategory"
