@@ -11,9 +11,8 @@ import urllib.parse
 import urllib.request
 
 ROUTING_NUMBERS = [
-    "283079227",
-    "111000025",
-    "111900659"
+    "488124167",
+    "111000641"
 ]
 
 API_URL = "https://api.apiverve.com/v1/routinglookup"
