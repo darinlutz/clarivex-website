@@ -308,7 +308,9 @@ export type WordCategory =
   | 'places'
   | 'pronouns'
   | 'things'
-  | 'timeRelated';
+  | 'timeRelated'
+  | 'fastPhrases'
+  | 'generalPhrases';
 
 // Each category maps directly to a section header in the vocabulary sheet;
 // picking a category pulls only from that section's column pair.
@@ -328,6 +330,8 @@ const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   pronouns: 'PRONOUNS',
   things: 'THINGS',
   timeRelated: 'TIME RELATED',
+  fastPhrases: 'FAST PHRASES',
+  generalPhrases: 'GENERAL PHRASES',
 };
 
 function poolForCategory(entries: VocabEntry[], category: WordCategory): VocabEntry[] {

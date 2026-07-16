@@ -76,10 +76,18 @@ export default function Language() {
   const [writingAnswerLanguage, setWritingAnswerLanguage] = useState<Language>(userLanguage);
   const [appliedWritingAnswerLanguage, setAppliedWritingAnswerLanguage] = useState(userLanguage);
   const [appliedWritingWordLanguage, setAppliedWritingWordLanguage] = useState(learnLanguage);
-  const [complexity, setComplexity] = useState<'words' | 'easy' | 'medium' | 'hard'>('easy');
+  const [complexity, setComplexity] = useState<
+    'words' | 'fastPhrases' | 'generalPhrases' | 'easy' | 'medium' | 'hard'
+  >('easy');
   const [wordCategory, setWordCategory] = useState<WordCategory>('all');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+
+  // Session memory: words/phrases already generated per category, so the
+  // same ones don't keep coming up. Resets on page reload.
+  const [usedWordsByCategory, setUsedWordsByCategory] = useState<
+    Partial<Record<WordCategory, string[]>>
+  >({});
 
   const [translatorTopText, setTranslatorTopText] = useState('');
   const [translatorBottomText, setTranslatorBottomText] = useState('');
@@ -238,7 +246,10 @@ export default function Language() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ category: wordCategory }),
+        body: JSON.stringify({
+          category: wordCategory,
+          usedWords: usedWordsByCategory[wordCategory] ?? [],
+        }),
       });
 
       const data = await response.json();
@@ -251,10 +262,56 @@ export default function Language() {
       setEnglishSource(data.english);
       setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
       setStatus('success');
+      setUsedWordsByCategory((prev) => ({
+        ...prev,
+        [wordCategory]: [...(prev[wordCategory] ?? []), data.vietnamese].slice(-100),
+      }));
     } catch (error) {
       setStatus('error');
       setMessage(
         error instanceof Error ? error.message : 'Failed to generate a new word. Please try again.'
+      );
+    }
+  };
+
+  const handleGetPhrase = async () => {
+    setStatus('loading');
+    setMessage('');
+    setUserInput('');
+    setShowVietnamese(false);
+
+    const category = complexity as WordCategory;
+
+    try {
+      const response = await fetch('/api/language/word', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          category,
+          usedWords: usedWordsByCategory[category] ?? [],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate a new phrase');
+      }
+
+      setVietnameseText(data.vietnamese);
+      setEnglishSource(data.english);
+      setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
+      setStatus('success');
+      setUsedWordsByCategory((prev) => ({
+        ...prev,
+        [category]: [...(prev[category] ?? []), data.vietnamese].slice(-100),
+      }));
+    } catch (error) {
+      setStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to generate a new phrase. Please try again.'
       );
     }
   };
@@ -295,6 +352,8 @@ export default function Language() {
   const handleGetLanguageItem = async () => {
     if (complexity === 'words') {
       await handleGetWord();
+    } else if (complexity === 'fastPhrases' || complexity === 'generalPhrases') {
+      await handleGetPhrase();
     } else {
       await handleGetSentence();
     }
@@ -1010,11 +1069,21 @@ export default function Language() {
                       id="complexity"
                       value={complexity}
                       onChange={(e) =>
-                        setComplexity(e.target.value as 'words' | 'easy' | 'medium' | 'hard')
+                        setComplexity(
+                          e.target.value as
+                            | 'words'
+                            | 'fastPhrases'
+                            | 'generalPhrases'
+                            | 'easy'
+                            | 'medium'
+                            | 'hard'
+                        )
                       }
                       className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     >
                       <option value="words">Words</option>
+                      <option value="fastPhrases">Fast Phrases</option>
+                      <option value="generalPhrases">General Phrases</option>
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
                       <option value="hard">Hard</option>
@@ -1063,6 +1132,8 @@ export default function Language() {
                         </span>
                       ) : complexity === 'words' ? (
                         'Get New Word'
+                      ) : complexity === 'fastPhrases' || complexity === 'generalPhrases' ? (
+                        'Get New Phrase'
                       ) : (
                         'Get New Sentence'
                       )}

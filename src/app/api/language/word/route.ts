@@ -18,6 +18,8 @@ const VALID_CATEGORIES: WordCategory[] = [
   'pronouns',
   'things',
   'timeRelated',
+  'fastPhrases',
+  'generalPhrases',
 ];
 
 export async function POST(request: Request) {
