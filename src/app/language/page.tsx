@@ -10,13 +10,16 @@ import type { WordCategory } from '@/lib/language';
 const TRANSLATOR_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
 
 const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
-  { value: 'all', label: 'All Words' },
-  { value: 'numbers', label: 'Numbers' },
-  { value: 'food', label: 'Food' },
-  { value: 'verbs', label: 'Verbs' },
-  { value: 'nouns', label: 'Nouns' },
   { value: 'adjectives', label: 'Adjectives' },
-  { value: 'colors', label: 'Colors' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'conjunctionsPrepositions', label: 'Conjunctions & Prepositions' },
+  { value: 'numbers', label: 'Numbers' },
+  { value: 'peopleAnimals', label: 'People & Animals' },
+  { value: 'places', label: 'Places' },
+  { value: 'pronouns', label: 'Pronouns' },
+  { value: 'things', label: 'Things' },
+  { value: 'timeRelated', label: 'Time Related' },
+  { value: 'verbs', label: 'Verbs' },
 ];
 
 const LANGUAGE_CODES: Record<Language, string> = {
@@ -78,9 +81,10 @@ export default function Language() {
   const [appliedWritingWordLanguage, setAppliedWritingWordLanguage] = useState(learnLanguage);
   const [complexity, setComplexity] = useState<
     'words' | 'fastPhrases' | 'generalPhrases' | 'easy' | 'medium' | 'hard'
-  >('easy');
-  const [wordCategory, setWordCategory] = useState<WordCategory>('all');
+  >('words');
+  const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [writingSpeakStatus, setWritingSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
   // Session memory: words/phrases already generated per category, so the
@@ -356,6 +360,41 @@ export default function Language() {
       await handleGetPhrase();
     } else {
       await handleGetSentence();
+    }
+  };
+
+  const handleWritingSpeak = async () => {
+    if (!writingWordText.trim()) return;
+
+    setWritingSpeakStatus('loading');
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: writingWordText }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate speech');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => URL.revokeObjectURL(audioUrl);
+      await audio.play();
+
+      setWritingSpeakStatus('idle');
+    } catch (error) {
+      setWritingSpeakStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to play audio. Please try again.'
+      );
     }
   };
 
@@ -1000,23 +1039,37 @@ export default function Language() {
                         {showVietnamese ? 'Hide' : 'Show'}
                       </button>
                     </div>
-                    {showVietnamese ? (
-                      <textarea
-                        value={writingWordText}
-                        readOnly
-                        placeholder="Press Get New Sentence to generate one"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={3}
-                      />
-                    ) : (
-                      <textarea
-                        value={maskText(writingWordText)}
-                        readOnly
-                        placeholder="Press Get New Sentence to generate one"
-                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                        rows={3}
-                      />
-                    )}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {showVietnamese ? (
+                        <textarea
+                          value={writingWordText}
+                          readOnly
+                          placeholder="Press Get New Sentence to generate one"
+                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                          rows={2}
+                        />
+                      ) : (
+                        <textarea
+                          value={maskText(writingWordText)}
+                          readOnly
+                          placeholder="Press Get New Sentence to generate one"
+                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                          rows={2}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleWritingSpeak}
+                        disabled={!writingWordText.trim() || writingSpeakStatus === 'loading'}
+                        className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
+                      >
+                        {writingSpeakStatus === 'loading' ? (
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                        ) : (
+                          'Speak'
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* User Input Box */}
@@ -1029,7 +1082,7 @@ export default function Language() {
                       onChange={(e) => setUserInput(e.target.value)}
                       placeholder={`Type your ${writingWordLanguage} translation here`}
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                      rows={3}
+                      rows={2}
                     />
                     <div className={`mt-2 text-sm font-semibold ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
                       {isMatch ? 'MATCH' : 'No Match'}
@@ -1056,7 +1109,7 @@ export default function Language() {
                       readOnly
                       placeholder="The translation will appear here"
                       className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-                      rows={3}
+                      rows={2}
                     />
                   </div>
 
@@ -1092,7 +1145,7 @@ export default function Language() {
                     {complexity === 'words' && (
                       <>
                         <label htmlFor="wordCategory" className="block text-sm font-medium text-dark-blue">
-                          Word Category
+                          Word Categories
                         </label>
                         <select
                           id="wordCategory"
