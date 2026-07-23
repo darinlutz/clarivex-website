@@ -9,6 +9,7 @@ const VALID_CATEGORIES: WordCategory[] = [
   'numbers',
   'food',
   'colors',
+  'classifiers',
   'clothing',
   'conjunctionsPrepositions',
   'foodDrink',

@@ -300,6 +300,7 @@ export type WordCategory =
   | 'numbers'
   | 'food'
   | 'colors'
+  | 'classifiers'
   | 'clothing'
   | 'conjunctionsPrepositions'
   | 'foodDrink'
@@ -321,6 +322,7 @@ const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   numbers: 'NUMBERS',
   food: 'FOOD & DRINK',
   colors: 'COLORS',
+  classifiers: 'CLASSIFIERS',
   clothing: 'CLOTHING',
   conjunctionsPrepositions: 'CONJUNCTIONS & PREPOSITIONS',
   foodDrink: 'FOOD & DRINK',

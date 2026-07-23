@@ -11,6 +11,7 @@ const TRANSLATOR_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japane
 
 const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
   { value: 'adjectives', label: 'Adjectives' },
+  { value: 'classifiers', label: 'Classifiers' },
   { value: 'clothing', label: 'Clothing' },
   { value: 'conjunctionsPrepositions', label: 'Conjunctions & Prepositions' },
   { value: 'foodDrink', label: 'Food & Drink' },
