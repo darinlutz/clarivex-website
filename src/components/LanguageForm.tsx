@@ -77,6 +77,7 @@ export default function LanguageForm({
   const [showAnswer, setShowAnswer] = useState(true);
   const [mode, setMode] = useState<'words' | 'easy' | 'medium' | 'hard'>('words');
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
+  const [wordCategoryCount, setWordCategoryCount] = useState<number | null>(null);
 
   // Session memory: words/sentences already generated, so the same common
   // ones don't keep coming up. Resets on page reload.
@@ -266,6 +267,31 @@ export default function LanguageForm({
     };
   }, [vietnameseSource, englishSource, answerLanguage]);
 
+  // Keeps the "Total words" label in sync with whatever category is
+  // currently selected.
+  useEffect(() => {
+    let isCurrent = true;
+
+    fetch('/api/language/word/count', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ category: wordCategory }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (isCurrent) setWordCategoryCount(typeof data.count === 'number' ? data.count : null);
+      })
+      .catch(() => {
+        if (isCurrent) setWordCategoryCount(null);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [wordCategory]);
+
   return (
     <div className="space-y-6">
       {/* Word/Sentence Field */}
@@ -388,6 +414,9 @@ export default function LanguageForm({
                 </option>
               ))}
             </select>
+            <span className="text-sm font-medium text-dark-blue">
+              Total words: {wordCategoryCount ?? '...'}
+            </span>
           </>
         )}
       </div>

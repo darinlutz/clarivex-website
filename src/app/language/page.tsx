@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import LanguageForm from '@/components/LanguageForm';
 import type { Language } from '@/lib/translate';
@@ -85,6 +85,8 @@ export default function Language() {
     'words' | 'fastPhrases' | 'generalPhrases' | 'easy' | 'medium' | 'hard'
   >('words');
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
+  const [wordCategoryCount, setWordCategoryCount] = useState<number | null>(null);
+  const [totalMatched, setTotalMatched] = useState(0);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [writingSpeakStatus, setWritingSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -582,6 +584,31 @@ export default function Language() {
     };
   }, [vietnameseText, englishSource, writingAnswerLanguage]);
 
+  // Keeps the Writing tab's "Total words in category" label in sync with
+  // whatever category is currently selected.
+  useEffect(() => {
+    let isCurrent = true;
+
+    fetch('/api/language/word/count', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ category: wordCategory }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (isCurrent) setWordCategoryCount(typeof data.count === 'number' ? data.count : null);
+      })
+      .catch(() => {
+        if (isCurrent) setWordCategoryCount(null);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [wordCategory]);
+
   const handleTranslatorSpeak = async (text: string) => {
     if (!text.trim()) return;
 
@@ -889,6 +916,17 @@ export default function Language() {
 
   const isMatch = writingWordText === userInput && userInput.length > 0;
 
+  // Counts each time the MATCH label lights up green (not every render while
+  // it stays matched), so retyping the same correct answer doesn't
+  // double-count.
+  const wasMatchRef = useRef(false);
+  useEffect(() => {
+    if (isMatch && !wasMatchRef.current) {
+      setTotalMatched((count) => count + 1);
+    }
+    wasMatchRef.current = isMatch;
+  }, [isMatch]);
+
   return (
     <div className="w-full">
       {/* Header Section */}
@@ -1152,7 +1190,10 @@ export default function Language() {
                         <select
                           id="wordCategory"
                           value={wordCategory}
-                          onChange={(e) => setWordCategory(e.target.value as WordCategory)}
+                          onChange={(e) => {
+                            setWordCategory(e.target.value as WordCategory);
+                            setTotalMatched(0);
+                          }}
                           className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                         >
                           {WORD_CATEGORIES.map(({ value, label }) => (
@@ -1161,6 +1202,12 @@ export default function Language() {
                             </option>
                           ))}
                         </select>
+                        <span className="text-sm font-medium text-dark-blue">
+                          Total words: {wordCategoryCount ?? '...'}
+                        </span>
+                        <span className="text-sm font-medium text-dark-blue">
+                          Matched: {totalMatched}
+                        </span>
                       </>
                     )}
                   </div>

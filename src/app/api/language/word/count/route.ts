@@ -1,0 +1,22 @@
+import { NextResponse } from 'next/server';
+import { getWordCountForCategory, VALID_WORD_CATEGORIES, type WordCategory } from '@/lib/language';
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const category: WordCategory = VALID_WORD_CATEGORIES.includes(body.category)
+      ? body.category
+      : 'all';
+
+    const count = await getWordCountForCategory(category);
+
+    return NextResponse.json({ success: true, count }, { status: 200 });
+  } catch (error) {
+    console.error('Word count error:', error);
+
+    return NextResponse.json(
+      { error: 'Failed to count words in category' },
+      { status: 500 }
+    );
+  }
+}

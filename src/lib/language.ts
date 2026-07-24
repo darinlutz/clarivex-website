@@ -366,3 +366,32 @@ export async function getRandomWord(
 
   return { vietnamese: choice.vietnamese, english: choice.english };
 }
+
+// Lets callers show the student how many words are available in a category
+// before they commit to practicing it.
+export async function getWordCountForCategory(category: WordCategory = 'all'): Promise<number> {
+  const entries = await fetchVocabulary();
+  return poolForCategory(entries, category).length;
+}
+
+export const VALID_WORD_CATEGORIES: WordCategory[] = [
+  'all',
+  'nouns',
+  'verbs',
+  'adjectives',
+  'numbers',
+  'food',
+  'colors',
+  'classifiers',
+  'clothing',
+  'conjunctionsPrepositions',
+  'foodDrink',
+  'household',
+  'peopleAnimals',
+  'places',
+  'pronouns',
+  'things',
+  'timeRelated',
+  'fastPhrases',
+  'generalPhrases',
+];
