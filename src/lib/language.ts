@@ -305,6 +305,7 @@ export type WordCategory =
   | 'conjunctionsPrepositions'
   | 'foodDrink'
   | 'household'
+  | 'houseHome'
   | 'peopleAnimals'
   | 'places'
   | 'pronouns'
@@ -327,6 +328,7 @@ const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   conjunctionsPrepositions: 'CONJUNCTIONS & PREPOSITIONS',
   foodDrink: 'FOOD & DRINK',
   household: 'HOUSEHOLD',
+  houseHome: 'HOUSE & HOME',
   peopleAnimals: 'PEOPLE & ANIMALS',
   places: 'PLACES',
   pronouns: 'PRONOUNS',
@@ -387,6 +389,7 @@ export const VALID_WORD_CATEGORIES: WordCategory[] = [
   'conjunctionsPrepositions',
   'foodDrink',
   'household',
+  'houseHome',
   'peopleAnimals',
   'places',
   'pronouns',
