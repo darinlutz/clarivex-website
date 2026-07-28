@@ -917,15 +917,19 @@ export default function Language() {
 
   const isMatch = writingWordText === userInput && userInput.length > 0;
 
-  // Counts each time the MATCH label lights up green (not every render while
-  // it stays matched), so retyping the same correct answer doesn't
-  // double-count.
-  const wasMatchRef = useRef(false);
+  // Tracks whether the current word has already been counted as matched, so
+  // clearing and retyping the same correct answer doesn't double-count it.
+  // Resets whenever a new word/sentence is generated.
+  const matchedCurrentWordRef = useRef(false);
   useEffect(() => {
-    if (isMatch && !wasMatchRef.current) {
+    matchedCurrentWordRef.current = false;
+  }, [vietnameseText]);
+
+  useEffect(() => {
+    if (isMatch && !matchedCurrentWordRef.current) {
       setTotalMatched((count) => count + 1);
+      matchedCurrentWordRef.current = true;
     }
-    wasMatchRef.current = isMatch;
   }, [isMatch]);
 
   return (
@@ -1194,6 +1198,7 @@ export default function Language() {
                           onChange={(e) => {
                             setWordCategory(e.target.value as WordCategory);
                             setTotalMatched(0);
+                            matchedCurrentWordRef.current = false;
                           }}
                           className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                         >
