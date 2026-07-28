@@ -424,6 +424,7 @@ export default function LanguageForm({
             </span>
             <span className="text-sm font-medium text-dark-blue">
               Words shown: {wordsShownCount}
+              {wordCategoryCount ? ` (${Math.round((wordsShownCount / wordCategoryCount) * 100)}%)` : ''}
             </span>
           </>
         )}

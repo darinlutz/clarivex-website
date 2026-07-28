@@ -87,6 +87,7 @@ export default function Language() {
   >('words');
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
   const [wordCategoryCount, setWordCategoryCount] = useState<number | null>(null);
+  const [wordsShownCount, setWordsShownCount] = useState(0);
   const [totalMatched, setTotalMatched] = useState(0);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [writingSpeakStatus, setWritingSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -271,6 +272,7 @@ export default function Language() {
       setEnglishSource(data.english);
       setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
       setStatus('success');
+      setWordsShownCount((prev) => prev + 1);
       setUsedWordsByCategory((prev) => ({
         ...prev,
         [wordCategory]: [...(prev[wordCategory] ?? []), data.vietnamese].slice(-100),
@@ -1197,6 +1199,7 @@ export default function Language() {
                           value={wordCategory}
                           onChange={(e) => {
                             setWordCategory(e.target.value as WordCategory);
+                            setWordsShownCount(0);
                             setTotalMatched(0);
                             matchedCurrentWordRef.current = false;
                           }}
@@ -1210,6 +1213,10 @@ export default function Language() {
                         </select>
                         <span className="text-sm font-medium text-dark-blue">
                           Total words: {wordCategoryCount ?? '...'}
+                        </span>
+                        <span className="text-sm font-medium text-dark-blue">
+                          Words shown: {wordsShownCount}
+                          {wordCategoryCount ? ` (${Math.round((wordsShownCount / wordCategoryCount) * 100)}%)` : ''}
                         </span>
                         <span className="text-sm font-medium text-dark-blue">
                           Matched: {totalMatched}
