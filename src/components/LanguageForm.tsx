@@ -76,7 +76,9 @@ export default function LanguageForm({
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [showAnswer, setShowAnswer] = useState(true);
-  const [mode, setMode] = useState<'words' | 'easy' | 'medium' | 'hard'>('words');
+  const [mode, setMode] = useState<
+    'words' | 'fastPhrases' | 'generalPhrases' | 'easy' | 'medium' | 'hard'
+  >('words');
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
   const [wordCategoryCount, setWordCategoryCount] = useState<number | null>(null);
   const [wordsShownCount, setWordsShownCount] = useState(0);
@@ -179,6 +181,47 @@ export default function LanguageForm({
     }
   };
 
+  const handleGetPhrase = async () => {
+    setStatus('loading');
+    setMessage('');
+
+    const category = mode as WordCategory;
+
+    try {
+      const response = await fetch('/api/language/word', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          category,
+          usedWords: usedWordsByCategory[category] ?? [],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate a new phrase');
+      }
+
+      setVietnameseSource(data.vietnamese);
+      setEnglishSource(data.english);
+      setShowAnswer(false);
+      setStatus('success');
+      setWordsShownCount((prev) => prev + 1);
+      setUsedWordsByCategory((prev) => ({
+        ...prev,
+        [category]: [...(prev[category] ?? []), data.vietnamese].slice(-100),
+      }));
+    } catch (error) {
+      setStatus('error');
+      setMessage(
+        error instanceof Error ? error.message : 'Failed to generate a new phrase. Please try again.'
+      );
+    }
+  };
+
   const handleGetSentence = async () => {
     setStatus('loading');
     setMessage('');
@@ -221,6 +264,8 @@ export default function LanguageForm({
   const handleGetLanguageItem = async () => {
     if (mode === 'words') {
       await handleGetWord();
+    } else if (mode === 'fastPhrases' || mode === 'generalPhrases') {
+      await handleGetPhrase();
     } else {
       await handleGetSentence();
     }
@@ -270,9 +315,16 @@ export default function LanguageForm({
     };
   }, [vietnameseSource, englishSource, answerLanguage]);
 
-  // Keeps the "Total words" label in sync with whatever category is
-  // currently selected, and resets the "Words shown" counter for the newly
-  // selected category.
+  // Fast Phrases and General Phrases have no Word Categories combobox of
+  // their own; they always pull from their own fixed category, so the
+  // Available/Shown labels track that category instead of whatever's
+  // selected in the (hidden) combobox.
+  const activeWordCategory: WordCategory =
+    mode === 'fastPhrases' || mode === 'generalPhrases' ? mode : wordCategory;
+
+  // Keeps the "Available" label in sync with whatever category is
+  // currently active, and resets the "Shown" counter for the newly active
+  // category.
   useEffect(() => {
     let isCurrent = true;
     setWordsShownCount(0);
@@ -282,7 +334,7 @@ export default function LanguageForm({
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ category: wordCategory }),
+      body: JSON.stringify({ category: activeWordCategory }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -295,7 +347,7 @@ export default function LanguageForm({
     return () => {
       isCurrent = false;
     };
-  }, [wordCategory]);
+  }, [activeWordCategory]);
 
   return (
     <div className="space-y-6">
@@ -392,10 +444,22 @@ export default function LanguageForm({
           id="mode"
           name="mode"
           value={mode}
-          onChange={(e) => setMode(e.target.value as 'words' | 'easy' | 'medium' | 'hard')}
+          onChange={(e) =>
+            setMode(
+              e.target.value as
+                | 'words'
+                | 'fastPhrases'
+                | 'generalPhrases'
+                | 'easy'
+                | 'medium'
+                | 'hard'
+            )
+          }
           className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
         >
           <option value="words">Words</option>
+          <option value="fastPhrases">Fast Phrases</option>
+          <option value="generalPhrases">General Phrases</option>
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
@@ -419,11 +483,16 @@ export default function LanguageForm({
                 </option>
               ))}
             </select>
+          </>
+        )}
+
+        {(mode === 'words' || mode === 'fastPhrases' || mode === 'generalPhrases') && (
+          <>
             <span className="text-sm font-medium text-dark-blue">
-              Total words: {wordCategoryCount ?? '...'}
+              Available: {wordCategoryCount ?? '...'}
             </span>
             <span className="text-sm font-medium text-dark-blue">
-              Words shown: {wordsShownCount}
+              Shown: {wordsShownCount}
               {wordCategoryCount ? ` (${Math.round((wordsShownCount / wordCategoryCount) * 100)}%)` : ''}
             </span>
           </>
@@ -445,6 +514,8 @@ export default function LanguageForm({
             </span>
           ) : mode === 'words' ? (
             'Get New Word'
+          ) : mode === 'fastPhrases' || mode === 'generalPhrases' ? (
+            'Get New Phrase'
           ) : (
             'Get New Sentence'
           )}
