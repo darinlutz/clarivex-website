@@ -315,6 +315,9 @@ export default function Language() {
       setEnglishSource(data.english);
       setWritingWordText(await translateText(data.vietnamese, 'Vietnamese', writingWordLanguage));
       setStatus('success');
+      if (complexity === 'fastPhrases') {
+        setWordsShownCount((prev) => prev + 1);
+      }
       setUsedWordsByCategory((prev) => ({
         ...prev,
         [category]: [...(prev[category] ?? []), data.vietnamese].slice(-100),
@@ -587,8 +590,15 @@ export default function Language() {
     };
   }, [vietnameseText, englishSource, writingAnswerLanguage]);
 
+  // Fast Phrases has no Word Categories combobox of its own; it always pulls
+  // from the fixed "fastPhrases" category, so the Total words/Words shown
+  // labels track that category instead of whatever's selected in the
+  // (hidden) combobox.
+  const activeWordCategory: WordCategory =
+    complexity === 'fastPhrases' ? 'fastPhrases' : wordCategory;
+
   // Keeps the Writing tab's "Total words in category" label in sync with
-  // whatever category is currently selected.
+  // whatever category is currently active.
   useEffect(() => {
     let isCurrent = true;
 
@@ -597,7 +607,7 @@ export default function Language() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ category: wordCategory }),
+      body: JSON.stringify({ category: activeWordCategory }),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -610,7 +620,7 @@ export default function Language() {
     return () => {
       isCurrent = false;
     };
-  }, [wordCategory]);
+  }, [activeWordCategory]);
 
   const handleTranslatorSpeak = async (text: string) => {
     if (!text.trim()) return;
@@ -1168,7 +1178,7 @@ export default function Language() {
                     <select
                       id="complexity"
                       value={complexity}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setComplexity(
                           e.target.value as
                             | 'words'
@@ -1177,8 +1187,11 @@ export default function Language() {
                             | 'easy'
                             | 'medium'
                             | 'hard'
-                        )
-                      }
+                        );
+                        setWordsShownCount(0);
+                        setTotalMatched(0);
+                        matchedCurrentWordRef.current = false;
+                      }}
                       className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
                     >
                       <option value="words">Words</option>
@@ -1211,6 +1224,11 @@ export default function Language() {
                             </option>
                           ))}
                         </select>
+                      </>
+                    )}
+
+                    {(complexity === 'words' || complexity === 'fastPhrases') && (
+                      <>
                         <span className="text-sm font-medium text-dark-blue">
                           Total words: {wordCategoryCount ?? '...'}
                         </span>
@@ -1218,6 +1236,11 @@ export default function Language() {
                           Words shown: {wordsShownCount}
                           {wordCategoryCount ? ` (${Math.round((wordsShownCount / wordCategoryCount) * 100)}%)` : ''}
                         </span>
+                      </>
+                    )}
+
+                    {complexity === 'words' && (
+                      <>
                         <span className="text-sm font-medium text-dark-blue">
                           Matched: {totalMatched}
                         </span>
