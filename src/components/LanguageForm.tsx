@@ -10,6 +10,7 @@ const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
   { value: 'adjectives', label: 'Adjectives' },
   { value: 'classifiers', label: 'Classifiers' },
   { value: 'clothing', label: 'Clothing' },
+  { value: 'colors', label: 'Colors' },
   { value: 'conjunctionsPrepositions', label: 'Conjunctions & Prepositions' },
   { value: 'foodDrink', label: 'Food & Drink' },
   { value: 'houseHome', label: 'House & Home' },
