@@ -303,6 +303,7 @@ export type WordCategory =
   | 'classifiers'
   | 'clothing'
   | 'conjunctionsPrepositions'
+  | 'focus'
   | 'foodDrink'
   | 'household'
   | 'houseHome'
@@ -326,6 +327,7 @@ const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   classifiers: 'CLASSIFIERS',
   clothing: 'CLOTHING',
   conjunctionsPrepositions: 'CONJUNCTIONS & PREPOSITIONS',
+  focus: 'FOCUS',
   foodDrink: 'FOOD & DRINK',
   household: 'HOUSEHOLD',
   houseHome: 'HOUSE & HOME',
@@ -387,6 +389,7 @@ export const VALID_WORD_CATEGORIES: WordCategory[] = [
   'classifiers',
   'clothing',
   'conjunctionsPrepositions',
+  'focus',
   'foodDrink',
   'household',
   'houseHome',
