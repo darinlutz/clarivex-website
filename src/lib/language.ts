@@ -312,6 +312,7 @@ export type WordCategory =
   | 'pronouns'
   | 'things'
   | 'timeRelated'
+  | 'activities'
   | 'fastPhrases'
   | 'generalPhrases';
 
@@ -336,6 +337,7 @@ const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   pronouns: 'PRONOUNS',
   things: 'THINGS',
   timeRelated: 'TIME RELATED',
+  activities: 'ACTIVITIES',
   fastPhrases: 'FAST PHRASES',
   generalPhrases: 'GENERAL PHRASES',
 };
@@ -398,6 +400,7 @@ export const VALID_WORD_CATEGORIES: WordCategory[] = [
   'pronouns',
   'things',
   'timeRelated',
+  'activities',
   'fastPhrases',
   'generalPhrases',
 ];

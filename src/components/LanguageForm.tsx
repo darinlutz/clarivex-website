@@ -7,6 +7,7 @@ import type { WordCategory } from '@/lib/language';
 const READING_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
 
 const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
+  { value: 'activities', label: 'Activities' },
   { value: 'adjectives', label: 'Adjectives' },
   { value: 'classifiers', label: 'Classifiers' },
   { value: 'clothing', label: 'Clothing' },
