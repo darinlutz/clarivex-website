@@ -1099,7 +1099,7 @@ export default function Language() {
                           value={writingWordText}
                           readOnly
                           placeholder="Press Get New Sentence to generate one"
-                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none text-[2rem]"
                           rows={2}
                         />
                       ) : (
@@ -1107,7 +1107,7 @@ export default function Language() {
                           value={maskText(writingWordText)}
                           readOnly
                           placeholder="Press Get New Sentence to generate one"
-                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+                          className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none text-[2rem]"
                           rows={2}
                         />
                       )}

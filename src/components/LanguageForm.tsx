@@ -377,7 +377,7 @@ export default function LanguageForm({
             onChange={(e) => setWord(e.target.value)}
             placeholder="Press Get New Sentence to generate one"
             rows={2}
-            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none text-[2rem]"
           />
           <button
             type="button"
