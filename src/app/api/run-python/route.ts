@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 
-const APP_SCRIPT_PATH = path.join(process.cwd(), 'app.py');
+const APP_SCRIPT_PATH = path.join(process.cwd(), 'src', 'intro_transformer.py');
 
 export async function POST() {
   return new Promise<NextResponse>((resolve) => {
