@@ -4,6 +4,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const text = body.text;
+    const voice = typeof body.voice === 'string' && body.voice ? body.voice : 'alloy';
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json(
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini-tts',
-        voice: 'alloy',
+        voice,
         input: text,
         response_format: 'mp3',
       }),

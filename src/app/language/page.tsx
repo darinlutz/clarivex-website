@@ -93,6 +93,7 @@ export default function Language() {
   const [totalMatched, setTotalMatched] = useState(0);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [writingSpeakStatus, setWritingSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [writingSpeakFemaleStatus, setWritingSpeakFemaleStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
 
   // Session memory: words/phrases already generated per category, so the
@@ -371,10 +372,13 @@ export default function Language() {
     }
   };
 
-  const handleWritingSpeak = async () => {
+  const speakWritingWordText = async (
+    voice: string,
+    setStatus: (status: 'idle' | 'loading' | 'error') => void
+  ) => {
     if (!writingWordText.trim()) return;
 
-    setWritingSpeakStatus('loading');
+    setStatus('loading');
     setMessage('');
 
     try {
@@ -383,7 +387,7 @@ export default function Language() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: writingWordText }),
+        body: JSON.stringify({ text: writingWordText, voice }),
       });
 
       if (!response.ok) {
@@ -397,14 +401,17 @@ export default function Language() {
       audio.onended = () => URL.revokeObjectURL(audioUrl);
       await audio.play();
 
-      setWritingSpeakStatus('idle');
+      setStatus('idle');
     } catch (error) {
-      setWritingSpeakStatus('error');
+      setStatus('error');
       setMessage(
         error instanceof Error ? error.message : 'Failed to play audio. Please try again.'
       );
     }
   };
+
+  const handleWritingSpeak = () => speakWritingWordText('alloy', setWritingSpeakStatus);
+  const handleWritingSpeakFemale = () => speakWritingWordText('nova', setWritingSpeakFemaleStatus);
 
   const fetchMatchingSentence = async (
     usedWords: string[] = [],
@@ -1111,18 +1118,32 @@ export default function Language() {
                           rows={2}
                         />
                       )}
-                      <button
-                        type="button"
-                        onClick={handleWritingSpeak}
-                        disabled={!writingWordText.trim() || writingSpeakStatus === 'loading'}
-                        className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
-                      >
-                        {writingSpeakStatus === 'loading' ? (
-                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
-                        ) : (
-                          'Speak'
-                        )}
-                      </button>
+                      <div className="flex flex-row sm:flex-col gap-3 flex-shrink-0 sm:self-start">
+                        <button
+                          type="button"
+                          onClick={handleWritingSpeak}
+                          disabled={!writingWordText.trim() || writingSpeakStatus === 'loading'}
+                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                          {writingSpeakStatus === 'loading' ? (
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                          ) : (
+                            'Speak'
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleWritingSpeakFemale}
+                          disabled={!writingWordText.trim() || writingSpeakFemaleStatus === 'loading'}
+                          className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                        >
+                          {writingSpeakFemaleStatus === 'loading' ? (
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
+                          ) : (
+                            'Speak (F)'
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
