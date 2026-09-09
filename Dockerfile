@@ -43,6 +43,7 @@ COPY --from=deps /app/node_modules/@libsql ./node_modules/@libsql
 
 # Scripts invoked via execFile('python', ...) at runtime
 COPY plot_stock.py app.py GetBankFromRoutingNumber.py ./
+COPY src/intro_transformer.py ./src/intro_transformer.py
 
 EXPOSE 3000
 ENV PORT=3000
