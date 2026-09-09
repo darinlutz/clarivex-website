@@ -9,9 +9,9 @@ def create_simple_llm():
 
 generator = create_simple_llm()
 
-prompt = "Once upon a time, there lived a lil nicca, and "
+prompt = "Once upon a time, there lived a lil nicca in the ghetto, and "
 
-generated_text = generator(prompt, max_length=100, num_return_sequences=1)
+generated_text = generator(prompt, max_length=2000, num_return_sequences=1)
 
 print(generated_text[0]["generated_text"])
 
