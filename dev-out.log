@@ -1,0 +1,14 @@
+
+> clarivex-website@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.17.16.1:3000
+- Environments: .env.local
+✓ Ready in 1248ms
+
+ GET /weight 200 in 2.0s (next.js: 583ms, application-code: 1444ms)
+ GET /api/friends-roster 200 in 1733ms (next.js: 331ms, application-code: 1402ms)
+ POST /api/run-python 200 in 50s (next.js: 150ms, application-code: 50s)
+[?25h
