@@ -1123,24 +1123,28 @@ export default function Language() {
                           type="button"
                           onClick={handleWritingSpeak}
                           disabled={!writingWordText.trim() || writingSpeakStatus === 'loading'}
+                          aria-label="Speak"
+                          title="Speak"
                           className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                         >
                           {writingSpeakStatus === 'loading' ? (
                             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
                           ) : (
-                            'Speak'
+                            <span aria-hidden="true">🔊 ♂</span>
                           )}
                         </button>
                         <button
                           type="button"
                           onClick={handleWritingSpeakFemale}
                           disabled={!writingWordText.trim() || writingSpeakFemaleStatus === 'loading'}
+                          aria-label="Speak (female voice)"
+                          title="Speak (female voice)"
                           className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                         >
                           {writingSpeakFemaleStatus === 'loading' ? (
                             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
                           ) : (
-                            'Speak (F)'
+                            <span aria-hidden="true">🔊 ♀</span>
                           )}
                         </button>
                       </div>
@@ -1343,12 +1347,14 @@ export default function Language() {
                         type="button"
                         onClick={() => handleTranslatorSpeak(translatorTopText)}
                         disabled={!translatorTopText.trim() || translatorSpeakStatus === 'loading'}
+                        aria-label="Speak"
+                        title="Speak"
                         className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
                       >
                         {translatorSpeakStatus === 'loading' ? (
                           <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
                         ) : (
-                          'Speak'
+                          <span aria-hidden="true">🔊 ♂</span>
                         )}
                       </button>
                     </div>
@@ -1400,12 +1406,14 @@ export default function Language() {
                         type="button"
                         onClick={() => handleTranslatorSpeak(translatorBottomText)}
                         disabled={!translatorBottomText.trim() || translatorSpeakStatus === 'loading'}
+                        aria-label="Speak"
+                        title="Speak"
                         className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
                       >
                         {translatorSpeakStatus === 'loading' ? (
                           <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
                         ) : (
-                          'Speak'
+                          <span aria-hidden="true">🔊 ♂</span>
                         )}
                       </button>
                     </div>
@@ -1531,12 +1539,14 @@ export default function Language() {
                         type="button"
                         onClick={handleFriendSpeak}
                         disabled={!friendMessages.some((msg) => msg.role === 'assistant') || friendSpeakStatus === 'loading'}
+                        aria-label="Speak"
+                        title="Speak"
                         className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                       >
                         {friendSpeakStatus === 'loading' ? (
                           <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
                         ) : (
-                          'Speak'
+                          <span aria-hidden="true">🔊 ♂</span>
                         )}
                       </button>
                       <button

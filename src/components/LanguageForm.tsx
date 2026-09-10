@@ -383,12 +383,14 @@ export default function LanguageForm({
             type="button"
             onClick={handleSpeak}
             disabled={!word.trim() || speakStatus === 'loading'}
+            aria-label="Speak"
+            title="Speak"
             className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
           >
             {speakStatus === 'loading' ? (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
             ) : (
-              'Speak'
+              <span aria-hidden="true">🔊 ♂</span>
             )}
           </button>
         </div>
