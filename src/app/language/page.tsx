@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { ArrowUpDown, Eye, EyeOff } from 'lucide-react';
 import LanguageForm from '@/components/LanguageForm';
 import type { Language } from '@/lib/translate';
 import type { GrammarToken } from '@/lib/grammarCheck';
@@ -1095,9 +1096,11 @@ export default function Language() {
                         type="button"
                         onClick={() => setShowVietnamese(!showVietnamese)}
                         disabled={status === 'loading' || !writingWordText}
+                        aria-label={showVietnamese ? 'Hide' : 'Show'}
+                        title={showVietnamese ? 'Hide' : 'Show'}
                         className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                       >
-                        {showVietnamese ? 'Hide' : 'Show'}
+                        {showVietnamese ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -1365,9 +1368,11 @@ export default function Language() {
                     <button
                       type="button"
                       onClick={handleSwap}
+                      aria-label="Swap"
+                      title="Swap"
                       className="px-4 py-2 text-sm bg-powder-500 text-white rounded-lg hover:bg-powder-600 transition-colors"
                     >
-                      Swap
+                      <ArrowUpDown className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -1553,9 +1558,11 @@ export default function Language() {
                         type="button"
                         onClick={handleToggleFriendReplyTranslation}
                         disabled={!friendMessages.some((msg) => msg.role === 'assistant')}
+                        aria-label={showFriendReplyTranslation ? 'Hide' : 'Show'}
+                        title={showFriendReplyTranslation ? 'Hide' : 'Show'}
                         className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                       >
-                        {showFriendReplyTranslation ? 'Hide' : 'Show'}
+                        {showFriendReplyTranslation ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
@@ -1588,7 +1595,7 @@ export default function Language() {
                           tabIndex={-1}
                           className="px-4 py-2 font-bold rounded-lg"
                         >
-                          {showFriendReplyTranslation ? 'Hide' : 'Show'}
+                          {showFriendReplyTranslation ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                       </div>
                     </div>
@@ -1775,9 +1782,11 @@ export default function Language() {
                               type="button"
                               onClick={handleToggleMatchingTranslation}
                               disabled={!matchingSentence}
+                              aria-label={showMatchingTranslation ? 'Hide' : 'Show'}
+                              title={showMatchingTranslation ? 'Hide' : 'Show'}
                               className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                             >
-                              {showMatchingTranslation ? 'Hide' : 'Show'}
+                              {showMatchingTranslation ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                           </div>
                         </div>
@@ -1813,9 +1822,11 @@ export default function Language() {
                               type="button"
                               onClick={handleToggleMatchingTranslation2}
                               disabled={!matchingSentence2}
+                              aria-label={showMatchingTranslation2 ? 'Hide' : 'Show'}
+                              title={showMatchingTranslation2 ? 'Hide' : 'Show'}
                               className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                             >
-                              {showMatchingTranslation2 ? 'Hide' : 'Show'}
+                              {showMatchingTranslation2 ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                           </div>
                         </div>
@@ -1851,9 +1862,11 @@ export default function Language() {
                               type="button"
                               onClick={handleToggleMatchingTranslation3}
                               disabled={!matchingSentence3}
+                              aria-label={showMatchingTranslation3 ? 'Hide' : 'Show'}
+                              title={showMatchingTranslation3 ? 'Hide' : 'Show'}
                               className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                             >
-                              {showMatchingTranslation3 ? 'Hide' : 'Show'}
+                              {showMatchingTranslation3 ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                           </div>
                         </div>

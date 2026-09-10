@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { Language } from '@/lib/translate';
 import type { WordCategory } from '@/lib/language';
 
@@ -426,9 +427,11 @@ export default function LanguageForm({
             type="button"
             onClick={() => setShowAnswer(!showAnswer)}
             disabled={!answerText.trim()}
+            aria-label={showAnswer ? 'Hide' : 'Show'}
+            title={showAnswer ? 'Hide' : 'Show'}
             className="px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100 flex-shrink-0 sm:self-start"
           >
-            {showAnswer ? 'Hide' : 'Show'}
+            {showAnswer ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
       </div>
