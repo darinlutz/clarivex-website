@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
 
-interface AlphaVantageWtiResponse {
-  data?: { date: string; value: string }[];
+interface YahooFinanceChartResponse {
+  chart: {
+    result?: {
+      meta: {
+        regularMarketPrice: number;
+      };
+    }[];
+    error?: unknown;
+  };
 }
 
 let cachedPrice: number | null = null;
 let cacheTime: number = 0;
-// WTI is only priced once per trading day, and Alpha Vantage's free tier has
-// a very small daily request quota, so cache aggressively.
-const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+const CACHE_DURATION = 30000; // 30 seconds
 
 export async function GET() {
   try {
@@ -22,30 +27,26 @@ export async function GET() {
       });
     }
 
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
-    if (!apiKey) {
-      throw new Error('ALPHA_VANTAGE_API_KEY is not configured');
-    }
-
+    // CL=F is the Yahoo Finance ticker for WTI crude oil futures (NYMEX).
+    // No API key required.
     const response = await fetch(
-      `https://www.alphavantage.co/query?function=WTI&interval=daily&apikey=${encodeURIComponent(apiKey)}`,
-      { next: { revalidate: 3600 } }
+      'https://query1.finance.yahoo.com/v8/finance/chart/CL=F',
+      {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        next: { revalidate: 30 },
+      }
     );
 
     if (!response.ok) {
-      throw new Error('Alpha Vantage API error');
+      throw new Error('Yahoo Finance API error');
     }
 
-    const data: AlphaVantageWtiResponse = await response.json();
-    // Alpha Vantage marks non-trading days with a "." placeholder value, so
-    // take the first entry that actually has a number.
-    const latest = data.data?.find((entry) => entry.value !== '.' && !Number.isNaN(parseFloat(entry.value)));
+    const data: YahooFinanceChartResponse = await response.json();
+    const price = data.chart.result?.[0]?.meta.regularMarketPrice;
 
-    if (!latest) {
+    if (typeof price !== 'number') {
       throw new Error('No WTI price data available');
     }
-
-    const price = parseFloat(latest.value);
 
     cachedPrice = price;
     cacheTime = now;
