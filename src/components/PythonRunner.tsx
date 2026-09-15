@@ -13,14 +13,14 @@ export default function PythonRunner() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to run intro_transformer.py');
+        throw new Error(data.error || 'Failed to run SampleDealGPT.py');
       }
 
       setResult(data.result);
       setStatus('idle');
     } catch (error) {
       setStatus('error');
-      setResult(error instanceof Error ? error.message : 'Failed to run intro_transformer.py');
+      setResult(error instanceof Error ? error.message : 'Failed to run SampleDealGPT.py');
     }
   };
 

@@ -1,5 +1,7 @@
 import BitcoinTicker from '@/components/BitcoinTicker';
 import OilTicker from '@/components/OilTicker';
+import TreasuryTicker from '@/components/TreasuryTicker';
+import YenTicker from '@/components/YenTicker';
 import Link from 'next/link';
 
 export default function Home() {
@@ -11,13 +13,11 @@ export default function Home() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-powder-500/5 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-powder-600/5 rounded-full blur-3xl"></div>
         </div>
-        <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-6">
-          <div className="w-full max-w-md">
-            <BitcoinTicker />
-          </div>
-          <div className="w-full max-w-md">
-            <OilTicker />
-          </div>
+        <div className="relative z-10 w-full max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-center justify-center gap-6">
+          <BitcoinTicker />
+          <OilTicker />
+          <TreasuryTicker />
+          <YenTicker />
         </div>
       </section>
 
