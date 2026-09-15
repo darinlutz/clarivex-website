@@ -1,31 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Barrel } from 'lucide-react';
 
-interface BitcoinPrice {
+interface OilPrice {
   price: number;
   symbol: string;
   timestamp: number;
 }
 
-function BitcoinCoinIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="11" fill="#F7931A" />
-      <path
-        d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        transform="rotate(-10 12 12)"
-      />
-    </svg>
-  );
-}
-
-export default function BitcoinTicker() {
+export default function OilTicker() {
   const [price, setPrice] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,16 +18,16 @@ export default function BitcoinTicker() {
   useEffect(() => {
     let ignore = false;
 
-    const fetchBitcoinPrice = async () => {
+    const fetchOilPrice = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const apiUrl = new URL('/api/bitcoin', window.location.origin).toString();
+        const apiUrl = new URL('/api/oil', window.location.origin).toString();
         const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Failed to fetch Bitcoin price');
+        if (!response.ok) throw new Error('Failed to fetch WTI oil price');
 
-        const data: BitcoinPrice = await response.json();
+        const data: OilPrice = await response.json();
         if (ignore) return;
         setPrice(data.price);
         setLastUpdate(new Date());
@@ -51,16 +35,16 @@ export default function BitcoinTicker() {
       } catch (err) {
         if (ignore) return;
         setError(err instanceof Error ? err.message : 'Failed to fetch price');
-        console.error('Bitcoin price fetch error:', err);
+        console.error('Oil price fetch error:', err);
       } finally {
         if (!ignore) setLoading(false);
       }
     };
 
-    fetchBitcoinPrice();
+    fetchOilPrice();
 
     // Poll every 30 seconds
-    const interval = setInterval(fetchBitcoinPrice, 30000);
+    const interval = setInterval(fetchOilPrice, 30000);
 
     return () => {
       ignore = true;
@@ -71,7 +55,7 @@ export default function BitcoinTicker() {
   return (
     <div className="bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 rounded-lg p-6 shadow-xl">
       <div className="flex flex-col items-center text-center">
-        <p className="text-slate-600 text-sm uppercase tracking-wide mb-2">Bitcoin Price</p>
+        <p className="text-slate-600 text-sm uppercase tracking-wide mb-2">Oil WTI</p>
         {loading && !price ? (
           <div className="animate-pulse h-8 bg-powder-200 w-32 rounded"></div>
         ) : error ? (
@@ -79,7 +63,7 @@ export default function BitcoinTicker() {
         ) : price !== null ? (
           <div>
             <p className="flex items-center justify-center gap-2 text-3xl font-bold text-dark-blue">
-              <BitcoinCoinIcon className="w-7 h-7 flex-shrink-0" />
+              <Barrel className="w-7 h-7 flex-shrink-0 text-slate-700" aria-hidden="true" />
               ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             {lastUpdate && (

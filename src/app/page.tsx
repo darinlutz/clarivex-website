@@ -1,17 +1,23 @@
 import BitcoinTicker from '@/components/BitcoinTicker';
+import OilTicker from '@/components/OilTicker';
 import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="w-full">
-      {/* Bitcoin Ticker Section */}
+      {/* Market Tickers Section */}
       <section className="min-h-[40vh] pt-10 pb-5 bg-gradient-to-b from-white via-slate-50 to-slate-100 flex items-center justify-center px-2 sm:px-3 lg:px-4 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-powder-500/5 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-powder-600/5 rounded-full blur-3xl"></div>
         </div>
-        <div className="relative z-10 w-full max-w-md mx-auto">
-          <BitcoinTicker />
+        <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-6">
+          <div className="w-full max-w-md">
+            <BitcoinTicker />
+          </div>
+          <div className="w-full max-w-md">
+            <OilTicker />
+          </div>
         </div>
       </section>
 
