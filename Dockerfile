@@ -46,6 +46,5 @@ COPY plot_stock.py app.py GetBankFromRoutingNumber.py ./
 COPY src/intro_transformer.py ./src/intro_transformer.py
 COPY src/SampleDealGPT.py ./src/SampleDealGPT.py
 
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 10000
 CMD ["node", "server.js"]
