@@ -66,7 +66,6 @@ export default function YenTicker() {
               <JapaneseYen className="w-7 h-7 flex-shrink-0 text-slate-700" aria-hidden="true" />
               {rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
-            <p className="text-xs text-slate-500 mt-1">JPY per 1 USD</p>
             {lastUpdate && (
               <p className="text-xs text-slate-500 mt-1">
                 Updated: {lastUpdate.toLocaleTimeString()}
