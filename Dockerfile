@@ -47,4 +47,5 @@ COPY src/intro_transformer.py ./src/intro_transformer.py
 COPY src/SampleDealGPT.py ./src/SampleDealGPT.py
 
 EXPOSE 10000
+ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]
