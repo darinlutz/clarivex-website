@@ -55,7 +55,7 @@ export default function YenTicker() {
   return (
     <div className="bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 rounded-lg p-6 shadow-xl">
       <div className="flex flex-col items-center text-center">
-        <p className="text-slate-600 text-sm uppercase tracking-wide mb-2">Japanese Yen</p>
+        <p className="text-slate-600 text-sm uppercase tracking-wide mb-2">Yen</p>
         {loading && !rate ? (
           <div className="animate-pulse h-8 bg-powder-200 w-32 rounded"></div>
         ) : error ? (

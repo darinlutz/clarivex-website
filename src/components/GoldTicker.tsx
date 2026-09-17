@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Landmark } from 'lucide-react';
+import { Coins } from 'lucide-react';
 
-interface TreasuryYield {
-  yield: number;
+interface GoldPrice {
+  price: number;
   symbol: string;
   timestamp: number;
 }
 
-export default function TreasuryTicker() {
-  const [yieldValue, setYieldValue] = useState<number | null>(null);
+export default function GoldTicker() {
+  const [price, setPrice] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -18,33 +18,33 @@ export default function TreasuryTicker() {
   useEffect(() => {
     let ignore = false;
 
-    const fetchTreasuryYield = async () => {
+    const fetchGoldPrice = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const apiUrl = new URL('/api/treasury', window.location.origin).toString();
+        const apiUrl = new URL('/api/gold', window.location.origin).toString();
         const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Failed to fetch 10Y Treasury yield');
+        if (!response.ok) throw new Error('Failed to fetch gold price');
 
-        const data: TreasuryYield = await response.json();
+        const data: GoldPrice = await response.json();
         if (ignore) return;
-        setYieldValue(data.yield);
+        setPrice(data.price);
         setLastUpdate(new Date());
         setError(null);
       } catch (err) {
         if (ignore) return;
-        setError(err instanceof Error ? err.message : 'Failed to fetch yield');
-        console.error('Treasury yield fetch error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch price');
+        console.error('Gold price fetch error:', err);
       } finally {
         if (!ignore) setLoading(false);
       }
     };
 
-    fetchTreasuryYield();
+    fetchGoldPrice();
 
     // Poll every 30 seconds
-    const interval = setInterval(fetchTreasuryYield, 30000);
+    const interval = setInterval(fetchGoldPrice, 30000);
 
     return () => {
       ignore = true;
@@ -55,16 +55,16 @@ export default function TreasuryTicker() {
   return (
     <div className="bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 rounded-lg p-6 shadow-xl">
       <div className="flex flex-col items-center text-center">
-        <p className="text-slate-600 text-sm uppercase tracking-wide mb-2">10Y Note</p>
-        {loading && !yieldValue ? (
+        <p className="text-slate-600 text-sm uppercase tracking-wide mb-2">Gold</p>
+        {loading && !price ? (
           <div className="animate-pulse h-8 bg-powder-200 w-32 rounded"></div>
         ) : error ? (
           <p className="text-red-600 text-sm">{error}</p>
-        ) : yieldValue !== null ? (
+        ) : price !== null ? (
           <div>
             <p className="flex items-center justify-center gap-2 text-3xl font-bold text-dark-blue">
-              <Landmark className="w-7 h-7 flex-shrink-0 text-slate-700" aria-hidden="true" />
-              {yieldValue.toFixed(2)}%
+              <Coins className="w-7 h-7 flex-shrink-0 text-amber-500" aria-hidden="true" />
+              ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             {lastUpdate && (
               <p className="text-xs text-slate-500 mt-1">
@@ -73,7 +73,7 @@ export default function TreasuryTicker() {
             )}
           </div>
         ) : (
-          <p className="text-slate-600 text-sm">Yield unavailable</p>
+          <p className="text-slate-600 text-sm">Price unavailable</p>
         )}
       </div>
 
