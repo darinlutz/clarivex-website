@@ -1,18 +1,23 @@
-"""Runs a web-search-augmented chat query against a local Ollama model.
+"""Runs a web-search-augmented chat query against an Ollama cloud model.
 
 Usage:
     python OllamaSearch.py "search query text"
 
-Reads the Ollama API key from the OLLAMA_API_KEY environment variable
-(required for the web_search/web_fetch tools). Prints the model's final
-answer to stdout, or exits non-zero and prints an error message to stderr.
+Reads the Ollama API key from the OLLAMA_API_KEY environment variable,
+which is required both for the cloud chat model and for the
+web_search/web_fetch tools. Prints the model's final answer to stdout, or
+exits non-zero and prints an error message to stderr.
 """
 
 import sys
 
-from ollama import chat, web_fetch, web_search
+from ollama import Client, web_fetch, web_search
 
-MODEL = 'gemma4:e2b'
+MODEL = 'gemma4:31b'
+
+# Runs the chat step against Ollama's cloud API instead of a local model.
+# The client picks up the Bearer token from OLLAMA_API_KEY automatically.
+cloud_client = Client(host='https://ollama.com')
 
 # Web search results can return thousands of tokens, so the context window
 # needs enough room to hold them alongside the rest of the conversation.
@@ -28,7 +33,7 @@ def run_search(query: str) -> str:
     messages = [{'role': 'user', 'content': query}]
 
     for _ in range(MAX_TOOL_ROUNDS):
-        response = chat(
+        response = cloud_client.chat(
             model=MODEL,
             messages=messages,
             tools=[web_search, web_fetch],
