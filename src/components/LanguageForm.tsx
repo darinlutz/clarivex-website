@@ -303,9 +303,11 @@ export default function LanguageForm({
   };
 
   // Wraps handleGetLanguageItem so that, once something is flagged, the 3rd
-  // "Get New Word" press after the flag re-shows the flagged item instead of
-  // fetching a new one. After that, normal random selection resumes.
-  const handleGetNewClick = async () => {
+  // time the user cycles to a new item (via "Get New Word" OR "Known Word -
+  // Get New" — both move on to a new item, so both count) re-shows the
+  // flagged item instead of fetching a new one. After that, normal random
+  // selection resumes.
+  const advanceAndFetchNew = async () => {
     if (flaggedItem) {
       const nextPresses = pressesSinceFlag + 1;
       if (nextPresses >= 3) {
@@ -322,8 +324,11 @@ export default function LanguageForm({
     await handleGetLanguageItem();
   };
 
+  const handleGetNewClick = advanceAndFetchNew;
+
   // Remembers the currently displayed word/phrase/sentence, then fetches a
-  // new one right away like "Get New Word" would.
+  // new one right away like "Get New Word" would. This starts (or restarts)
+  // the countdown, so it does not itself count as one of the 3 presses.
   const handleFlagAndGetNew = async () => {
     if (vietnameseSource || englishSource) {
       setFlaggedItem({ vietnamese: vietnameseSource, english: englishSource });
@@ -334,8 +339,9 @@ export default function LanguageForm({
   };
 
   // Marks the currently displayed word/phrase/sentence as known so it's
-  // excluded from now on (pushed to the end of the queue), then fetches a
-  // new one right away like "Get New Word" would.
+  // excluded from now on (pushed to the end of the queue), then advances to
+  // a new one the same way "Get New Word" does (counting toward the
+  // flagged-item countdown, if one is pending).
   const handleKnownAndGetNew = async () => {
     if (vietnameseSource) {
       if (mode === 'words' || mode === 'fastPhrases' || mode === 'generalPhrases') {
@@ -349,7 +355,7 @@ export default function LanguageForm({
       }
     }
 
-    await handleGetLanguageItem();
+    await advanceAndFetchNew();
   };
 
   // Keeps the word field's translation in sync with its language and with

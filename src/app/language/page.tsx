@@ -406,10 +406,11 @@ export default function Language() {
   };
 
   // Wraps handleGetLanguageItem so that, once something is flagged on the
-  // Writing tab, the 3rd "Get New Word" press after the flag re-shows the
-  // flagged item instead of fetching a new one. After that, normal random
-  // selection resumes.
-  const handleWritingGetNewClick = async () => {
+  // Writing tab, the 3rd time the user cycles to a new item (via "Get New
+  // Word" OR "Known Word - Get New" — both move on to a new item, so both
+  // count) re-shows the flagged item instead of fetching a new one. After
+  // that, normal random selection resumes.
+  const writingAdvanceAndFetchNew = async () => {
     if (writingFlaggedItem) {
       const nextPresses = writingPressesSinceFlag + 1;
       if (nextPresses >= 3) {
@@ -430,8 +431,12 @@ export default function Language() {
     await handleGetLanguageItem();
   };
 
+  const handleWritingGetNewClick = writingAdvanceAndFetchNew;
+
   // Remembers the currently displayed Writing tab word/phrase/sentence, then
-  // fetches a new one right away like "Get New Word" would.
+  // fetches a new one right away like "Get New Word" would. This starts (or
+  // restarts) the countdown, so it does not itself count as one of the 3
+  // presses.
   const handleWritingFlagAndGetNew = async () => {
     if (vietnameseText || englishSource) {
       setWritingFlaggedItem({ vietnamese: vietnameseText, english: englishSource });
@@ -443,7 +448,8 @@ export default function Language() {
 
   // Marks the currently displayed Writing tab word/phrase/sentence as known
   // so it's excluded from now on (pushed to the end of the queue), then
-  // fetches a new one right away like "Get New Word" would.
+  // advances to a new one the same way "Get New Word" does (counting toward
+  // the flagged-item countdown, if one is pending).
   const handleWritingKnownAndGetNew = async () => {
     if (vietnameseText) {
       if (complexity === 'words' || complexity === 'fastPhrases' || complexity === 'generalPhrases') {
@@ -457,7 +463,7 @@ export default function Language() {
       }
     }
 
-    await handleGetLanguageItem();
+    await writingAdvanceAndFetchNew();
   };
 
   const speakWritingWordText = async (

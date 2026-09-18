@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import PythonRunner from '@/components/PythonRunner';
 import FriendsRoster from '@/components/FriendsRoster';
+import OllamaSearch from '@/components/OllamaSearch';
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'python'>('friends');
+  const [activeTab, setActiveTab] = useState<'friends' | 'ollama' | 'python'>('friends');
 
   return (
     <div className="w-full">
@@ -35,6 +36,16 @@ export default function RacingPage() {
               Friends
             </button>
             <button
+              onClick={() => setActiveTab('ollama')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'ollama'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Ollama Search
+            </button>
+            <button
               onClick={() => setActiveTab('python')}
               className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
                 activeTab === 'python'
@@ -56,6 +67,17 @@ export default function RacingPage() {
                   Keep track of your friends. This list is shared across everyone who visits.
                 </p>
                 <FriendsRoster />
+              </div>
+            )}
+
+            {/* Ollama Search Tab */}
+            {activeTab === 'ollama' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Ollama Search</h2>
+                <p className="text-slate-600 mb-6">
+                  Search the web via a local Ollama model.
+                </p>
+                <OllamaSearch />
               </div>
             )}
 
