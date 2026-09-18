@@ -48,17 +48,6 @@ export default function OllamaSearch() {
         className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
       />
 
-      <label htmlFor="ollama-search-result" className="block text-sm font-medium text-dark-blue mb-2 mt-4">
-        Result
-      </label>
-      <textarea
-        id="ollama-search-result"
-        value={result}
-        readOnly
-        rows={20}
-        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
-      />
-
       <button
         type="button"
         onClick={handleSearch}
@@ -74,6 +63,17 @@ export default function OllamaSearch() {
           'Search'
         )}
       </button>
+
+      <label htmlFor="ollama-search-result" className="block text-sm font-medium text-dark-blue mb-2 mt-4">
+        Result
+      </label>
+      <textarea
+        id="ollama-search-result"
+        value={result}
+        readOnly
+        rows={20}
+        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
+      />
     </div>
   );
 }
