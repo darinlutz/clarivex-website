@@ -84,10 +84,10 @@ export default function Navigation() {
             </Link>
             <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
             <Link
-              href="/weight"
+              href="/racing"
               className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
-              Weight
+              Racing
             </Link>
           </div>
 
@@ -168,11 +168,11 @@ export default function Navigation() {
               Financial Analysis
             </Link>
             <Link
-              href="/weight"
+              href="/racing"
               className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
               onClick={closeMenu}
             >
-              Weight
+              Racing
             </Link>
           </div>
         </div>

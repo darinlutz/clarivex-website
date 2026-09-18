@@ -1,76 +1,74 @@
-import { readLatestWeight } from '@/lib/weightStore';
+'use client';
+
+import { useState } from 'react';
 import PythonRunner from '@/components/PythonRunner';
 import FriendsRoster from '@/components/FriendsRoster';
 
-export const dynamic = 'force-dynamic';
-
-async function getMostRecentWeight(): Promise<string> {
-  const latest = await readLatestWeight();
-  if (!latest) {
-    return 'No weight recorded yet.';
-  }
-  const recordedAt = new Date(latest.recordedAt).toLocaleString('en-US', {
-    timeZone: 'America/New_York',
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
-  return `${latest.weightLb.toFixed(1)} lb (recorded ${recordedAt})`;
-}
-
-export default async function WeightPage() {
-  const mostRecentWeight = await getMostRecentWeight();
+export default function RacingPage() {
+  const [activeTab, setActiveTab] = useState<'friends' | 'python'>('friends');
 
   return (
     <div className="w-full">
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 pb-2 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
-            Weight
+            Racing
           </h1>
           <p className="text-lg text-slate-600">
-            Review the most recent weight reading synced from Apple Health.
+            Keep track of your friends and run the local Python app.
           </p>
         </div>
       </section>
 
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
         <div className="w-full max-w-4xl">
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
-            <label htmlFor="most-recent-weight" className="block text-sm font-medium text-dark-blue mb-2">
-              Most Recent Weight
-            </label>
-            <input
-              id="most-recent-weight"
-              type="text"
-              value={mostRecentWeight}
-              readOnly
-              className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-            />
+          {/* Tab Navigation */}
+          <div className="flex gap-4 mb-6 border-b border-slate-200">
+            <button
+              onClick={() => setActiveTab('friends')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'friends'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Friends
+            </button>
+            <button
+              onClick={() => setActiveTab('python')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'python'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Python
+            </button>
           </div>
-        </div>
-      </section>
 
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 to-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 pb-2 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
-            Python
-          </h1>
-          <p className="text-lg text-slate-600">
-            Run the local Python app and view its output.
-          </p>
-        </div>
-      </section>
+          {/* Tab Content */}
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
+            {/* Friends Tab */}
+            {activeTab === 'friends' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Friends</h2>
+                <p className="text-slate-600 mb-6">
+                  Keep track of your friends. This list is shared across everyone who visits.
+                </p>
+                <FriendsRoster />
+              </div>
+            )}
 
-      <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
-        <div className="w-full max-w-4xl space-y-12">
-          <PythonRunner />
-
-          <div>
-            <h2 className="text-2xl font-bold text-dark-blue mb-2">Friends</h2>
-            <p className="text-slate-600 mb-6">
-              Keep track of your friends. This list is shared across everyone who visits.
-            </p>
-            <FriendsRoster />
+            {/* Python Tab */}
+            {activeTab === 'python' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Python</h2>
+                <p className="text-slate-600 mb-6">
+                  Run the local Python app and view its output.
+                </p>
+                <PythonRunner />
+              </div>
+            )}
           </div>
         </div>
       </section>
