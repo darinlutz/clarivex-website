@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function TripPlannerForm() {
   const [formData, setFormData] = useState({
@@ -10,6 +10,36 @@ export default function TripPlannerForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [result, setResult] = useState('');
+  const [location, setLocation] = useState('');
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
+
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation(
+          `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`
+        );
+        setLocationStatus('idle');
+      },
+      () => {
+        setLocationStatus('error');
+      }
+    );
+  };
+
+  // Ask for the user's location as soon as the form loads, so the field is
+  // pre-filled without requiring the button press. Deferred a tick so the
+  // resulting state updates land in a callback rather than the effect body.
+  useEffect(() => {
+    const timeoutId = setTimeout(handleUseMyLocation, 0);
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -51,6 +81,35 @@ export default function TripPlannerForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Current Location Field */}
+      <div>
+        <label htmlFor="location" className="block text-sm font-medium text-dark-blue mb-2">
+          Your Location
+        </label>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            id="location"
+            name="location"
+            value={
+              locationStatus === 'loading'
+                ? 'Detecting location...'
+                : location || 'Location unavailable'
+            }
+            readOnly
+            className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+          />
+          <button
+            type="button"
+            onClick={handleUseMyLocation}
+            disabled={locationStatus === 'loading'}
+            className="px-4 py-2 bg-white border border-powder-500 text-powder-600 font-bold rounded-lg hover:bg-powder-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 sm:self-start"
+          >
+            {locationStatus === 'loading' ? 'Locating...' : 'Use My Location'}
+          </button>
+        </div>
+      </div>
+
       {/* City Name Field */}
       <div>
         <label htmlFor="destination" className="block text-sm font-medium text-dark-blue mb-2">
