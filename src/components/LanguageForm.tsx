@@ -95,6 +95,23 @@ export default function LanguageForm({
   const [usedSentenceWords, setUsedSentenceWords] = useState<string[]>([]);
   const [usedSentences, setUsedSentences] = useState<string[]>([]);
 
+  // Words/phrases/sentences marked as known via "Known Word - Get New".
+  // Unlike usedWordsByCategory/usedSentences (which are capped so old items
+  // eventually cycle back), these are never trimmed, so a known item stays
+  // excluded (pushed to the end of the queue) until everything else in its
+  // category has been shown.
+  const [knownWordsByCategory, setKnownWordsByCategory] = useState<
+    Partial<Record<WordCategory, string[]>>
+  >({});
+  const [knownSentences, setKnownSentences] = useState<string[]>([]);
+
+  // The word/phrase/sentence flagged via "Flag Word - Get New", and how many
+  // presses of "Get New Word" remain before it's shown again.
+  const [flaggedItem, setFlaggedItem] = useState<{ vietnamese: string; english: string } | null>(
+    null
+  );
+  const [pressesSinceFlag, setPressesSinceFlag] = useState(0);
+
   // Lets the page-level "I want to learn" selector drive this field's
   // language without taking away the user's ability to change it locally.
   if (requestedWordLanguage && requestedWordLanguage !== appliedWordLanguage) {
@@ -158,7 +175,12 @@ export default function LanguageForm({
         },
         body: JSON.stringify({
           category: wordCategory,
-          usedWords: usedWordsByCategory[wordCategory] ?? [],
+          usedWords: Array.from(
+            new Set([
+              ...(usedWordsByCategory[wordCategory] ?? []),
+              ...(knownWordsByCategory[wordCategory] ?? []),
+            ])
+          ),
         }),
       });
 
@@ -199,7 +221,12 @@ export default function LanguageForm({
         },
         body: JSON.stringify({
           category,
-          usedWords: usedWordsByCategory[category] ?? [],
+          usedWords: Array.from(
+            new Set([
+              ...(usedWordsByCategory[category] ?? []),
+              ...(knownWordsByCategory[category] ?? []),
+            ])
+          ),
         }),
       });
 
@@ -239,7 +266,7 @@ export default function LanguageForm({
         body: JSON.stringify({
           complexity: mode,
           usedWords: usedSentenceWords,
-          usedSentences: usedSentences.slice(-8),
+          usedSentences: Array.from(new Set([...usedSentences.slice(-8), ...knownSentences])),
         }),
       });
 
@@ -273,6 +300,56 @@ export default function LanguageForm({
     } else {
       await handleGetSentence();
     }
+  };
+
+  // Wraps handleGetLanguageItem so that, once something is flagged, the 3rd
+  // "Get New Word" press after the flag re-shows the flagged item instead of
+  // fetching a new one. After that, normal random selection resumes.
+  const handleGetNewClick = async () => {
+    if (flaggedItem) {
+      const nextPresses = pressesSinceFlag + 1;
+      if (nextPresses >= 3) {
+        setVietnameseSource(flaggedItem.vietnamese);
+        setEnglishSource(flaggedItem.english);
+        setShowAnswer(false);
+        setFlaggedItem(null);
+        setPressesSinceFlag(0);
+        return;
+      }
+      setPressesSinceFlag(nextPresses);
+    }
+
+    await handleGetLanguageItem();
+  };
+
+  // Remembers the currently displayed word/phrase/sentence, then fetches a
+  // new one right away like "Get New Word" would.
+  const handleFlagAndGetNew = async () => {
+    if (vietnameseSource || englishSource) {
+      setFlaggedItem({ vietnamese: vietnameseSource, english: englishSource });
+      setPressesSinceFlag(0);
+    }
+
+    await handleGetLanguageItem();
+  };
+
+  // Marks the currently displayed word/phrase/sentence as known so it's
+  // excluded from now on (pushed to the end of the queue), then fetches a
+  // new one right away like "Get New Word" would.
+  const handleKnownAndGetNew = async () => {
+    if (vietnameseSource) {
+      if (mode === 'words' || mode === 'fastPhrases' || mode === 'generalPhrases') {
+        const category = mode === 'words' ? wordCategory : (mode as WordCategory);
+        setKnownWordsByCategory((prev) => ({
+          ...prev,
+          [category]: Array.from(new Set([...(prev[category] ?? []), vietnameseSource])),
+        }));
+      } else {
+        setKnownSentences((prev) => Array.from(new Set([...prev, vietnameseSource])));
+      }
+    }
+
+    await handleGetLanguageItem();
   };
 
   // Keeps the word field's translation in sync with its language and with
@@ -508,10 +585,10 @@ export default function LanguageForm({
       </div>
 
       {/* Get New Item Button */}
-      <div className="pt-4 pb-2">
+      <div className="pt-4 pb-2 space-y-2">
         <button
           type="button"
-          onClick={handleGetLanguageItem}
+          onClick={handleGetNewClick}
           disabled={status === 'loading'}
           className="w-full px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
         >
@@ -527,6 +604,22 @@ export default function LanguageForm({
           ) : (
             'Get New Sentence'
           )}
+        </button>
+        <button
+          type="button"
+          onClick={handleFlagAndGetNew}
+          disabled={status === 'loading' || !(vietnameseSource || englishSource)}
+          className="w-full px-4 py-2 bg-white border border-powder-500 text-powder-600 font-bold rounded-lg hover:bg-powder-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Flag Word - Get New
+        </button>
+        <button
+          type="button"
+          onClick={handleKnownAndGetNew}
+          disabled={status === 'loading' || !(vietnameseSource || englishSource)}
+          className="w-full px-4 py-2 bg-white border border-slate-300 text-dark-blue font-bold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Known Word - Get New
         </button>
       </div>
     </div>

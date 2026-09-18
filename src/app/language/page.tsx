@@ -103,6 +103,25 @@ export default function Language() {
     Partial<Record<WordCategory, string[]>>
   >({});
 
+  // Writing tab words/phrases/sentences marked as known via "Known Word -
+  // Get New". Unlike usedWordsByCategory (which is capped so old items
+  // eventually cycle back), these are never trimmed, so a known item stays
+  // excluded (pushed to the end of the queue) until everything else in its
+  // category has been shown.
+  const [writingKnownWordsByCategory, setWritingKnownWordsByCategory] = useState<
+    Partial<Record<WordCategory, string[]>>
+  >({});
+  const [writingKnownSentences, setWritingKnownSentences] = useState<string[]>([]);
+
+  // The word/phrase/sentence flagged via "Flag Word - Get New" on the
+  // Writing tab, and how many presses of "Get New Word" remain before it's
+  // shown again.
+  const [writingFlaggedItem, setWritingFlaggedItem] = useState<{
+    vietnamese: string;
+    english: string;
+  } | null>(null);
+  const [writingPressesSinceFlag, setWritingPressesSinceFlag] = useState(0);
+
   const [translatorTopText, setTranslatorTopText] = useState('');
   const [translatorBottomText, setTranslatorBottomText] = useState('');
   const [translatorLanguage, setTranslatorLanguage] = useState<Language>('Vietnamese');
@@ -262,7 +281,12 @@ export default function Language() {
         },
         body: JSON.stringify({
           category: wordCategory,
-          usedWords: usedWordsByCategory[wordCategory] ?? [],
+          usedWords: Array.from(
+            new Set([
+              ...(usedWordsByCategory[wordCategory] ?? []),
+              ...(writingKnownWordsByCategory[wordCategory] ?? []),
+            ])
+          ),
         }),
       });
 
@@ -304,7 +328,12 @@ export default function Language() {
         },
         body: JSON.stringify({
           category,
-          usedWords: usedWordsByCategory[category] ?? [],
+          usedWords: Array.from(
+            new Set([
+              ...(usedWordsByCategory[category] ?? []),
+              ...(writingKnownWordsByCategory[category] ?? []),
+            ])
+          ),
         }),
       });
 
@@ -342,7 +371,10 @@ export default function Language() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ complexity }),
+        body: JSON.stringify({
+          complexity,
+          usedSentences: writingKnownSentences,
+        }),
       });
 
       const data = await response.json();
@@ -371,6 +403,61 @@ export default function Language() {
     } else {
       await handleGetSentence();
     }
+  };
+
+  // Wraps handleGetLanguageItem so that, once something is flagged on the
+  // Writing tab, the 3rd "Get New Word" press after the flag re-shows the
+  // flagged item instead of fetching a new one. After that, normal random
+  // selection resumes.
+  const handleWritingGetNewClick = async () => {
+    if (writingFlaggedItem) {
+      const nextPresses = writingPressesSinceFlag + 1;
+      if (nextPresses >= 3) {
+        setVietnameseText(writingFlaggedItem.vietnamese);
+        setEnglishSource(writingFlaggedItem.english);
+        setUserInput('');
+        setShowVietnamese(false);
+        setWritingWordText(
+          await translateText(writingFlaggedItem.vietnamese, 'Vietnamese', writingWordLanguage)
+        );
+        setWritingFlaggedItem(null);
+        setWritingPressesSinceFlag(0);
+        return;
+      }
+      setWritingPressesSinceFlag(nextPresses);
+    }
+
+    await handleGetLanguageItem();
+  };
+
+  // Remembers the currently displayed Writing tab word/phrase/sentence, then
+  // fetches a new one right away like "Get New Word" would.
+  const handleWritingFlagAndGetNew = async () => {
+    if (vietnameseText || englishSource) {
+      setWritingFlaggedItem({ vietnamese: vietnameseText, english: englishSource });
+      setWritingPressesSinceFlag(0);
+    }
+
+    await handleGetLanguageItem();
+  };
+
+  // Marks the currently displayed Writing tab word/phrase/sentence as known
+  // so it's excluded from now on (pushed to the end of the queue), then
+  // fetches a new one right away like "Get New Word" would.
+  const handleWritingKnownAndGetNew = async () => {
+    if (vietnameseText) {
+      if (complexity === 'words' || complexity === 'fastPhrases' || complexity === 'generalPhrases') {
+        const category = complexity === 'words' ? wordCategory : (complexity as WordCategory);
+        setWritingKnownWordsByCategory((prev) => ({
+          ...prev,
+          [category]: Array.from(new Set([...(prev[category] ?? []), vietnameseText])),
+        }));
+      } else {
+        setWritingKnownSentences((prev) => Array.from(new Set([...prev, vietnameseText])));
+      }
+    }
+
+    await handleGetLanguageItem();
   };
 
   const speakWritingWordText = async (
@@ -1276,10 +1363,10 @@ export default function Language() {
                   )}
 
                   {/* Get New Word/Sentence Button */}
-                  <div className="pt-4">
+                  <div className="pt-4 space-y-2">
                     <button
                       type="button"
-                      onClick={handleGetLanguageItem}
+                      onClick={handleWritingGetNewClick}
                       disabled={status === 'loading'}
                       className="w-full px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
                     >
@@ -1295,6 +1382,22 @@ export default function Language() {
                       ) : (
                         'Get New Sentence'
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleWritingFlagAndGetNew}
+                      disabled={status === 'loading' || !(vietnameseText || englishSource)}
+                      className="w-full px-4 py-2 bg-white border border-powder-500 text-powder-600 font-bold rounded-lg hover:bg-powder-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Flag Word - Get New
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleWritingKnownAndGetNew}
+                      disabled={status === 'loading' || !(vietnameseText || englishSource)}
+                      className="w-full px-4 py-2 bg-white border border-slate-300 text-dark-blue font-bold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Known Word - Get New
                     </button>
                   </div>
                 </div>
