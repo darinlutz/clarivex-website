@@ -10,6 +10,7 @@ exits non-zero and prints an error message to stderr.
 """
 
 import sys
+from datetime import datetime
 
 from ollama import Client, web_fetch, web_search
 
@@ -30,7 +31,21 @@ available_tools = {'web_search': web_search, 'web_fetch': web_fetch}
 
 
 def run_search(query: str) -> str:
-    messages = [{'role': 'user', 'content': query}]
+    # Without this, the model has no way to know "today" and tends to assume
+    # a date near its training cutoff instead, which skews any time-based
+    # reasoning (e.g. "latest", "this year"). Computed fresh per call since
+    # each search spawns a new process anyway.
+    today = datetime.now().strftime('%B %d, %Y')
+    messages = [
+        {
+            'role': 'system',
+            'content': (
+                f"Today's date is {today}. Treat this as ground truth for any date- or "
+                'time-based reasoning instead of assuming a date from your training data.'
+            ),
+        },
+        {'role': 'user', 'content': query},
+    ]
 
     for _ in range(MAX_TOOL_ROUNDS):
         response = cloud_client.chat(

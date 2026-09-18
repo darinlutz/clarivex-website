@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { Annotation, StateGraph, START, END, messagesStateReducer } from '@langchain/langgraph';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
-import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
+import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
 import { createAgent, tool } from 'langchain';
 import { z } from 'zod';
@@ -251,14 +251,35 @@ function toAgentMessage(content: BaseMessage['content'], name: MemberName): AIMe
   return new AIMessage({ content, name });
 }
 
+// Computed fresh on every call (not a module-level constant) so a
+// long-running server process never hands the model a stale date. Models
+// otherwise tend to assume "today" is somewhere near their training cutoff
+// unless told the real date, regardless of the get_current_date tool being
+// available — that tool is optional and isn't always invoked.
+function currentDateMessage(): SystemMessage {
+  const today = new Date().toLocaleDateString('en-US', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+  return new SystemMessage(
+    `Today's date is ${today}. Treat this as ground truth for any date- or time-based ` +
+      'reasoning instead of assuming a date from your training data.'
+  );
+}
+
 async function webSearchNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
-  const result = await webSearchAgent.invoke({ messages: state.messages });
+  const result = await webSearchAgent.invoke({
+    messages: [currentDateMessage(), ...state.messages],
+  });
   const lastMessage = result.messages[result.messages.length - 1];
   return { messages: [toAgentMessage(lastMessage.content, 'WebSearchAgent')] };
 }
 
 async function financialNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
-  const result = await financialAgent.invoke({ messages: state.messages });
+  const result = await financialAgent.invoke({
+    messages: [currentDateMessage(), ...state.messages],
+  });
   const lastMessage = result.messages[result.messages.length - 1];
   return { messages: [toAgentMessage(lastMessage.content, 'FinancialAgent')] };
 }
