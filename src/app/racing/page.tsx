@@ -4,9 +4,10 @@ import { useState } from 'react';
 import PythonRunner from '@/components/PythonRunner';
 import FriendsRoster from '@/components/FriendsRoster';
 import OllamaSearch from '@/components/OllamaSearch';
+import ChatbotLogger from '@/components/ChatbotLogger';
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'ollama' | 'python'>('friends');
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'ollama' | 'python'>('friends');
 
   return (
     <div className="w-full">
@@ -34,6 +35,16 @@ export default function RacingPage() {
               }`}
             >
               Friends
+            </button>
+            <button
+              onClick={() => setActiveTab('chatbot')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'chatbot'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Chatbot Logger
             </button>
             <button
               onClick={() => setActiveTab('ollama')}
@@ -67,6 +78,17 @@ export default function RacingPage() {
                   Keep track of your friends. This list is shared across everyone who visits.
                 </p>
                 <FriendsRoster />
+              </div>
+            )}
+
+            {/* Chatbot Logger Tab */}
+            {activeTab === 'chatbot' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Chatbot Logger</h2>
+                <p className="text-slate-600 mb-6">
+                  Chat with the logged chatbot and view its replies.
+                </p>
+                <ChatbotLogger />
               </div>
             )}
 

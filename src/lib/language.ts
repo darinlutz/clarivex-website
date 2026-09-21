@@ -322,7 +322,7 @@ const WORD_CATEGORY_SHEET_NAME: Partial<Record<WordCategory, string>> = {
   nouns: 'NOUNS',
   verbs: 'VERBS',
   adjectives: 'ADJECTIVES',
-  numbers: 'NUMBERS',
+  numbers: 'NUMBERS & MONEY',
   food: 'FOOD & DRINK',
   colors: 'COLORS',
   classifiers: 'CLASSIFIERS',

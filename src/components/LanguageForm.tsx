@@ -17,7 +17,7 @@ const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
   { value: 'focus', label: 'Focus' },
   { value: 'foodDrink', label: 'Food & Drink' },
   { value: 'houseHome', label: 'House & Home' },
-  { value: 'numbers', label: 'Numbers' },
+  { value: 'numbers', label: 'Numbers & Money' },
   { value: 'peopleAnimals', label: 'People & Animals' },
   { value: 'places', label: 'Places' },
   { value: 'pronouns', label: 'Pronouns' },
