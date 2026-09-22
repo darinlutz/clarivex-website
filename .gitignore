@@ -29,6 +29,7 @@
 __pycache__/
 *.pyc
 chatbot_logs.json
+space_facts.csv
 
 # runtime data
 /data/

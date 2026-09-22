@@ -7,3 +7,4 @@ langchain-openai==1.6.2
 python-dotenv==1.2.3
 ollama==0.6.2
 openai==3.14.0
+chromadb==1.5.9
