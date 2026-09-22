@@ -1,8 +1,5 @@
-import contextlib
+import streamlit as st
 import csv
-import io
-import json
-import sys
 import pandas as pd
 import chromadb
 from chromadb.utils import embedding_functions
@@ -11,6 +8,10 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+
+# Suppress tokenizer warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # load_dotenv() with no arguments only looks for a file literally named
 # ".env", but this project keeps its keys (OPENAI_API_KEY, etc.) in
 # ".env.local" at the project root. Point at it explicitly, and resolve the
@@ -18,27 +19,24 @@ from dotenv import load_dotenv
 # script is run from.
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env.local")
 
-api_key = os.getenv("OPENAI_API_KEY")
-
 
 class EmbeddingModel:
     def __init__(self, model_type="openai"):
         self.model_type = model_type
         if model_type == "openai":
-            self.client = OpenAI(api_key=api_key)
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
-                api_key=api_key,
-                model_name="text-embedding-3-small",
+                api_key=os.getenv("OPENAI_API_KEY"), model_name="text-embedding-ada-002"
             )
         elif model_type == "chroma":
             self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
         elif model_type == "nomic":
-            # using Ollama nomic-embed-text model
             self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
                 api_key="ollama",
                 api_base="http://localhost:11434/v1",
                 model_name="nomic-embed-text",
             )
+
 
 class LLMModel:
     def __init__(self, model_type="openai"):
@@ -55,38 +53,11 @@ class LLMModel:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
-                temperature=0.0,  # 0.0 is deterministic
+                temperature=0.7,
             )
             return response.choices[0].message.content
         except Exception as e:
             return f"Error generating response: {str(e)}"
-
-
-def select_models():
-    # Select LLM Model
-    print("\nSelect LLM Model:")
-    print("1. OpenAI GPT-4")
-    print("2. Ollama Llama2")
-    while True:
-        choice = input("Enter choice (1 or 2): ").strip()
-        if choice in ["1", "2"]:
-            llm_type = "openai" if choice == "1" else "ollama"
-            break
-        print("Please enter either 1 or 2")
-
-    # Select Embedding Model
-    print("\nSelect Embedding Model:")
-    print("1. OpenAI Embeddings")
-    print("2. Chroma Default")
-    print("3. Nomic Embed Text (Ollama)")
-    while True:
-        choice = input("Enter choice (1, 2, or 3): ").strip()
-        if choice in ["1", "2", "3"]:
-            embedding_type = {"1": "openai", "2": "chroma", "3": "nomic"}[choice]
-            break
-        print("Please enter 1, 2, or 3")
-
-    return llm_type, embedding_type
 
 
 def generate_csv():
@@ -131,17 +102,7 @@ def generate_csv():
         writer = csv.DictWriter(file, fieldnames=["id", "fact"])
         writer.writeheader()
         writer.writerows(facts)
-
-    print("CSV file 'space_facts.csv' created successfully!")
-
-
-def load_csv():
-    df = pd.read_csv("space_facts.csv")
-    documents = df["fact"].tolist()
-    print("\nLoaded documents:")
-    for doc in documents:
-        print(f"- {doc}")
-    return documents
+    return facts
 
 
 def setup_chromadb(documents, embedding_model):
@@ -158,17 +119,11 @@ def setup_chromadb(documents, embedding_model):
 
     collection.add(documents=documents, ids=[str(i) for i in range(len(documents))])
 
-    print("\nDocuments added to ChromaDB collection successfully!")
     return collection
 
 
 def find_related_chunks(query, collection, top_k=2):
     results = collection.query(query_texts=[query], n_results=top_k)
-
-    print("\nRelated chunks found:")
-    for doc in results["documents"][0]:
-        print(f"- {doc}")
-
     return list(
         zip(
             results["documents"][0],
@@ -183,17 +138,10 @@ def find_related_chunks(query, collection, top_k=2):
 
 def augment_prompt(query, related_chunks):
     context = "\n".join([chunk[0] for chunk in related_chunks])
-    augmented_prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-
-    print("\nAugmented prompt:")
-    print(augmented_prompt)
-
-    return augmented_prompt
+    return f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
 
 
 def rag_pipeline(query, collection, llm_model, top_k=2):
-    print(f"\nProcessing query: {query}")
-
     related_chunks = find_related_chunks(query, collection, top_k)
     augmented_prompt = augment_prompt(query, related_chunks)
 
@@ -207,86 +155,99 @@ def rag_pipeline(query, collection, llm_model, top_k=2):
         ]
     )
 
-    print("\nGenerated response:")
-    print(response)
-
     references = [chunk[0] for chunk in related_chunks]
-    return response, references
+    return response, references, augmented_prompt
 
 
-def run_query(payload: dict) -> dict:
-    """Handle a single question for the web UI (one process per call, so the
-    CSV/ChromaDB setup is redone each time rather than kept in memory)."""
-    query = payload.get("query", "")
-    llm_type = payload.get("llmType", "openai")
-    embedding_type = payload.get("embeddingType", "openai")
+def streamlit_app():
+    st.set_page_config(page_title="Space Facts RAG", layout="wide")
+    st.title("🚀 Space Facts RAG System")
 
-    # generate_csv/load_csv/setup_chromadb/rag_pipeline print a lot of
-    # human-readable progress info for the interactive CLI mode below;
-    # swallow it here so stdout carries nothing but the JSON result.
-    with contextlib.redirect_stdout(io.StringIO()):
-        llm_model = LLMModel(llm_type)
-        embedding_model = EmbeddingModel(embedding_type)
+    # Sidebar for model selection
+    st.sidebar.title("Model Configuration")
 
-        generate_csv()
-        documents = load_csv()
-        collection = setup_chromadb(documents, embedding_model)
+    llm_type = st.sidebar.radio(
+        "Select LLM Model:",
+        ["openai", "ollama"],
+        format_func=lambda x: "OpenAI GPT-4" if x == "openai" else "Ollama Llama2",
+    )
 
-        response, references = rag_pipeline(query, collection, llm_model)
+    embedding_type = st.sidebar.radio(
+        "Select Embedding Model:",
+        ["openai", "chroma", "nomic"],
+        format_func=lambda x: {
+            "openai": "OpenAI Embeddings",
+            "chroma": "Chroma Default",
+            "nomic": "Nomic Embed Text (Ollama)",
+        }[x],
+    )
 
-    return {"response": response, "references": references}
+    # Initialize session state
+    if "initialized" not in st.session_state:
+        st.session_state.initialized = False
+        st.session_state.facts = generate_csv()
 
+        # Initialize models
+        st.session_state.llm_model = LLMModel(llm_type)
+        st.session_state.embedding_model = EmbeddingModel(embedding_type)
 
-def main():
-    print("Starting the RAG pipeline demo...")
+        # Setup ChromaDB
+        documents = [fact["fact"] for fact in st.session_state.facts]
+        st.session_state.collection = setup_chromadb(
+            documents, st.session_state.embedding_model
+        )
+        st.session_state.initialized = True
 
-    # Select models
-    llm_type, embedding_type = select_models()
+    # If models changed, reinitialize
+    if (
+        st.session_state.llm_model.model_type != llm_type
+        or st.session_state.embedding_model.model_type != embedding_type
+    ):
+        st.session_state.llm_model = LLMModel(llm_type)
+        st.session_state.embedding_model = EmbeddingModel(embedding_type)
+        documents = [fact["fact"] for fact in st.session_state.facts]
+        st.session_state.collection = setup_chromadb(
+            documents, st.session_state.embedding_model
+        )
 
-    # Initialize models
-    llm_model = LLMModel(llm_type)
-    embedding_model = EmbeddingModel(embedding_type)
+    # Display available facts
+    with st.expander("📚 Available Space Facts", expanded=False):
+        for fact in st.session_state.facts:
+            st.write(f"- {fact['fact']}")
 
-    print(f"\nUsing LLM: {llm_type.upper()}")
-    print(f"Using Embeddings: {embedding_type.upper()}")
+    # Query input
+    query = st.text_input(
+        "Enter your question about space:",
+        placeholder="e.g., What is the Hubble Space Telescope?",
+    )
 
-    # Generate and load data
-    generate_csv()
-    documents = load_csv()
+    if query:
+        with st.spinner("Processing your query..."):
+            response, references, augmented_prompt = rag_pipeline(
+                query, st.session_state.collection, st.session_state.llm_model
+            )
 
-    # Setup ChromaDB
-    collection = setup_chromadb(documents, embedding_model)
+            # Display results in columns
+            col1, col2 = st.columns(2)
 
-    # Run queries
-    queries = [
-        "What is the Hubble Space Telescope?",
-        "Tell me about Mars exploration.",
-    ]
+            with col1:
+                st.markdown("### 🤖 Response")
+                st.write(response)
 
-    for query in queries:
-        print("\n" + "=" * 50)
-        print(f"Processing query: {query}")
-        response, references = rag_pipeline(query, collection, llm_model)
+            with col2:
+                st.markdown("### 📖 References Used")
+                for ref in references:
+                    st.write(f"- {ref}")
 
-        print("\nFinal Results:")
-        print("-" * 30)
-        print("Response:", response)
-        print("\nReferences used:")
-        for ref in references:
-            print(f"- {ref}")
-        print("=" * 50)
+            # Show technical details in expander
+            with st.expander("🔍 Technical Details", expanded=False):
+                st.markdown("#### Augmented Prompt")
+                st.code(augmented_prompt)
+
+                st.markdown("#### Model Configuration")
+                st.write(f"- LLM Model: {llm_type.upper()}")
+                st.write(f"- Embedding Model: {embedding_type.upper()}")
 
 
 if __name__ == "__main__":
-    # A JSON payload passed as the first argument means the web UI is
-    # driving this (one question in, one answer out); otherwise fall back
-    # to the original interactive terminal demo.
-    if len(sys.argv) > 1:
-        try:
-            result = run_query(json.loads(sys.argv[1]))
-            print(json.dumps(result))
-        except Exception as e:
-            print(json.dumps({"error": str(e)}), file=sys.stderr)
-            sys.exit(1)
-    else:
-        main()
+    streamlit_app()
