@@ -1,13 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+const LLM_OPTIONS = [
+  { value: 'openai', label: 'OpenAI (gpt-4o-mini)', needsOllama: false },
+  { value: 'ollama', label: 'Ollama (llama3.2)', needsOllama: true },
+];
+
+const EMBEDDING_OPTIONS = [
+  { value: 'openai', label: 'OpenAI Embeddings', needsOllama: false },
+  { value: 'chroma', label: 'Chroma Default', needsOllama: false },
+  { value: 'nomic', label: 'Nomic Embed Text (Ollama)', needsOllama: true },
+];
 
 export default function SpaceFactQuery() {
+  const [ollamaAvailable, setOllamaAvailable] = useState(false);
+  const [llmType, setLlmType] = useState('openai');
+  const [embeddingType, setEmbeddingType] = useState('openai');
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [references, setReferences] = useState<string[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
+
+  // Ollama options only appear when the server can reach a local Ollama.
+  useEffect(() => {
+    fetch('/api/space-fact-query')
+      .then((res) => res.json())
+      .then((data) => setOllamaAvailable(Boolean(data.ollamaAvailable)))
+      .catch(() => setOllamaAvailable(false));
+  }, []);
+
+  const llmOptions = LLM_OPTIONS.filter((option) => ollamaAvailable || !option.needsOllama);
+  const embeddingOptions = EMBEDDING_OPTIONS.filter(
+    (option) => ollamaAvailable || !option.needsOllama
+  );
 
   const handleAsk = async () => {
     if (!query.trim()) return;
@@ -21,7 +48,7 @@ export default function SpaceFactQuery() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, llmType, embeddingType }),
       });
 
       const data = await res.json();
@@ -41,6 +68,48 @@ export default function SpaceFactQuery() {
 
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+        <fieldset>
+          <legend className="block text-sm font-medium text-dark-blue mb-2">LLM Model</legend>
+          <div className="space-y-2">
+            {llmOptions.map((option) => (
+              <label key={option.value} className="flex items-center gap-2 text-dark-blue text-sm">
+                <input
+                  type="radio"
+                  name="space-fact-llm"
+                  value={option.value}
+                  checked={llmType === option.value}
+                  onChange={() => setLlmType(option.value)}
+                  disabled={status === 'loading'}
+                  className="accent-powder-600"
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="block text-sm font-medium text-dark-blue mb-2">Embedding Model</legend>
+          <div className="space-y-2">
+            {embeddingOptions.map((option) => (
+              <label key={option.value} className="flex items-center gap-2 text-dark-blue text-sm">
+                <input
+                  type="radio"
+                  name="space-fact-embedding"
+                  value={option.value}
+                  checked={embeddingType === option.value}
+                  onChange={() => setEmbeddingType(option.value)}
+                  disabled={status === 'loading'}
+                  className="accent-powder-600"
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+
       <label htmlFor="space-fact-query" className="block text-sm font-medium text-dark-blue mb-2">
         Ask a Question About Space
       </label>

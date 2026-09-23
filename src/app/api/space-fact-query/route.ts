@@ -3,6 +3,22 @@ import path from 'node:path';
 import { NextResponse } from 'next/server';
 
 const SCRIPT_PATH = path.join(process.cwd(), 'src', 'simple_rag.py');
+const LLM_TYPES = ['openai', 'ollama'];
+const EMBEDDING_TYPES = ['openai', 'chroma', 'nomic'];
+
+// The Ollama LLM and Nomic embedding options talk to a local Ollama server,
+// which doesn't exist on hosted deployments, so the UI asks whether one is
+// reachable before offering them.
+export async function GET() {
+  try {
+    const response = await fetch('http://localhost:11434/api/tags', {
+      signal: AbortSignal.timeout(1500),
+    });
+    return NextResponse.json({ ollamaAvailable: response.ok });
+  } catch {
+    return NextResponse.json({ ollamaAvailable: false });
+  }
+}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -12,7 +28,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 });
   }
 
-  const payload = JSON.stringify({ query, llmType: 'openai', embeddingType: 'openai' });
+  const llmType = LLM_TYPES.includes(body.llmType) ? body.llmType : 'openai';
+  const embeddingType = EMBEDDING_TYPES.includes(body.embeddingType) ? body.embeddingType : 'openai';
+
+  const payload = JSON.stringify({ query, llmType, embeddingType });
 
   return new Promise<NextResponse>((resolve) => {
     execFile(
