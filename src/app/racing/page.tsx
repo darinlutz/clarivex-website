@@ -7,7 +7,7 @@ import ChatbotLogger from '@/components/ChatbotLogger';
 import SpaceFactQuery from '@/components/SpaceFactQuery';
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'python' | 'spaceFacts'>(
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'python' | 'spaceFacts' | 'racecar'>(
     'friends'
   );
 
@@ -68,6 +68,16 @@ export default function RacingPage() {
             >
               Space Fact Query
             </button>
+            <button
+              onClick={() => setActiveTab('racecar')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'racecar'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Racecar Analysis
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -113,6 +123,21 @@ export default function RacingPage() {
                   Ask a question and get an answer grounded in a small set of space facts (RAG).
                 </p>
                 <SpaceFactQuery />
+              </div>
+            )}
+
+            {/* Racecar Analysis Tab */}
+            {activeTab === 'racecar' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Racecar Analysis</h2>
+                <p className="text-slate-600 mb-6">
+                  Ask a question and get an answer grounded in the racecar analysis data (RAG).
+                </p>
+                <SpaceFactQuery
+                  endpoint="/api/racecar-analysis"
+                  queryLabel="Ask a Question About Racecars"
+                  placeholder="Enter your racecar question here"
+                />
               </div>
             )}
           </div>

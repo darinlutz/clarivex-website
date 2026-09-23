@@ -13,7 +13,17 @@ const EMBEDDING_OPTIONS = [
   { value: 'nomic', label: 'Nomic Embed Text (Ollama)', needsOllama: true },
 ];
 
-export default function SpaceFactQuery() {
+interface SpaceFactQueryProps {
+  endpoint?: string;
+  queryLabel?: string;
+  placeholder?: string;
+}
+
+export default function SpaceFactQuery({
+  endpoint = '/api/space-fact-query',
+  queryLabel = 'Ask a Question About Space',
+  placeholder = 'e.g., What is the Hubble Space Telescope?',
+}: SpaceFactQueryProps) {
   const [ollamaAvailable, setOllamaAvailable] = useState(false);
   const [llmType, setLlmType] = useState('openai');
   const [embeddingType, setEmbeddingType] = useState('openai');
@@ -25,11 +35,11 @@ export default function SpaceFactQuery() {
 
   // Ollama options only appear when the server can reach a local Ollama.
   useEffect(() => {
-    fetch('/api/space-fact-query')
+    fetch(endpoint)
       .then((res) => res.json())
       .then((data) => setOllamaAvailable(Boolean(data.ollamaAvailable)))
       .catch(() => setOllamaAvailable(false));
-  }, []);
+  }, [endpoint]);
 
   const llmOptions = LLM_OPTIONS.filter((option) => ollamaAvailable || !option.needsOllama);
   const embeddingOptions = EMBEDDING_OPTIONS.filter(
@@ -43,7 +53,7 @@ export default function SpaceFactQuery() {
     setMessage('');
 
     try {
-      const res = await fetch('/api/space-fact-query', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -111,13 +121,13 @@ export default function SpaceFactQuery() {
       </div>
 
       <label htmlFor="space-fact-query" className="block text-sm font-medium text-dark-blue mb-2">
-        Ask a Question About Space
+        {queryLabel}
       </label>
       <textarea
         id="space-fact-query"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="e.g., What is the Hubble Space Telescope?"
+        placeholder={placeholder}
         rows={3}
         className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors resize-none"
       />

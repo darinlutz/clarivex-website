@@ -49,6 +49,7 @@ COPY src/prompts.py ./src/prompts.py
 COPY src/OllamaSearch.py ./src/OllamaSearch.py
 COPY src/chatbot_logging.py ./src/chatbot_logging.py
 COPY src/simple_rag.py ./src/simple_rag.py
+COPY src/racecar_analysis_rag.py ./src/racecar_analysis_rag.py
 
 EXPOSE 10000
 ENV HOSTNAME="0.0.0.0"
