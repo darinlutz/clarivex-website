@@ -1,5 +1,4 @@
 import contextlib
-import csv
 import io
 import json
 import sys
@@ -89,74 +88,80 @@ def select_models():
     return llm_type, embedding_type
 
 
-def generate_csv():
-    facts = [
-        {"id": 1, "fact": "The first human to orbit Earth was Yuri Gagarin in 1961."},
-        {
-            "id": 2,
-            "fact": "The Apollo 11 mission landed the first humans on the Moon in 1969.",
-        },
-        {
-            "id": 3,
-            "fact": "The Hubble Space Telescope was launched in 1990 and has provided stunning images of the universe.",
-        },
-        {
-            "id": 4,
-            "fact": "Mars is the most explored planet in the solar system, with multiple rovers sent by NASA.",
-        },
-        {
-            "id": 5,
-            "fact": "The International Space Station (ISS) has been continuously occupied since November 2000.",
-        },
-        {
-            "id": 6,
-            "fact": "Voyager 1 is the farthest human-made object from Earth, launched in 1977.",
-        },
-        {
-            "id": 7,
-            "fact": "SpaceX, founded by Elon Musk, is the first private company to send humans to orbit.",
-        },
-        {
-            "id": 8,
-            "fact": "The James Webb Space Telescope, launched in 2021, is the successor to the Hubble Telescope.",
-        },
-        {"id": 9, "fact": "The Milky Way galaxy contains over 100 billion stars."},
-        {
-            "id": 10,
-            "fact": "Black holes are regions of spacetime where gravity is so strong that nothing can escape.",
-        },
-    ]
+CAR_DATA_PATH = Path(__file__).resolve().parent.parent / "GT3_Car_Data.xlsx"
+TRACK_DATA_PATH = Path(__file__).resolve().parent.parent / "Track_Information.xlsx"
 
-    with open("space_facts.csv", mode="w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["id", "fact"])
-        writer.writeheader()
-        writer.writerows(facts)
-
-    print("CSV file 'space_facts.csv' created successfully!")
+FEET_PER_MILE = 5280
 
 
-def load_csv():
-    df = pd.read_csv("space_facts.csv")
-    documents = df["fact"].tolist()
-    print("\nLoaded documents:")
+def load_cars():
+    """Turn each car spreadsheet row into one text document describing that car."""
+    df = pd.read_excel(CAR_DATA_PATH)
+    documents = []
+    for _, row in df.iterrows():
+        power_to_weight = row["Power (bhp)"] / row["Wet Weight With Driver (lbs)"]
+        documents.append(
+            f"Car: {row['Car']}: length {row['Length (in)']} in, width {row['Width (in)']} in, "
+            f"wheelbase {row['Wheelbase (in)']} in, dry weight {row['Dry Weight (lbs)']} lbs, "
+            f"wet weight with driver {row['Wet Weight With Driver (lbs)']} lbs, "
+            f"engine displacement {row['Displacement (Liters)']} liters, "
+            f"RPM limit {row['RPM Limit']}, torque {row['Torque (lb-ft)']} lb-ft, "
+            f"power {row['Power (bhp)']} bhp, "
+            f"power-to-weight {power_to_weight:.3f} bhp per lb (wet weight)."
+        )
+    print(f"\nLoaded {len(documents)} cars:")
     for doc in documents:
         print(f"- {doc}")
     return documents
 
 
-def setup_chromadb(documents, embedding_model):
+def load_tracks():
+    """Turn each track spreadsheet row into one text document describing that track."""
+    df = pd.read_excel(TRACK_DATA_PATH)
+    documents = []
+    for _, row in df.iterrows():
+        length_miles = row["Length (ft)"] / FEET_PER_MILE
+        corners_per_mile = row["Number of Corners"] / length_miles
+        documents.append(
+            f"Track: {row['Track Name']} (track ID: {row['Track ID']}): "
+            f"length {row['Length (ft)']} ft ({length_miles:.2f} miles), "
+            f"{row['Number of Corners']} corners ({corners_per_mile:.1f} corners per mile), "
+            f"average speed {row['Average speed (mph)']} mph, "
+            f"typical lap time {row['Typical Lap Time, (seconds)']} seconds."
+        )
+    print(f"\nLoaded {len(documents)} tracks:")
+    for doc in documents:
+        print(f"- {doc}")
+    return documents
+
+
+def load_documents():
+    """Cars and tracks share one collection; the metadata records which is which
+    so the prompt can present them as separate sections."""
+    cars = load_cars()
+    tracks = load_tracks()
+    documents = cars + tracks
+    metadatas = [{"type": "car"}] * len(cars) + [{"type": "track"}] * len(tracks)
+    return documents, metadatas
+
+
+def setup_chromadb(documents, metadatas, embedding_model):
     client = chromadb.Client()
 
     try:
-        client.delete_collection("space_facts")
+        client.delete_collection("racecar_data")
     except:
         pass
 
     collection = client.create_collection(
-        name="space_facts", embedding_function=embedding_model.embedding_fn
+        name="racecar_data", embedding_function=embedding_model.embedding_fn
     )
 
-    collection.add(documents=documents, ids=[str(i) for i in range(len(documents))])
+    collection.add(
+        documents=documents,
+        metadatas=metadatas,
+        ids=[str(i) for i in range(len(documents))],
+    )
 
     print("\nDocuments added to ChromaDB collection successfully!")
     return collection
@@ -182,8 +187,18 @@ def find_related_chunks(query, collection, top_k=2):
 
 
 def augment_prompt(query, related_chunks):
-    context = "\n".join([chunk[0] for chunk in related_chunks])
-    augmented_prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
+    cars = [doc for doc, meta in related_chunks if meta.get("type") == "car"]
+    tracks = [doc for doc, meta in related_chunks if meta.get("type") == "track"]
+
+    car_section = "\n".join(f"- {doc}" for doc in cars)
+    track_section = "\n".join(f"- {doc}" for doc in tracks)
+    augmented_prompt = (
+        f"GT3 CAR DATA:\n{car_section}\n\n"
+        f"TRACK DATA:\n{track_section}\n\n"
+        f"Question: {query}\n"
+        "(Use both data sets plus your general knowledge, but mention only the few cars and tracks "
+        "that matter to this question rather than listing every row.)\nAnswer:"
+    )
 
     print("\nAugmented prompt:")
     print(augmented_prompt)
@@ -191,8 +206,15 @@ def augment_prompt(query, related_chunks):
     return augmented_prompt
 
 
-def rag_pipeline(query, collection, llm_model, top_k=2):
+def rag_pipeline(query, collection, llm_model, top_k=None):
     print(f"\nProcessing query: {query}")
+
+    # The car and track data sets are small, and questions like "which car is
+    # the lightest?" or "which car suits Monza?" need every row to compare, so
+    # retrieve them all (ordered by relevance to the question) unless a
+    # smaller top_k is requested.
+    if top_k is None:
+        top_k = collection.count()
 
     related_chunks = find_related_chunks(query, collection, top_k)
     augmented_prompt = augment_prompt(query, related_chunks)
@@ -201,7 +223,27 @@ def rag_pipeline(query, collection, llm_model, top_k=2):
         [
             {
                 "role": "system",
-                "content": "You are a helpful assistant who can answer questions about space but only answers questions that are directly related to the sources/documents given.",
+                "content": (
+                    "You are an expert GT3 racecar and circuit analyst. Each question comes with two data sets: GT3 CAR DATA "
+                    "(specs for each car) and TRACK DATA (length, corner count, average speed and typical lap time for each circuit). "
+                    "Build your answer from three sources:\n"
+                    "1. The GT3 car data. Check every car listed before naming a highest/lowest/best, and quote the relevant "
+                    "numbers with their units.\n"
+                    "2. The track data. Quote the relevant numbers, and use the derived figures (miles, corners per mile) to "
+                    "characterize each circuit, e.g. high average speed and few corners per mile = a power/top-speed track; "
+                    "many corners per mile and a low average speed = a technical, agility/braking track.\n"
+                    "3. Your own general knowledge of GT3 racing and of these circuits (layout, notable corners and straights, "
+                    "elevation, tire wear, car characteristics such as engine layout, aero and braking). The track ID identifies "
+                    "which circuit/layout a row refers to.\n"
+                    "Combine them: for example, match cars to tracks by comparing car power, weight and dimensions with the "
+                    "track's demands. Clearly separate what comes from the provided data from what comes from your general "
+                    "knowledge (for instance, by labeling the latter 'General knowledge:'), and label any estimate or "
+                    "judgement as such. Never invent numbers that are not in the data and present them as data; if the data "
+                    "doesn't contain something you need, say so and, if you can, offer your best-informed general-knowledge view. "
+                    "Compare every row internally, but keep the answer focused: only quote the cars and tracks that matter to the "
+                    "question (usually the top few), not every row, and end with a short conclusion. "
+                    "If a question has nothing to do with racecars or tracks, say you can only help with racing questions."
+                ),
             },
             {"role": "user", "content": augmented_prompt},
         ]
@@ -221,16 +263,15 @@ def run_query(payload: dict) -> dict:
     llm_type = payload.get("llmType", "openai")
     embedding_type = payload.get("embeddingType", "openai")
 
-    # generate_csv/load_csv/setup_chromadb/rag_pipeline print a lot of
+    # load_documents/setup_chromadb/rag_pipeline print a lot of
     # human-readable progress info for the interactive CLI mode below;
     # swallow it here so stdout carries nothing but the JSON result.
     with contextlib.redirect_stdout(io.StringIO()):
         llm_model = LLMModel(llm_type)
         embedding_model = EmbeddingModel(embedding_type)
 
-        generate_csv()
-        documents = load_csv()
-        collection = setup_chromadb(documents, embedding_model)
+        documents, metadatas = load_documents()
+        collection = setup_chromadb(documents, metadatas, embedding_model)
 
         response, references = rag_pipeline(query, collection, llm_model)
 
@@ -250,17 +291,16 @@ def main():
     print(f"\nUsing LLM: {llm_type.upper()}")
     print(f"Using Embeddings: {embedding_type.upper()}")
 
-    # Generate and load data
-    generate_csv()
-    documents = load_csv()
+    # Load the car and track data
+    documents, metadatas = load_documents()
 
     # Setup ChromaDB
-    collection = setup_chromadb(documents, embedding_model)
+    collection = setup_chromadb(documents, metadatas, embedding_model)
 
     # Run queries
     queries = [
-        "What is the Hubble Space Telescope?",
-        "Tell me about Mars exploration.",
+        "Which car has the most power?",
+        "Which GT3 car would be best suited to Monza, and why?",
     ]
 
     for query in queries:

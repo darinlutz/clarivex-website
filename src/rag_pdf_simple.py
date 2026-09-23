@@ -1,18 +1,33 @@
-import streamlit as st
-import chromadb
-from chromadb.utils import embedding_functions
-from openai import OpenAI
+import contextlib
+import io
+import json
 import os
-from dotenv import load_dotenv
-import PyPDF2
+import re
+import sys
+import time
 import uuid
+from pathlib import Path
 
-# Load environment variables
-load_dotenv()
+import chromadb
+import PyPDF2
+from chromadb.utils import embedding_functions
+from dotenv import load_dotenv
+from openai import OpenAI
+
+# load_dotenv() with no arguments only looks for a file literally named
+# ".env", but this project keeps its keys (OPENAI_API_KEY, etc.) in
+# ".env.local" at the project root. Point at it explicitly, and resolve the
+# path relative to this file so it works no matter what directory the
+# script is run from.
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env.local")
 
 # Constants
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
+CHROMA_PATH = str(Path(__file__).resolve().parent.parent / "chroma_db")
+
+# Per-visitor collections created by the website are cleaned up after this.
+MAX_COLLECTION_AGE_SECONDS = 24 * 60 * 60
 
 
 class SimpleModelSelector:
@@ -39,6 +54,8 @@ class SimpleModelSelector:
 
     def select_models(self):
         """Let user select models through Streamlit UI"""
+        import streamlit as st
+
         st.sidebar.title("📚 Model Selection")
 
         # Select LLM
@@ -70,10 +87,10 @@ class SimplePDFProcessor:
         reader = PyPDF2.PdfReader(pdf_file)
         text = ""
         for page in reader.pages:
-            text += page.extract_text() + "\n"
+            text += (page.extract_text() or "") + "\n"
         return text
 
-    def create_chunks(self, text, pdf_file):
+    def create_chunks(self, text, filename):
         """Split text into chunks"""
         chunks = []
         start = 0
@@ -89,20 +106,23 @@ class SimplePDFProcessor:
             # Get chunk
             chunk = text[start:end]
 
-            # Try to break at sentence end
+            # Try to break at sentence end. Only break beyond the overlap
+            # region: a period inside it would move `end` back to (or before)
+            # where the previous chunk ended and the loop would never advance.
             if end < len(text):
                 last_period = chunk.rfind(".")
-                if last_period != -1:
+                if last_period > self.chunk_overlap:
                     chunk = chunk[: last_period + 1]
                     end = start + last_period + 1
 
-            chunks.append(
-                {
-                    "id": str(uuid.uuid4()),  # cdefield24482kuy
-                    "text": chunk,
-                    "metadata": {"source": pdf_file.name},
-                }
-            )
+            if chunk.strip():
+                chunks.append(
+                    {
+                        "id": str(uuid.uuid4()),
+                        "text": chunk,
+                        "metadata": {"source": filename},
+                    }
+                )
 
             start = end
 
@@ -112,12 +132,15 @@ class SimplePDFProcessor:
 class SimpleRAGSystem:
     """Simple RAG implementation"""
 
-    def __init__(self, embedding_model="openai", llm_model="openai"):
+    def __init__(self, embedding_model="openai", llm_model="openai", session_id=None):
         self.embedding_model = embedding_model
         self.llm_model = llm_model
+        # The website gives each visitor their own collection so uploaded
+        # documents aren't shared between people.
+        self.session_id = session_id
 
         # Initialize ChromaDB
-        self.db = chromadb.PersistentClient(path="./chroma_db")
+        self.db = chromadb.PersistentClient(path=CHROMA_PATH)
 
         # Setup embedding function based on model
         self.setup_embedding_function()
@@ -133,117 +156,83 @@ class SimpleRAGSystem:
 
     def setup_embedding_function(self):
         """Setup the appropriate embedding function"""
-        try:
-            if self.embedding_model == "openai":
-                self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
-                    api_key=os.getenv("OPENAI_API_KEY"),
-                    model_name="text-embedding-3-small",
-                )
-            elif self.embedding_model == "nomic":
-                # For Nomic embeddings via Ollama
-                self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
-                    api_key="ollama",
-                    api_base="http://localhost:11434/v1",
-                    model_name="nomic-embed-text",
-                )
-
-                # Alternative if needed:
-                # self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-                #     model_name="all-MiniLM-L6-v2"
-                # )
-            else:  # chroma default
-                self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
-        except Exception as e:
-            st.error(f"Error setting up embedding function: {str(e)}")
-            raise e
+        if self.embedding_model == "openai":
+            self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
+                api_key=os.getenv("OPENAI_API_KEY"),
+                model_name="text-embedding-3-small",
+            )
+        elif self.embedding_model == "nomic":
+            # For Nomic embeddings via Ollama
+            self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
+                api_key="ollama",
+                api_base="http://localhost:11434/v1",
+                model_name="nomic-embed-text",
+            )
+        else:  # chroma default
+            self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
 
     def setup_collection(self):
         """Setup collection with proper dimension handling"""
         collection_name = f"documents_{self.embedding_model}"
+        if self.session_id:
+            collection_name += f"_{self.session_id}"
 
+        # Try to get existing collection first
         try:
-            # Try to get existing collection first
-            try:
-                collection = self.db.get_collection(
-                    name=collection_name, embedding_function=self.embedding_fn
-                )
-                st.info(
-                    f"Using existing collection for {self.embedding_model} embeddings"
-                )
-            except:
-                # If collection doesn't exist, create new one
-                collection = self.db.create_collection(
-                    name=collection_name,
-                    embedding_function=self.embedding_fn,
-                    metadata={"model": self.embedding_model},
-                )
-                st.success(
-                    f"Created new collection for {self.embedding_model} embeddings"
-                )
-
-            return collection
-
-        except Exception as e:
-            st.error(f"Error setting up collection: {str(e)}")
-            raise e
+            return self.db.get_collection(
+                name=collection_name, embedding_function=self.embedding_fn
+            )
+        except Exception:
+            # If collection doesn't exist, create new one
+            return self.db.create_collection(
+                name=collection_name,
+                embedding_function=self.embedding_fn,
+                metadata={"model": self.embedding_model, "created_at": time.time()},
+            )
 
     def add_documents(self, chunks):
         """Add documents to ChromaDB"""
-        try:
-            # Ensure collection exists
-            if not self.collection:
-                self.collection = self.setup_collection()
+        # Re-uploading a file replaces its earlier chunks instead of
+        # duplicating them (duplicates would crowd out other passages).
+        sources = {chunk["metadata"]["source"] for chunk in chunks}
+        for source in sources:
+            self.collection.delete(where={"source": source})
 
-            # Add documents
+        batch_size = 100
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i : i + batch_size]
             self.collection.add(
-                ids=[chunk["id"] for chunk in chunks],
-                documents=[chunk["text"] for chunk in chunks],
-                metadatas=[chunk["metadata"] for chunk in chunks],
+                ids=[chunk["id"] for chunk in batch],
+                documents=[chunk["text"] for chunk in batch],
+                metadatas=[chunk["metadata"] for chunk in batch],
             )
-            return True
-        except Exception as e:
-            st.error(f"Error adding documents: {str(e)}")
-            return False
 
     def query_documents(self, query, n_results=3):
         """Query documents and return relevant chunks"""
-        try:
-            # Ensure collection exists
-            if not self.collection:
-                raise ValueError("No collection available")
-
-            results = self.collection.query(query_texts=[query], n_results=n_results)
-            return results
-        except Exception as e:
-            st.error(f"Error querying documents: {str(e)}")
-            return None
+        return self.collection.query(query_texts=[query], n_results=n_results)
 
     def generate_response(self, query, context):
         """Generate response using LLM"""
-        try:
-            prompt = f"""
-            Based on the following context, please answer the question.
-            If you can't find the answer in the context, say so, or I don't know.
+        prompt = f"""
+        Based on the following context, please answer the question.
+        If you can't find the answer in the context, say so, or I don't know.
 
-            Context: {context}
+        Context: {context}
 
-            Question: {query}
+        Question: {query}
 
-            Answer:
-            """
+        Answer:
+        """
 
-            response = self.llm.chat.completions.create(
-                model="gpt-4o-mini" if self.llm_model == "openai" else "llama3.2",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt},
-                ],
-            )
+        response = self.llm.chat.completions.create(
+            model="gpt-4o-mini" if self.llm_model == "openai" else "llama3.2",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt},
+            ],
+        )
 
-            return response.choices[0].message.content
-        except Exception as e:
-            st.error(f"Error generating response: {str(e)}")
-            return None
+        return response.choices[0].message.content
 
     def get_embedding_info(self):
         """Get information about current embedding model"""
@@ -255,8 +244,64 @@ class SimpleRAGSystem:
             "model": self.embedding_model,
         }
 
+    def remove_stale_collections(self):
+        """Drop per-visitor collections from the website older than a day."""
+        cutoff = time.time() - MAX_COLLECTION_AGE_SECONDS
+        for collection in self.db.list_collections():
+            created_at = (collection.metadata or {}).get("created_at")
+            if collection.name.startswith("documents_") and created_at and created_at < cutoff:
+                self.db.delete_collection(collection.name)
+
+
+def run_pdf_action(payload: dict) -> dict:
+    """Handle one request from the website (one process per call, so the
+    persistent ChromaDB store is what carries a visitor's uploaded PDFs from
+    the "process" call to later "query" calls)."""
+    action = payload.get("action")
+    embedding_type = payload.get("embeddingType", "openai")
+    llm_type = payload.get("llmType", "openai")
+    session_id = re.sub(r"[^A-Za-z0-9]", "", payload.get("sessionId") or "")[:32]
+    if not session_id:
+        raise ValueError("Missing session id")
+
+    # The classes print nothing, but chromadb/openai can be chatty; keep
+    # stdout for the JSON result only.
+    with contextlib.redirect_stdout(io.StringIO()):
+        rag = SimpleRAGSystem(embedding_type, llm_type, session_id)
+        embedding_info = rag.get_embedding_info()
+
+        if action == "process":
+            filename = payload.get("filename") or Path(payload["pdfPath"]).name
+            processor = SimplePDFProcessor()
+            text = processor.read_pdf(payload["pdfPath"])
+            if not text.strip():
+                raise ValueError(
+                    "No text could be extracted from this PDF (it may be scanned images)."
+                )
+            chunks = processor.create_chunks(text, filename)
+            rag.add_documents(chunks)
+            rag.remove_stale_collections()
+            return {
+                "filename": filename,
+                "chunkCount": len(chunks),
+                "embedding": embedding_info,
+            }
+
+        if action == "query":
+            query = payload.get("query", "")
+            if rag.collection.count() == 0:
+                raise ValueError("No documents found. Please upload a PDF first.")
+            results = rag.query_documents(query)
+            passages = results["documents"][0]
+            answer = rag.generate_response(query, "\n\n".join(passages))
+            return {"answer": answer, "passages": passages, "embedding": embedding_info}
+
+    raise ValueError(f"Unknown action: {action}")
+
 
 def main():
+    import streamlit as st
+
     st.title("🤖 Simple RAG System")
 
     # Initialize session state
@@ -305,11 +350,11 @@ def main():
                 # Extract text
                 text = processor.read_pdf(pdf_file)
                 # Create chunks
-                chunks = processor.create_chunks(text, pdf_file)
+                chunks = processor.create_chunks(text, pdf_file.name)
                 # Add to database
-                if st.session_state.rag_system.add_documents(chunks):
-                    st.session_state.processed_files.add(pdf_file.name)
-                    st.success(f"Successfully processed {pdf_file.name}")
+                st.session_state.rag_system.add_documents(chunks)
+                st.session_state.processed_files.add(pdf_file.name)
+                st.success(f"Successfully processed {pdf_file.name}")
             except Exception as e:
                 st.error(f"Error processing PDF: {str(e)}")
 
@@ -321,26 +366,38 @@ def main():
 
         if query:
             with st.spinner("Generating response..."):
-                # Get relevant chunks
-                results = st.session_state.rag_system.query_documents(query)
-                if results and results["documents"]:
-                    # Generate response
-                    response = st.session_state.rag_system.generate_response(
-                        query, results["documents"][0]
-                    )
+                try:
+                    # Get relevant chunks
+                    results = st.session_state.rag_system.query_documents(query)
+                    if results and results["documents"]:
+                        passages = results["documents"][0]
+                        # Generate response
+                        response = st.session_state.rag_system.generate_response(
+                            query, "\n\n".join(passages)
+                        )
 
-                    if response:
                         # Display results
                         st.markdown("### 📝 Answer:")
                         st.write(response)
 
                         with st.expander("View Source Passages"):
-                            for idx, doc in enumerate(results["documents"][0], 1):
+                            for idx, doc in enumerate(passages, 1):
                                 st.markdown(f"**Passage {idx}:**")
                                 st.info(doc)
+                except Exception as e:
+                    st.error(f"Error generating response: {str(e)}")
     else:
         st.info("👆 Please upload a PDF document to get started!")
 
 
 if __name__ == "__main__":
-    main()
+    # A JSON payload passed as the first argument means the website is
+    # driving this; otherwise run the Streamlit app (`streamlit run`).
+    if len(sys.argv) > 1:
+        try:
+            print(json.dumps(run_pdf_action(json.loads(sys.argv[1]))))
+        except Exception as e:
+            print(json.dumps({"error": str(e)}), file=sys.stderr)
+            sys.exit(1)
+    else:
+        main()

@@ -42,7 +42,7 @@ COPY --from=deps /app/node_modules/libsql ./node_modules/libsql
 COPY --from=deps /app/node_modules/@libsql ./node_modules/@libsql
 
 # Scripts invoked via execFile('python', ...) at runtime
-COPY plot_stock.py app.py GetBankFromRoutingNumber.py ./
+COPY plot_stock.py app.py GetBankFromRoutingNumber.py GT3_Car_Data.xlsx Track_Information.xlsx ./
 COPY src/intro_transformer.py ./src/intro_transformer.py
 COPY src/SampleDealGPT.py ./src/SampleDealGPT.py
 COPY src/prompts.py ./src/prompts.py
@@ -50,6 +50,7 @@ COPY src/OllamaSearch.py ./src/OllamaSearch.py
 COPY src/chatbot_logging.py ./src/chatbot_logging.py
 COPY src/simple_rag.py ./src/simple_rag.py
 COPY src/racecar_analysis_rag.py ./src/racecar_analysis_rag.py
+COPY src/rag_pdf_simple.py ./src/rag_pdf_simple.py
 
 EXPOSE 10000
 ENV HOSTNAME="0.0.0.0"

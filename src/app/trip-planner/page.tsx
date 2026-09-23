@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import TripPlannerForm from '@/components/TripPlannerForm';
 import OllamaSearch from '@/components/OllamaSearch';
+import PdfAnalyzer from '@/components/PdfAnalyzer';
 
 export default function TripPlanner() {
-  const [activeTab, setActiveTab] = useState<'city' | 'ollama'>('city');
+  const [activeTab, setActiveTab] = useState<'city' | 'ollama' | 'pdf'>('city');
 
   return (
     <div className="w-full">
@@ -46,6 +47,16 @@ export default function TripPlanner() {
             >
               Ollama Search
             </button>
+            <button
+              onClick={() => setActiveTab('pdf')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'pdf'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              PDF Analyzer
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -69,6 +80,17 @@ export default function TripPlanner() {
                   Search the web via a local Ollama model.
                 </p>
                 <OllamaSearch />
+              </div>
+            )}
+
+            {/* PDF Analyzer Tab */}
+            {activeTab === 'pdf' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">PDF Analyzer</h2>
+                <p className="text-slate-600 mb-6">
+                  Upload a PDF and ask questions about its contents (RAG).
+                </p>
+                <PdfAnalyzer />
               </div>
             )}
           </div>

@@ -5,23 +5,82 @@ import { NextResponse } from 'next/server';
 const LLM_TYPES = ['openai', 'ollama'];
 const EMBEDDING_TYPES = ['openai', 'chroma', 'nomic'];
 
-// Builds the GET/POST handlers for a RAG tab backed by a Python script in
-// src/ that accepts a JSON payload argument and prints a JSON result.
-export function createRagRoute(scriptFile: string) {
+export const isLlmType = (value: unknown): value is string => LLM_TYPES.includes(value as string);
+export const isEmbeddingType = (value: unknown): value is string =>
+  EMBEDDING_TYPES.includes(value as string);
+
+// The Ollama LLM and Nomic embedding options talk to a local Ollama server,
+// which doesn't exist on hosted deployments, so the UI asks whether one is
+// reachable before offering them.
+export async function ollamaAvailabilityResponse() {
+  try {
+    const response = await fetch('http://localhost:11434/api/tags', {
+      signal: AbortSignal.timeout(1500),
+    });
+    return NextResponse.json({ ollamaAvailable: response.ok });
+  } catch {
+    return NextResponse.json({ ollamaAvailable: false });
+  }
+}
+
+// Runs a Python script in src/ with a JSON payload argument and resolves with
+// the JSON object it prints. Rejects with the script's error message.
+export function runPythonJson<T extends { error?: string }>(
+  scriptFile: string,
+  payload: unknown,
+  timeoutMs = 60000
+): Promise<T> {
   const scriptPath = path.join(process.cwd(), 'src', scriptFile);
 
-  // The Ollama LLM and Nomic embedding options talk to a local Ollama
-  // server, which doesn't exist on hosted deployments, so the UI asks
-  // whether one is reachable before offering them.
+  return new Promise<T>((resolve, reject) => {
+    execFile(
+      'python',
+      [scriptPath, JSON.stringify(payload)],
+      {
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+        timeout: timeoutMs,
+        maxBuffer: 10 * 1024 * 1024,
+      },
+      (error, stdout, stderr) => {
+        let parsed: T | undefined;
+        try {
+          parsed = JSON.parse(stdout.trim());
+        } catch {
+          parsed = undefined;
+        }
+
+        if (parsed?.error) {
+          reject(new Error(parsed.error));
+          return;
+        }
+
+        if (error) {
+          let message = stderr.trim() || error.message;
+          try {
+            message = JSON.parse(stderr.trim()).error || message;
+          } catch {
+            // stderr wasn't the script's JSON error; keep the raw text.
+          }
+          reject(new Error(message));
+          return;
+        }
+
+        if (!parsed) {
+          reject(new Error('Script returned no result'));
+          return;
+        }
+
+        resolve(parsed);
+      }
+    );
+  });
+}
+
+// Builds the GET/POST handlers for a RAG tab backed by a Python script in
+// src/ that accepts a JSON payload argument and prints a JSON result.
+export function createRagRoute(scriptFile: string, timeoutMs = 60000) {
   async function GET() {
-    try {
-      const response = await fetch('http://localhost:11434/api/tags', {
-        signal: AbortSignal.timeout(1500),
-      });
-      return NextResponse.json({ ollamaAvailable: response.ok });
-    } catch {
-      return NextResponse.json({ ollamaAvailable: false });
-    }
+    return ollamaAvailabilityResponse();
   }
 
   async function POST(request: Request) {
@@ -32,53 +91,27 @@ export function createRagRoute(scriptFile: string) {
       return NextResponse.json({ error: 'Missing query' }, { status: 400 });
     }
 
-    const llmType = LLM_TYPES.includes(body.llmType) ? body.llmType : 'openai';
-    const embeddingType = EMBEDDING_TYPES.includes(body.embeddingType)
-      ? body.embeddingType
-      : 'openai';
+    const llmType = isLlmType(body.llmType) ? body.llmType : 'openai';
+    const embeddingType = isEmbeddingType(body.embeddingType) ? body.embeddingType : 'openai';
 
-    const payload = JSON.stringify({ query, llmType, embeddingType });
-
-    return new Promise<NextResponse>((resolve) => {
-      execFile(
-        'python',
-        [scriptPath, payload],
-        {
-          env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-          timeout: 60000,
-          maxBuffer: 10 * 1024 * 1024,
-        },
-        (error, stdout, stderr) => {
-          let parsed: { response?: string; references?: string[]; error?: string } | undefined;
-          try {
-            parsed = JSON.parse(stdout.trim());
-          } catch {
-            parsed = undefined;
-          }
-
-          if (parsed?.error) {
-            resolve(NextResponse.json({ error: parsed.error }, { status: 500 }));
-            return;
-          }
-
-          if (error) {
-            resolve(
-              NextResponse.json({ error: stderr.trim() || error.message }, { status: 500 })
-            );
-            return;
-          }
-
-          if (!parsed?.response) {
-            resolve(NextResponse.json({ error: 'Script returned no response' }, { status: 500 }));
-            return;
-          }
-
-          resolve(
-            NextResponse.json({ response: parsed.response, references: parsed.references ?? [] })
-          );
-        }
+    try {
+      const result = await runPythonJson<{ response?: string; references?: string[]; error?: string }>(
+        scriptFile,
+        { query, llmType, embeddingType },
+        timeoutMs
       );
-    });
+
+      if (!result.response) {
+        return NextResponse.json({ error: 'Script returned no response' }, { status: 500 });
+      }
+
+      return NextResponse.json({ response: result.response, references: result.references ?? [] });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Script failed' },
+        { status: 500 }
+      );
+    }
   }
 
   return { GET, POST };
