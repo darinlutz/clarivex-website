@@ -100,6 +100,7 @@ def load_cars():
     documents = []
     for _, row in df.iterrows():
         power_to_weight = row["Power (bhp)"] / row["Wet Weight With Driver (lbs)"]
+        notes = row["Notes"] if pd.notna(row["Notes"]) else ""
         documents.append(
             f"Car: {row['Car']}: length {row['Length (in)']} in, width {row['Width (in)']} in, "
             f"wheelbase {row['Wheelbase (in)']} in, dry weight {row['Dry Weight (lbs)']} lbs, "
@@ -108,6 +109,7 @@ def load_cars():
             f"RPM limit {row['RPM Limit']}, torque {row['Torque (lb-ft)']} lb-ft, "
             f"power {row['Power (bhp)']} bhp, "
             f"power-to-weight {power_to_weight:.3f} bhp per lb (wet weight)."
+            + (f" Notes: {notes}" if notes else "")
         )
     print(f"\nLoaded {len(documents)} cars:")
     for doc in documents:
@@ -225,10 +227,12 @@ def rag_pipeline(query, collection, llm_model, top_k=None):
                 "role": "system",
                 "content": (
                     "You are an expert GT3 racecar and circuit analyst. Each question comes with two data sets: GT3 CAR DATA "
-                    "(specs for each car) and TRACK DATA (length, corner count, average speed and typical lap time for each circuit). "
+                    "(specs for each car, plus Notes describing its layout, handling and strengths/weaknesses) and TRACK DATA (length, corner count, average speed and typical lap time for each circuit). "
                     "Build your answer from three sources:\n"
                     "1. The GT3 car data. Check every car listed before naming a highest/lowest/best, and quote the relevant "
-                    "numbers with their units.\n"
+                    "numbers with their units. Each car's Notes are provided data too: use them for its layout, handling "
+                    "character, desirable and undesirable traits, driver suitability and the kinds of tracks it suits, and "
+                    "match those traits to the demands of the track in question.\n"
                     "2. The track data. Quote the relevant numbers, and use the derived figures (miles, corners per mile) to "
                     "characterize each circuit, e.g. high average speed and few corners per mile = a power/top-speed track; "
                     "many corners per mile and a low average speed = a technical, agility/braking track.\n"
