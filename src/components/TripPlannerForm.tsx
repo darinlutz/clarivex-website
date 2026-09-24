@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from 'react';
 
+const PREFERENCE_OPTIONS = [
+  { id: 'shopping', label: 'Shopping' },
+  { id: 'food', label: 'Amazing local food' },
+  { id: 'nightlife', label: 'Great bars and clubs' },
+  { id: 'culture', label: 'Museums and parks' },
+];
+
 export default function TripPlannerForm() {
   const [formData, setFormData] = useState({
     destination: 'Tokyo',
-    preferences: 'food, shopping, museums',
   });
+  const [selectedPreferences, setSelectedPreferences] = useState<string[]>(['food']);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [result, setResult] = useState('');
@@ -55,8 +62,21 @@ export default function TripPlannerForm() {
     });
   };
 
+  const togglePreference = (id: string) => {
+    setSelectedPreferences((prev) =>
+      prev.includes(id) ? prev.filter((existing) => existing !== id) : [...prev, id]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (selectedPreferences.length === 0) {
+      setStatus('error');
+      setMessage('Please select at least one preference.');
+      return;
+    }
+
     setStatus('loading');
     setMessage('');
     setResult('');
@@ -67,7 +87,14 @@ export default function TripPlannerForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          destination: formData.destination,
+          preferences: PREFERENCE_OPTIONS.filter((option) =>
+            selectedPreferences.includes(option.id)
+          )
+            .map((option) => option.label)
+            .join(', '),
+        }),
       });
 
       const data = await response.json();
@@ -133,21 +160,28 @@ export default function TripPlannerForm() {
         />
       </div>
 
-      {/* Preferences Field */}
-      <div>
-        <label htmlFor="preferences" className="block text-sm font-medium text-dark-blue mb-2">
-          Preferences *
-        </label>
-        <input
-          type="text"
-          id="preferences"
-          name="preferences"
-          value={formData.preferences}
-          onChange={handleChange}
-          required
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-        />
-      </div>
+      {/* Preferences Checkboxes */}
+      <fieldset>
+        <legend className="block text-sm font-medium text-dark-blue mb-2">Preferences *</legend>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {PREFERENCE_OPTIONS.map((option) => (
+            <label
+              key={option.id}
+              className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                name="preferences"
+                value={option.id}
+                checked={selectedPreferences.includes(option.id)}
+                onChange={() => togglePreference(option.id)}
+                className="w-4 h-4 accent-powder-600"
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       {/* Status Messages */}
       {message && (
@@ -160,7 +194,7 @@ export default function TripPlannerForm() {
       <div className="pt-4 pb-2">
         <button
           type="submit"
-          disabled={status === 'loading'}
+          disabled={status === 'loading' || selectedPreferences.length === 0}
           className="w-full px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
         >
           {status === 'loading' ? (

@@ -13,7 +13,13 @@ type TripPlannerStateType = typeof TripPlannerState.State;
 const promptTemplate = ChatPromptTemplate.fromMessages([
   [
     'system',
-    'You are a trip planner expert. Help me plan a trip to {destination}.\nConsider my preferences for {preferences}.',
+    'You are a trip planner expert. Help me plan a trip to {destination}.\n' +
+      'My selected preferences are: {preferences}. Focus your recommendations on those preferences.\n' +
+      'For EVERY place you recommend, give its approximate distance from the reference location, in both miles ' +
+      'and kilometres (for example "about 1.2 mi / 1.9 km away"). The reference location is the exact point given ' +
+      'if {destination} is a latitude/longitude pair; otherwise it is the center of the city named in ' +
+      '{destination} (its main downtown / city-center point). State the reference location once at the top, and ' +
+      'note that distances are approximate straight-line estimates.',
   ],
   ['user', 'What should I do in {destination}?'],
 ]);
