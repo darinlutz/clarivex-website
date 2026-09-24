@@ -13,7 +13,7 @@ export default function TripPlannerForm() {
   const [location, setLocation] = useState('');
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
-  const handleUseMyLocation = () => {
+  const requestLocation = () => {
     if (!navigator.geolocation) {
       setLocationStatus('error');
       return;
@@ -37,9 +37,16 @@ export default function TripPlannerForm() {
   // pre-filled without requiring the button press. Deferred a tick so the
   // resulting state updates land in a callback rather than the effect body.
   useEffect(() => {
-    const timeoutId = setTimeout(handleUseMyLocation, 0);
+    const timeoutId = setTimeout(requestLocation, 0);
     return () => clearTimeout(timeoutId);
   }, []);
+
+  // Only reachable once coordinates have populated (the button is disabled
+  // otherwise), so this just copies them into the City / Current Location box.
+  const handleUseMyLocation = () => {
+    if (!location) return;
+    setFormData((prev) => ({ ...prev, destination: location }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -102,10 +109,10 @@ export default function TripPlannerForm() {
           <button
             type="button"
             onClick={handleUseMyLocation}
-            disabled={locationStatus === 'loading'}
+            disabled={!location}
             className="px-4 py-2 bg-white border border-powder-500 text-powder-600 font-bold rounded-lg hover:bg-powder-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 sm:self-start"
           >
-            {locationStatus === 'loading' ? 'Locating...' : 'Use My Location'}
+            Use My Location
           </button>
         </div>
       </div>
@@ -113,7 +120,7 @@ export default function TripPlannerForm() {
       {/* City Name Field */}
       <div>
         <label htmlFor="destination" className="block text-sm font-medium text-dark-blue mb-2">
-          City Name *
+          City / Current Location *
         </label>
         <input
           type="text"
