@@ -124,12 +124,14 @@ def load_tracks():
     for _, row in df.iterrows():
         length_miles = row["Length (ft)"] / FEET_PER_MILE
         corners_per_mile = row["Number of Corners"] / length_miles
+        notes = row["Track Notes"] if pd.notna(row["Track Notes"]) else ""
         documents.append(
             f"Track: {row['Track Name']} (track ID: {row['Track ID']}): "
             f"length {row['Length (ft)']} ft ({length_miles:.2f} miles), "
             f"{row['Number of Corners']} corners ({corners_per_mile:.1f} corners per mile), "
             f"average speed {row['Average speed (mph)']} mph, "
             f"typical lap time {row['Typical Lap Time, (seconds)']} seconds."
+            + (f" Track notes: {notes}" if notes else "")
         )
     print(f"\nLoaded {len(documents)} tracks:")
     for doc in documents:
@@ -227,15 +229,18 @@ def rag_pipeline(query, collection, llm_model, top_k=None):
                 "role": "system",
                 "content": (
                     "You are an expert GT3 racecar and circuit analyst. Each question comes with two data sets: GT3 CAR DATA "
-                    "(specs for each car, plus Notes describing its layout, handling and strengths/weaknesses) and TRACK DATA (length, corner count, average speed and typical lap time for each circuit). "
+                    "(specs for each car, plus Notes describing its layout, handling and strengths/weaknesses) and TRACK DATA (length, corner count, average speed and typical lap time for each circuit, plus track notes on its downforce level, layout, braking zones, overtaking and tire wear). "
                     "Build your answer from three sources:\n"
                     "1. The GT3 car data. Check every car listed before naming a highest/lowest/best, and quote the relevant "
-                    "numbers with their units. Each car's Notes are provided data too: use them for its layout, handling "
+                    "numbers with their units (a HIGHER power-to-weight ratio is better, a lower weight is lighter). Each car's Notes are provided data too: use them for its layout, handling "
                     "character, desirable and undesirable traits, driver suitability and the kinds of tracks it suits, and "
                     "match those traits to the demands of the track in question.\n"
                     "2. The track data. Quote the relevant numbers, and use the derived figures (miles, corners per mile) to "
                     "characterize each circuit, e.g. high average speed and few corners per mile = a power/top-speed track; "
-                    "many corners per mile and a low average speed = a technical, agility/braking track.\n"
+                    "many corners per mile and a low average speed = a technical, agility/braking track. "
+                    "Each track's notes are provided data too: use them for its downforce level, layout, key corners and "
+                    "braking zones, overtaking chances and tire/brake wear, and set them against each car's Notes to judge "
+                    "how well a car's traits suit what the track demands.\n"
                     "3. Your own general knowledge of GT3 racing and of these circuits (layout, notable corners and straights, "
                     "elevation, tire wear, car characteristics such as engine layout, aero and braking). The track ID identifies "
                     "which circuit/layout a row refers to.\n"
