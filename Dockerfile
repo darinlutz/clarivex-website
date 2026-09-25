@@ -51,6 +51,7 @@ COPY src/chatbot_logging.py ./src/chatbot_logging.py
 COPY src/simple_rag.py ./src/simple_rag.py
 COPY src/racecar_analysis_rag.py ./src/racecar_analysis_rag.py
 COPY src/rag_pdf_simple.py ./src/rag_pdf_simple.py
+COPY src/chatbot_qa.py ./src/chatbot_qa.py
 
 EXPOSE 10000
 ENV HOSTNAME="0.0.0.0"

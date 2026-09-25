@@ -26,7 +26,11 @@ def clean_text(text):
     return text
 
 
-documents = TextLoader("./doc/dream.txt").load()
+# The file is UTF-8, but TextLoader falls back to Windows' cp1252 by default,
+# which can't decode some of its bytes. The path is resolved relative to the
+# project root so it works from any working directory.
+WHITEPAPER_PATH = Path(__file__).resolve().parent.parent / "data" / "Bitcoin_whitepaper.txt"
+documents = TextLoader(str(WHITEPAPER_PATH), encoding="utf-8").load()
 # print(document[:10])
 
 # Clean the text

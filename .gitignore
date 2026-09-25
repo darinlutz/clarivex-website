@@ -31,6 +31,7 @@ __pycache__/
 chatbot_logs.json
 space_facts.csv
 chroma_db/
+qa_chroma_db/
 
 # runtime data
 /data/

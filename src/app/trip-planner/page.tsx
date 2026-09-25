@@ -4,9 +4,10 @@ import { useState } from 'react';
 import TripPlannerForm from '@/components/TripPlannerForm';
 import OllamaSearch from '@/components/OllamaSearch';
 import PdfAnalyzer from '@/components/PdfAnalyzer';
+import ChatbotQA from '@/components/ChatbotQA';
 
 export default function TripPlanner() {
-  const [activeTab, setActiveTab] = useState<'city' | 'ollama' | 'pdf'>('city');
+  const [activeTab, setActiveTab] = useState<'city' | 'ollama' | 'pdf' | 'qa'>('city');
 
   return (
     <div className="w-full">
@@ -57,6 +58,16 @@ export default function TripPlanner() {
             >
               PDF Analyzer
             </button>
+            <button
+              onClick={() => setActiveTab('qa')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'qa'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Chatbot Q&A
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -91,6 +102,17 @@ export default function TripPlanner() {
                   Upload a PDF and ask questions about its contents (RAG).
                 </p>
                 <PdfAnalyzer />
+              </div>
+            )}
+
+            {/* Chatbot Q&A Tab */}
+            {activeTab === 'qa' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Chatbot Q&amp;A</h2>
+                <p className="text-slate-600 mb-6">
+                  Ask a question and get a polite answer drawn from a set of saved web articles.
+                </p>
+                <ChatbotQA />
               </div>
             )}
           </div>
