@@ -3,10 +3,13 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from dotenv import load_dotenv
+from pathlib import Path
 
 
 # Load environment variables
-load_dotenv()
+# The keys (OPENAI_API_KEY, etc.) live in ".env.local" at the project root,
+# which load_dotenv() doesn't look for by default; point at it explicitly.
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env.local")
 
 # if not os.environ.get("OPENAI_API_KEY"):
 #   os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for OpenAI: ")

@@ -3,7 +3,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from dotenv import load_dotenv
-_ = load_dotenv()
+from pathlib import Path
+# The keys (OPENAI_API_KEY, etc.) live in ".env.local" at the project root,
+# which load_dotenv() doesn't look for by default; point at it explicitly.
+_ = load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env.local")
 
 model = ChatOpenAI(model="gpt-4o")
 

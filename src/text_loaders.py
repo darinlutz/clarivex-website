@@ -3,10 +3,13 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
+from pathlib import Path
 import pprint
 import re
 
-load_dotenv()
+# The keys (OPENAI_API_KEY, etc.) live in ".env.local" at the project root,
+# which load_dotenv() doesn't look for by default; point at it explicitly.
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env.local")
 
 
 # Data cleaning function
