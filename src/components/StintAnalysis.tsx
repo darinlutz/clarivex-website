@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-type Track = { name: string; fileName: string; areas: string[] };
+// start/end are fractions of a lap (LapDistPct); null if missing in the config
+type Area = { name: string; start: number | null; end: number | null };
+type Track = { name: string; fileName: string; areas: Area[] };
 
 type LapFile = {
   file: File;
@@ -42,6 +44,66 @@ function formatLapTime(lapTime: string) {
   return `${Number(minutes)}:${seconds}.${millis}`;
 }
 
+type LapSamples = { pcts: number[]; brakes: number[] };
+
+// Reads the LapDistPct and Brake columns. LapDistPct is unwrapped so it keeps
+// increasing past the start/finish line (e.g. 0.999 -> 1.001 instead of 0.001).
+async function readLapSamples(file: File): Promise<LapSamples> {
+  const lines = (await file.text()).split(/\r?\n/);
+  const header = lines[0].split(',').map((c) => c.trim());
+  const pctColumn = header.indexOf('LapDistPct');
+  const brakeColumn = header.indexOf('Brake');
+  const pcts: number[] = [];
+  const brakes: number[] = [];
+  let offset = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(',');
+    const value = parseFloat(cells[pctColumn]);
+    if (Number.isNaN(value)) continue;
+    if (pcts.length === 0 && value > 0.5) offset = -1; // Lap starts just before the line
+    if (pcts.length > 0 && value + offset < pcts[pcts.length - 1] - 0.5) offset += 1;
+    pcts.push(value + offset);
+    brakes.push(parseFloat(cells[brakeColumn]) || 0);
+  }
+  return { pcts, brakes };
+}
+
+// Fractional sample index where the lap first reaches `target`, at or after `from`
+function crossingIndex(pcts: number[], target: number, from: number) {
+  for (let i = Math.max(1, Math.ceil(from)); i < pcts.length; i++) {
+    if (pcts[i - 1] < target && pcts[i] >= target) {
+      return i - 1 + (target - pcts[i - 1]) / (pcts[i] - pcts[i - 1]);
+    }
+  }
+  return null;
+}
+
+// Seconds spent between start and end, and the highest Brake value (0-1) in
+// that stretch. Samples are evenly spaced (60 Hz), so each one is
+// lapSeconds / sampleCount long.
+function areaStats({ pcts, brakes }: LapSamples, lapSeconds: number, start: number, end: number) {
+  const startIndex = crossingIndex(pcts, start, 0);
+  if (startIndex === null) return null;
+  // An area that crosses the start/finish line ends on the next lap
+  const endIndex = crossingIndex(pcts, end < start ? end + 1 : end, startIndex);
+  if (endIndex === null) return null;
+
+  let maxBrake = 0;
+  for (let i = Math.floor(startIndex); i <= Math.ceil(endIndex); i++) {
+    maxBrake = Math.max(maxBrake, brakes[i] ?? 0);
+  }
+  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake };
+}
+
+// Sample standard deviation (n - 1); needs at least two values
+function sampleStdDev(values: number[]) {
+  if (values.length < 2) return null;
+  const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+  const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1);
+  return Math.sqrt(variance);
+}
+
 async function parseLapFile(file: File): Promise<LapFile> {
   if (!file.name.toLowerCase().endsWith('.csv')) {
     throw new Error('only CSV files are supported');
@@ -70,18 +132,13 @@ async function parseLapFile(file: File): Promise<LapFile> {
 export default function StintAnalysis() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [trackName, setTrackName] = useState('');
-  const [focusAreas, setFocusAreas] = useState('');
   const [error, setError] = useState('');
   const [lapFiles, setLapFiles] = useState<LapFile[]>([]);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [analysis, setAnalysis] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const selectTrack = (name: string, trackList: Track[] = tracks) => {
-    setTrackName(name);
-    setFocusAreas(trackList.find((t) => t.name === name)?.areas.join('\n') ?? '');
-  };
 
   useEffect(() => {
     fetch('/api/track-names')
@@ -89,10 +146,9 @@ export default function StintAnalysis() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to load track names');
         setTracks(data.tracks);
-        if (data.tracks.length > 0) selectTrack(data.tracks[0].name, data.tracks);
+        if (data.tracks.length > 0) setTrackName(data.tracks[0].name);
       })
       .catch((err: Error) => setError(err.message));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFiles = async (fileList: FileList | null | undefined) => {
@@ -111,7 +167,7 @@ export default function StintAnalysis() {
     if (added.length > 0) {
       const uploadedTrack = added[0].trackName;
       const match = tracks.find((t) => t.fileName.toLowerCase() === uploadedTrack.toLowerCase());
-      if (match) selectTrack(match.name);
+      if (match) setTrackName(match.name);
       else errors.push(`No track in Track_Area_Information.txt has TrackFileName "${uploadedTrack}".`);
     }
 
@@ -123,16 +179,66 @@ export default function StintAnalysis() {
     ]);
   };
 
-  const analyzeStint = () => {
-    const fastest = lapFiles.reduce((best, lap) =>
-      lapTimeToSeconds(lap.lapTime) < lapTimeToSeconds(best.lapTime) ? lap : best
-    );
-    setAnalysis(
-      [
+  const analyzeStint = async () => {
+    setAnalyzing(true);
+    try {
+      const fastest = lapFiles.reduce((best, lap) =>
+        lapTimeToSeconds(lap.lapTime) < lapTimeToSeconds(best.lapTime) ? lap : best
+      );
+      const lines = [
         `CSV files uploaded: ${lapFiles.length}`,
-        `Fastest lap: ${formatLapTime(fastest.lapTime)} (${fastest.driverName}, ${fastest.carName})`,
-      ].join('\n')
-    );
+        `Fastest lap: ${formatLapTime(fastest.lapTime)} (${fastest.driverName}, ${fastest.carName}) [${fastest.fileId.slice(-4)}]`,
+        '',
+      ];
+
+      // Only laps from the selected track can be compared against its areas
+      const trackLaps = selectedTrack
+        ? lapFiles.filter((lap) => lap.trackName.toLowerCase() === selectedTrack.fileName.toLowerCase())
+        : [];
+
+      if (!selectedTrack || selectedTrack.areas.length === 0) {
+        lines.push('No focus areas for the selected track.');
+      } else if (trackLaps.length === 0) {
+        lines.push(`No uploaded laps are from ${selectedTrack.fileName}.`);
+      } else {
+        const lapSamples = await Promise.all(trackLaps.map((lap) => readLapSamples(lap.file)));
+        lines.push(`Fastest time per focus area (${selectedTrack.fileName}):`);
+
+        for (const area of selectedTrack.areas) {
+          if (area.start === null || area.end === null) {
+            lines.push(`${area.name}: missing start/end in Track_Area_Information.txt`);
+            continue;
+          }
+
+          let best: { seconds: number; maxBrake: number } | null = null;
+          let bestLap: LapFile | null = null;
+          const areaTimes: number[] = [];
+          for (let i = 0; i < trackLaps.length; i++) {
+            const stats = areaStats(lapSamples[i], lapTimeToSeconds(trackLaps[i].lapTime), area.start, area.end);
+            if (!stats) continue;
+            areaTimes.push(stats.seconds);
+            if (!best || stats.seconds < best.seconds) {
+              best = stats;
+              bestLap = trackLaps[i];
+            }
+          }
+
+          const range = `${(area.start * 100).toFixed(0)}%-${(area.end * 100).toFixed(0)}%`;
+          const stdDev = sampleStdDev(areaTimes);
+          lines.push(
+            best && bestLap
+              ? `${area.name} (${range}): ${best.seconds.toFixed(3)}s, Max Brake ${Math.round(best.maxBrake * 100)}% [${bestLap.fileId.slice(-4)}], Stand Dev = ${stdDev === null ? 'n/a' : `${stdDev.toFixed(3)}s`}`
+              : `${area.name} (${range}): no data`
+          );
+        }
+      }
+
+      setAnalysis(lines.join('\n'));
+    } catch (err) {
+      setAnalysis(`Error analyzing stint: ${err instanceof Error ? err.message : 'unknown error'}`);
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const removeFile = (fileId: string) => {
@@ -149,40 +255,25 @@ export default function StintAnalysis() {
 
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-8 space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="stint-track-name" className="block text-sm font-medium text-dark-blue mb-2">
-            Track Name
-          </label>
-          <select
-            id="stint-track-name"
-            value={trackName}
-            onChange={(e) => selectTrack(e.target.value)}
-            disabled={tracks.length === 0}
-            className={inputClass}
-          >
-            {tracks.length === 0 && <option value="">{error ? 'Unavailable' : 'Loading…'}</option>}
-            {tracks.map((track) => (
-              <option key={track.name} value={track.name}>
-                {track.fileName}
-              </option>
-            ))}
-          </select>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="stint-focus-areas" className="block text-sm font-medium text-dark-blue mb-2">
-            Focus Areas
-          </label>
-          <textarea
-            id="stint-focus-areas"
-            value={focusAreas}
-            onChange={(e) => setFocusAreas(e.target.value)}
-            rows={8}
-            className={`${inputClass} resize-y`}
-          />
-        </div>
+      <div>
+        <label htmlFor="stint-track-name" className="block text-sm font-medium text-dark-blue mb-2">
+          Track Name
+        </label>
+        <select
+          id="stint-track-name"
+          value={trackName}
+          onChange={(e) => setTrackName(e.target.value)}
+          disabled={tracks.length === 0}
+          className={inputClass}
+        >
+          {tracks.length === 0 && <option value="">{error ? 'Unavailable' : 'Loading…'}</option>}
+          {tracks.map((track) => (
+            <option key={track.name} value={track.name}>
+              {track.fileName}
+            </option>
+          ))}
+        </select>
+        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
 
       {/* File upload */}
@@ -269,11 +360,11 @@ export default function StintAnalysis() {
       <div className="space-y-4">
         <button
           type="button"
-          onClick={analyzeStint}
-          disabled={lapFiles.length === 0}
+          onClick={() => void analyzeStint()}
+          disabled={lapFiles.length === 0 || analyzing}
           className="px-6 py-3 font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Analyze Stint
+          {analyzing ? 'Analyzing…' : 'Analyze Stint'}
         </button>
 
         <div>

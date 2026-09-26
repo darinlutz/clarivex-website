@@ -4,15 +4,22 @@ import { NextResponse } from 'next/server';
 
 const TRACK_FILE_PATH = path.join(process.cwd(), 'data', 'Track_Area_Information.txt');
 
-type Track = { name: string; fileName: string; areas: string[] };
+// start/end are fractions of a lap (LapDistPct), e.g. 0.02 = 2%
+type Area = { name: string; start: number; end: number };
+type Track = { name: string; fileName: string; areas: Area[] };
 
 // Returns the top-level keys of the TrackConfig object (the track names), each
 // track's TrackFileName (the name used in Garage 61 CSV file names), and the
-// area names under each, in the order they appear in the file.
+// areas under each, in the order they appear in the file.
 // Depth: 1 = TrackConfig, 2 = track, 3 = areas array, 4 = area object.
 function parseTracks(contents: string): Track[] {
   const tracks: Track[] = [];
   let depth = 0;
+
+  const currentArea = () => {
+    const areas = tracks[tracks.length - 1]?.areas;
+    return areas?.[areas.length - 1];
+  };
 
   for (let i = 0; i < contents.length; i++) {
     const ch = contents[i];
@@ -36,15 +43,33 @@ function parseTracks(contents: string): Track[] {
         tracks.push({ name: value, fileName: value, areas: [] });
       } else if (depth === 2 && /\bTrackFileName\s*:\s*$/.test(before) && tracks.length > 0) {
         tracks[tracks.length - 1].fileName = value;
-      } else if (depth === 4 && /\bname\s*:\s*$/.test(before) && tracks.length > 0) {
-        // The name property of an area object
-        tracks[tracks.length - 1].areas.push(value);
+      } else if (depth === 4 && /\bname\s*:\s*$/.test(before)) {
+        const area = currentArea();
+        if (area) area.name = value;
       }
       continue;
     }
 
-    if (ch === '{' || ch === '[') depth++;
-    else if (ch === '}' || ch === ']') depth--;
+    // The numeric start/end properties of an area object
+    if (depth === 4 && (ch === 's' || ch === 'e') && !/\w/.test(contents[i - 1] ?? '')) {
+      const match = /^(start|end)\s*:\s*(-?\d*\.?\d+(?:e-?\d+)?)/.exec(contents.slice(i, i + 40));
+      const area = currentArea();
+      if (match && area) {
+        area[match[1] as 'start' | 'end'] = Number(match[2]);
+        i += match[0].length - 1;
+        continue;
+      }
+    }
+
+    if (ch === '{' || ch === '[') {
+      // An object opening inside an areas array starts a new area
+      if (ch === '{' && depth === 3 && tracks.length > 0) {
+        tracks[tracks.length - 1].areas.push({ name: '', start: NaN, end: NaN });
+      }
+      depth++;
+    } else if (ch === '}' || ch === ']') {
+      depth--;
+    }
   }
 
   return tracks;
