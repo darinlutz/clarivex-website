@@ -29,6 +29,12 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+// "01.18.683" -> 78.683
+function lapTimeToSeconds(lapTime: string) {
+  const [minutes, seconds, millis] = lapTime.split('.').map(Number);
+  return minutes * 60 + seconds + millis / 1000;
+}
+
 // "01.18.683" -> "1:18.683"
 function formatLapTime(lapTime: string) {
   const [minutes, seconds, millis] = lapTime.split('.');
@@ -68,6 +74,7 @@ export default function StintAnalysis() {
   const [lapFiles, setLapFiles] = useState<LapFile[]>([]);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [analysis, setAnalysis] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectTrack = (name: string, trackList: Track[] = tracks) => {
@@ -113,6 +120,18 @@ export default function StintAnalysis() {
       ...prev,
       ...added.filter((lap) => !prev.some((p) => p.fileId === lap.fileId)),
     ]);
+  };
+
+  const analyzeStint = () => {
+    const fastest = lapFiles.reduce((best, lap) =>
+      lapTimeToSeconds(lap.lapTime) < lapTimeToSeconds(best.lapTime) ? lap : best
+    );
+    setAnalysis(
+      [
+        `CSV files uploaded: ${lapFiles.length}`,
+        `Fastest lap: ${formatLapTime(fastest.lapTime)} (${fastest.driverName}, ${fastest.carName})`,
+      ].join('\n')
+    );
   };
 
   const removeFile = (fileId: string) => {
@@ -244,6 +263,31 @@ export default function StintAnalysis() {
             ))}
           </ul>
         )}
+      </div>
+
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={analyzeStint}
+          disabled={lapFiles.length === 0}
+          className="px-6 py-3 font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Analyze Stint
+        </button>
+
+        <div>
+          <label htmlFor="stint-analysis" className="block text-sm font-medium text-dark-blue mb-2">
+            Analysis
+          </label>
+          <textarea
+            id="stint-analysis"
+            value={analysis}
+            readOnly
+            rows={8}
+            placeholder={lapFiles.length === 0 ? 'Upload lap CSVs, then press Analyze Stint.' : 'Press Analyze Stint.'}
+            className={`${inputClass} resize-y font-mono text-sm`}
+          />
+        </div>
       </div>
     </div>
   );
