@@ -6,11 +6,11 @@ const TRACK_FILE_PATH = path.join(process.cwd(), 'data', 'Track_Area_Information
 
 // start/end are fractions of a lap (LapDistPct), e.g. 0.02 = 2%
 type Area = { name: string; start: number; end: number };
-type Track = { name: string; fileName: string; areas: Area[] };
+type Track = { name: string; fileName: string; lengthFeet: number | null; areas: Area[] };
 
 // Returns the top-level keys of the TrackConfig object (the track names), each
-// track's TrackFileName (the name used in Garage 61 CSV file names), and the
-// areas under each, in the order they appear in the file.
+// track's TrackFileName (the name used in Garage 61 CSV file names) and
+// TrackLengthInFeet, and the areas under each, in the order they appear in the file.
 // Depth: 1 = TrackConfig, 2 = track, 3 = areas array, 4 = area object.
 function parseTracks(contents: string): Track[] {
   const tracks: Track[] = [];
@@ -40,7 +40,7 @@ function parseTracks(contents: string): Track[] {
 
       if (depth === 1 && /^\s*:/.test(contents.slice(end + 1, end + 20))) {
         // A quoted key at depth 1 is a track name
-        tracks.push({ name: value, fileName: value, areas: [] });
+        tracks.push({ name: value, fileName: value, lengthFeet: null, areas: [] });
       } else if (depth === 2 && /\bTrackFileName\s*:\s*$/.test(before) && tracks.length > 0) {
         tracks[tracks.length - 1].fileName = value;
       } else if (depth === 4 && /\bname\s*:\s*$/.test(before)) {
@@ -48,6 +48,16 @@ function parseTracks(contents: string): Track[] {
         if (area) area.name = value;
       }
       continue;
+    }
+
+    // The numeric TrackLengthInFeet property of a track
+    if (depth === 2 && ch === 'T' && !/\w/.test(contents[i - 1] ?? '')) {
+      const match = /^TrackLengthInFeet\s*:\s*(\d*\.?\d+)/.exec(contents.slice(i, i + 40));
+      if (match && tracks.length > 0) {
+        tracks[tracks.length - 1].lengthFeet = Number(match[1]);
+        i += match[0].length - 1;
+        continue;
+      }
     }
 
     // The numeric start/end properties of an area object

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 // start/end are fractions of a lap (LapDistPct); null if missing in the config
 type Area = { name: string; start: number | null; end: number | null };
-type Track = { name: string; fileName: string; areas: Area[] };
+type Track = { name: string; fileName: string; lengthFeet: number | null; areas: Area[] };
 
 type LapFile = {
   file: File;
@@ -45,6 +45,9 @@ function formatLapTime(lapTime: string) {
 }
 
 type LapSamples = { pcts: number[]; brakes: number[] };
+
+// Brake (0-1) above this counts as the driver being on the brakes
+const BRAKE_THRESHOLD = 0.01;
 
 // Reads the LapDistPct and Brake columns. LapDistPct is unwrapped so it keeps
 // increasing past the start/finish line (e.g. 0.999 -> 1.001 instead of 0.001).
@@ -90,10 +93,27 @@ function areaStats({ pcts, brakes }: LapSamples, lapSeconds: number, start: numb
   if (endIndex === null) return null;
 
   let maxBrake = 0;
-  for (let i = Math.floor(startIndex); i <= Math.ceil(endIndex); i++) {
-    maxBrake = Math.max(maxBrake, brakes[i] ?? 0);
+  let brakePct: number | null = null; // Lap position where Brake first goes over 1%
+  for (let i = Math.floor(startIndex); i <= Math.ceil(endIndex) && i < brakes.length; i++) {
+    maxBrake = Math.max(maxBrake, brakes[i]);
+    if (brakePct === null && brakes[i] > BRAKE_THRESHOLD) {
+      const prev = i - 1;
+      brakePct =
+        prev >= 0 && brakes[prev] <= BRAKE_THRESHOLD
+          ? pcts[prev] +
+            ((BRAKE_THRESHOLD - brakes[prev]) / (brakes[i] - brakes[prev])) * (pcts[i] - pcts[prev])
+          : pcts[i];
+    }
   }
-  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake };
+  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct };
+}
+
+// Lap position (unwrapped LapDistPct) -> "Brakepoint at 1234 ft."
+function formatBrakepoint(brakePct: number | null, lengthFeet: number | null) {
+  if (brakePct === null) return 'No braking';
+  if (!lengthFeet) return 'Brakepoint at n/a (no TrackLengthInFeet)';
+  const lapFraction = ((brakePct % 1) + 1) % 1; // Back to 0-1 after unwrapping
+  return `Brakepoint at ${Math.round(lapFraction * lengthFeet)} ft.`;
 }
 
 // Sample standard deviation (n - 1); needs at least two values
@@ -210,7 +230,7 @@ export default function StintAnalysis() {
             continue;
           }
 
-          let best: { seconds: number; maxBrake: number } | null = null;
+          let best: ReturnType<typeof areaStats> = null;
           let bestLap: LapFile | null = null;
           const areaTimes: number[] = [];
           for (let i = 0; i < trackLaps.length; i++) {
@@ -227,7 +247,7 @@ export default function StintAnalysis() {
           const stdDev = sampleStdDev(areaTimes);
           lines.push(
             best && bestLap
-              ? `${area.name} (${range}): ${best.seconds.toFixed(3)}s, Max Brake ${Math.round(best.maxBrake * 100)}% [${bestLap.fileId.slice(-4)}], Stand Dev = ${stdDev === null ? 'n/a' : `${stdDev.toFixed(3)}s`}`
+              ? `${area.name} (${range}): ${best.seconds.toFixed(3)}s, ${formatBrakepoint(best.brakePct, selectedTrack.lengthFeet)}, Max Brake ${Math.round(best.maxBrake * 100)}% [${bestLap.fileId.slice(-4)}], Stand Dev = ${stdDev === null ? 'n/a' : `${stdDev.toFixed(3)}s`}`
               : `${area.name} (${range}): no data`
           );
         }

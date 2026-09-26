@@ -28,6 +28,7 @@ const TrackConfig = {
     "circuit of americas gp": {
 
         TrackFileName: "Circuit of the Americas (Grand Prix)",
+	TrackLengthInFeet: 15000,
 	Notes: "",
 
         areas: [
@@ -98,6 +99,8 @@ MaxBrakeTarget: 0,
     "indianapolis 2022 road": {
 
         TrackFileName: "Indianapolis Motor Speedway (Road Course)",
+	TrackLengthInFeet: 12878,
+
 	Notes: "",
 
         areas: [
@@ -166,6 +169,7 @@ MaxBrakeTarget: 0,
     "twinring fullrc": {
 
         TrackFileName: "Mobility Resort Motegi (Grand Prix)",
+	TrackLengthInFeet: 15752,
 	Notes: "",
 
         areas: [
@@ -189,6 +193,17 @@ MaxBrakeTarget: 75,
                 BrakepointTarget: 4961,
 MaxBrakeTarget: 78,
                 ThrottlePickupTarget: 5446
+
+            },
+
+            {
+                name: "T 7",
+                start: 0.44,
+                end: 0.52,
+                Notes: "",
+                BrakepointTarget: 7119,
+MaxBrakeTarget: 55,
+                ThrottlePickupTarget: 0
 
             },
 
@@ -248,6 +263,7 @@ MaxBrakeTarget: 63,
     "monza full": {
 
 	TrackFileName: "Autodromo Nazionale Monza (Grand Prix)",
+	TrackLengthInFeet: 19006,
         Notes: "",
 
         areas: [
@@ -318,6 +334,7 @@ MaxBrakeTarget: 0,
     "roadatlanta full": {
 
 	TrackFileName: "Road Atlanta (Full Course)",
+	TrackLengthInFeet: 13411,
         Notes: "Focus on T4, T6 and T10. T10 exit is critical.",
 
         areas: [
@@ -389,6 +406,7 @@ MaxBrakeTarget: 82,
     "sachsenring": {
 
 	TrackFileName: "Sachsenring",
+	TrackLengthInFeet: 12046,
         Notes: "",
 
         areas: [
@@ -460,6 +478,7 @@ MaxBrakeTarget: 0,
     "thebend gt": {
 
 	TrackFileName: "Shell V-Power Motorsport Park at The Bend (GT Circuit)",
+	TrackLengthInFeet: 25492,
         Notes: "",
 
         areas: [
@@ -532,6 +551,7 @@ MaxBrakeTarget: 0,
     "silverstone 2019 gp": {
 
 	TrackFileName: "Silverstone Circuit (Grand Prix)",
+	TrackLengthInFeet: 19325,
         Notes: "Focus on T1, T9 and the 10-14 complex.",
 
         areas: [
@@ -602,6 +622,7 @@ MaxBrakeTarget: 0,
     "barber 2026": {
 
 	TrackFileName: "Barber Motorsports Park",
+	TrackLengthInFeet: 12566,
         Notes: "",
 
         areas: [
@@ -672,6 +693,7 @@ MaxBrakeTarget: 0,
     "suzuka grandprix": {
 
 	TrackFileName: "Suzuka International Racing Course (Grand Prix)",
+	TrackLengthInFeet: 19050,
         Notes: "",
 
         areas: [
@@ -742,6 +764,7 @@ MaxBrakeTarget: 0,
     "zandvoort 2023 gp": {
 
 	TrackFileName: "Circuit Zandvoort (Grand Prix)",
+	TrackLengthInFeet: 13973,
         Notes: "",
 
         areas: [
