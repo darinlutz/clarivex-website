@@ -18,9 +18,10 @@ const MAX_CSV_BYTES = 25 * 1024 * 1024;
 // Garage 61 - {driverName} - {carName} - {trackName} - {lapTime} - {uniqueFileID}.csv
 const FILE_NAME_PATTERN = /^Garage 61 - (.+?) - (.+?) - (.+) - (\d+\.\d{2}\.\d{3}) - ([A-Za-z0-9]+)\.csv$/i;
 
+// P2PActive is left out on purpose: some files don't have it, and it's ignored when present.
 const EXPECTED_COLUMNS = [
   'Speed', 'LapDistPct', 'Lat', 'Lon', 'Brake', 'Throttle', 'RPM', 'SteeringWheelAngle', 'Gear',
-  'Clutch', 'ABSActive', 'DRSActive', 'P2PActive', 'LatAccel', 'LongAccel', 'VertAccel', 'Yaw',
+  'Clutch', 'ABSActive', 'DRSActive', 'LatAccel', 'LongAccel', 'VertAccel', 'Yaw',
   'YawRate', 'PositionType',
 ];
 
