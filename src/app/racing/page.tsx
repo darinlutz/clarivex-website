@@ -5,9 +5,10 @@ import PythonRunner from '@/components/PythonRunner';
 import FriendsRoster from '@/components/FriendsRoster';
 import ChatbotLogger from '@/components/ChatbotLogger';
 import SpaceFactQuery from '@/components/SpaceFactQuery';
+import StintAnalysis from '@/components/StintAnalysis';
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'python' | 'spaceFacts' | 'racecar'>(
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'python' | 'spaceFacts' | 'racecar' | 'stint'>(
     'friends'
   );
 
@@ -78,6 +79,16 @@ export default function RacingPage() {
             >
               Racecar Analysis
             </button>
+            <button
+              onClick={() => setActiveTab('stint')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'stint'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Stint Analysis
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -138,6 +149,17 @@ export default function RacingPage() {
                   queryLabel="Ask a Question About Racecars"
                   placeholder="Enter your racecar question here"
                 />
+              </div>
+            )}
+
+            {/* Stint Analysis Tab */}
+            {activeTab === 'stint' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Stint Analysis</h2>
+                <p className="text-slate-600 mb-6">
+                  Analyze a stint of laps to find where you are most inconsistent.
+                </p>
+                <StintAnalysis />
               </div>
             )}
           </div>
