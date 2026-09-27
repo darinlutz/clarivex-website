@@ -12,7 +12,7 @@ import LapCompare from '@/components/LapCompare';
 const SHOW_SPACE_FACTS_TAB = false;
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'python' | 'spaceFacts' | 'racecar' | 'stint' | 'lapCompare'>(
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'stint' | 'lapCompare'>(
     'friends'
   );
 
@@ -51,17 +51,7 @@ export default function RacingPage() {
                   : 'text-slate-600 border-transparent hover:text-dark-blue'
               }`}
             >
-              Chatbot Logger
-            </button>
-            <button
-              onClick={() => setActiveTab('python')}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
-                activeTab === 'python'
-                  ? 'text-powder-600 border-powder-600'
-                  : 'text-slate-600 border-transparent hover:text-dark-blue'
-              }`}
-            >
-              Python
+              Chat Logger
             </button>
             {SHOW_SPACE_FACTS_TAB && (
               <button
@@ -120,25 +110,17 @@ export default function RacingPage() {
               </div>
             )}
 
-            {/* Chatbot Logger Tab */}
+            {/* Chat Logger Tab */}
             {activeTab === 'chatbot' && (
               <div>
-                <h2 className="text-2xl font-bold text-dark-blue mb-2">Chatbot Logger</h2>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Chat Logger</h2>
                 <p className="text-slate-600 mb-6">
                   Chat with the logged chatbot and view its replies.
                 </p>
                 <ChatbotLogger />
-              </div>
-            )}
-
-            {/* Python Tab */}
-            {activeTab === 'python' && (
-              <div>
-                <h2 className="text-2xl font-bold text-dark-blue mb-2">Python</h2>
-                <p className="text-slate-600 mb-6">
-                  Run the local Python app and view its output.
-                </p>
-                <PythonRunner />
+                <div className="mt-6">
+                  <PythonRunner />
+                </div>
               </div>
             )}
 
