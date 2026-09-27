@@ -7,6 +7,7 @@ import {
   formatLapTime,
   formatSize,
   lapTimeToSeconds,
+  MPH_PER_METER_PER_SECOND,
   parseLapFile,
   readLapSamples,
   type AreaStats,
@@ -21,8 +22,6 @@ const inputClass =
 function formatFeet(feet: number) {
   return Math.round(feet).toLocaleString('en-US');
 }
-
-const MPH_PER_METER_PER_SECOND = 2.23694;
 
 // 0.12 -> "+0.120", -0.05 -> "-0.050"
 function formatSecondsDiff(diff: number) {
@@ -63,6 +62,10 @@ function formatAreaLine(areaName: string, base: AreaStats, compare: AreaStats, l
   const pressureDiffText =
     pressureDiff === 0 ? 'same' : `${Math.abs(pressureDiff)}% ${pressureDiff > 0 ? 'heavier' : 'lighter'}`;
 
+  const baseMin = Math.round(base.minSpeed * MPH_PER_METER_PER_SECOND);
+  const compareMin = Math.round(compare.minSpeed * MPH_PER_METER_PER_SECOND);
+  const minDiff = compareMin - baseMin;
+
   const baseExit = Math.round(base.exitSpeed * MPH_PER_METER_PER_SECOND);
   const compareExit = Math.round(compare.exitSpeed * MPH_PER_METER_PER_SECOND);
   const exitDiff = compareExit - baseExit;
@@ -71,6 +74,7 @@ function formatAreaLine(areaName: string, base: AreaStats, compare: AreaStats, l
     `${areaName}: ${times}  ` +
     `Base brake ${brakeAt(base.brakePct)} at ${basePressure}%, ` +
     `Compare brake ${brakeAt(compare.brakePct)}${brakepointDiff} at ${comparePressure}% (${pressureDiffText}).  ` +
+    `Base Min speed ${baseMin} mph, Compare Min speed ${compareMin} mph (${minDiff >= 0 ? '+' : '-'}${Math.abs(minDiff)} mph).  ` +
     `Base exit ${baseExit} mph, Compare exit ${compareExit} mph (${exitDiff >= 0 ? '+' : '-'}${Math.abs(exitDiff)} mph).`
   );
 }

@@ -51,6 +51,8 @@ export function formatLapTime(lapTime: string) {
 }
 
 // speeds are in m/s, as exported by Garage 61
+export const MPH_PER_METER_PER_SECOND = 2.23694;
+
 export type LapSamples = { pcts: number[]; brakes: number[]; speeds: number[] };
 
 // Brake (0-1) above this counts as the driver being on the brakes
@@ -93,7 +95,7 @@ function crossingIndex(pcts: number[], target: number, from: number) {
 }
 
 // Seconds spent between start and end, the highest Brake value (0-1) in that
-// stretch, and the speed (m/s) at the end of it. Samples are evenly spaced (60 Hz), so each one is
+// stretch, the lowest speed (m/s) in it, and the speed (m/s) at the end of it. Samples are evenly spaced (60 Hz), so each one is
 // lapSeconds / sampleCount long.
 export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: number, start: number, end: number) {
   const startIndex = crossingIndex(pcts, start, 0);
@@ -120,7 +122,10 @@ export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: numb
   const after = Math.min(before + 1, speeds.length - 1);
   const exitSpeed = speeds[before] + (endIndex - before) * (speeds[after] - speeds[before]);
 
-  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct, exitSpeed };
+  let minSpeed = exitSpeed;
+  for (let i = Math.ceil(startIndex); i <= before; i++) minSpeed = Math.min(minSpeed, speeds[i]);
+
+  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct, minSpeed, exitSpeed };
 }
 
 export type AreaStats = NonNullable<ReturnType<typeof areaStats>>;

@@ -8,8 +8,10 @@ import {
   formatLapTime,
   formatSize,
   lapTimeToSeconds,
+  MPH_PER_METER_PER_SECOND,
   parseLapFile,
   readLapSamples,
+  type AreaStats,
   type LapFile,
   type Track,
 } from '@/lib/lapData';
@@ -27,6 +29,59 @@ function sampleStdDev(values: number[]) {
   const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
   const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1);
   return Math.sqrt(variance);
+}
+
+function mean(values: number[]) {
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
+// "avg 1234 ft, std dev 22.0 ft" (or "n/a" with no values); unit includes any leading space
+function formatSpread(values: number[], unit: string) {
+  if (values.length === 0) return 'n/a';
+  const stdDev = sampleStdDev(values);
+  return `avg ${mean(values).toFixed(0)}${unit}, std dev ${stdDev === null ? 'n/a' : `${stdDev.toFixed(1)}${unit}`}`;
+}
+
+type AreaRun = { lap: LapFile; stats: AreaStats };
+
+// One focus area's lap-to-lap statistics for the stint analysis
+function formatAreaStats(name: string, runs: AreaRun[], lengthFeet: number | null, brakeTarget: number | null, pressureTarget: number | null) {
+  const times = runs.map((r) => r.stats.seconds);
+  const best = Math.min(...times);
+  const avg = mean(times);
+  const stdDev = sampleStdDev(times);
+  const bestLap = runs[times.indexOf(best)].lap;
+  const brakepoints = lengthFeet
+    ? runs.flatMap((r) => (r.stats.brakePct === null ? [] : [brakeFeet(r.stats.brakePct, lengthFeet)]))
+    : [];
+  const noBrakeLaps = runs.filter((r) => r.stats.brakePct === null).length;
+
+  return (
+    `${name}: ${runs.length} laps, best ${best.toFixed(3)}s [${bestLap.fileId.slice(-4)}], avg ${avg.toFixed(3)}s ` +
+    `(avg lost to best ${(avg - best).toFixed(3)}s), worst ${Math.max(...times).toFixed(3)}s, ` +
+    `std dev ${stdDev === null ? 'n/a' : `${stdDev.toFixed(3)}s`}. ` +
+    `Brakepoint ${formatSpread(brakepoints, ' ft')} (target ${brakeTarget ?? 'n/a'} ft)` +
+    `${noBrakeLaps > 0 ? `, no braking on ${noBrakeLaps} laps` : ''}. ` +
+    `Max brake ${formatSpread(runs.map((r) => r.stats.maxBrake * 100), '%')} (target ${pressureTarget === null ? 'n/a' : `${pressureTarget}%`}). ` +
+    `Min speed ${formatSpread(runs.map((r) => r.stats.minSpeed * MPH_PER_METER_PER_SECOND), ' mph')}. ` +
+    `Exit speed ${formatSpread(runs.map((r) => r.stats.exitSpeed * MPH_PER_METER_PER_SECOND), ' mph')}.`
+  );
+}
+
+// Asks the server for an opportunities and consistency analysis of the stint
+async function fetchStintAnalysis(stats: string, track: string) {
+  try {
+    const res = await fetch('/api/stint-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stats, track }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to analyze the stint');
+    return data.summary as string;
+  } catch (err) {
+    return `Analysis unavailable: ${err instanceof Error ? err.message : 'unknown error'}`;
+  }
 }
 
 export default function StintAnalysis() {
@@ -103,6 +158,8 @@ export default function StintAnalysis() {
       } else {
         const lapSamples = await Promise.all(trackLaps.map((lap) => readLapSamples(lap.file)));
         lines.push(`Fastest time per focus area (${selectedTrack.fileName}):`);
+        // Lap-to-lap statistics per focus area, sent for the analysis below the focus areas
+        const areaSummaries: { lost: number; text: string }[] = [];
 
         for (const area of selectedTrack.areas) {
           if (area.start === null || area.end === null) {
@@ -113,10 +170,12 @@ export default function StintAnalysis() {
           let best: ReturnType<typeof areaStats> = null;
           let bestLap: LapFile | null = null;
           const areaTimes: number[] = [];
+          const runs: AreaRun[] = [];
           for (let i = 0; i < trackLaps.length; i++) {
             const stats = areaStats(lapSamples[i], lapTimeToSeconds(trackLaps[i].lapTime), area.start, area.end);
             if (!stats) continue;
             areaTimes.push(stats.seconds);
+            runs.push({ lap: trackLaps[i], stats });
             if (!best || stats.seconds < best.seconds) {
               best = stats;
               bestLap = trackLaps[i];
@@ -131,6 +190,29 @@ export default function StintAnalysis() {
               : `${area.name} (${range}): no data`,
             '' // Blank line between focus areas
           );
+          if (best) {
+            areaSummaries.push({
+              lost: mean(areaTimes) - best.seconds,
+              text: formatAreaStats(`${area.name} (${range})`, runs, selectedTrack.lengthFeet, area.brakepointTarget, area.maxBrakeTarget),
+            });
+          }
+        }
+
+        if (trackLaps.length < 2) {
+          lines.push('Analysis: upload at least 2 laps from this track to compare them.');
+        } else if (areaSummaries.length > 0) {
+          const lapTimes = trackLaps.map((lap) => lapTimeToSeconds(lap.lapTime));
+          const lapStdDev = sampleStdDev(lapTimes);
+          const stats = [
+            `Lap times (${lapTimes.length} laps): best ${Math.min(...lapTimes).toFixed(3)}s, avg ${mean(lapTimes).toFixed(3)}s, ` +
+              `worst ${Math.max(...lapTimes).toFixed(3)}s, std dev ${lapStdDev === null ? 'n/a' : `${lapStdDev.toFixed(3)}s`}.`,
+            '',
+            ...areaSummaries.sort((a, b) => b.lost - a.lost).map((a) => a.text),
+          ].join('\n');
+
+          // Show the focus areas right away, then add the analysis below them
+          setAnalysis(`${lines.join('\n').trimEnd()}\n\nAnalysis: writing…`);
+          lines.push('Analysis:', await fetchStintAnalysis(stats, selectedTrack.fileName));
         }
       }
 
