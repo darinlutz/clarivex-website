@@ -50,20 +50,23 @@ export function formatLapTime(lapTime: string) {
   return `${Number(minutes)}:${seconds}.${millis}`;
 }
 
-export type LapSamples = { pcts: number[]; brakes: number[] };
+// speeds are in m/s, as exported by Garage 61
+export type LapSamples = { pcts: number[]; brakes: number[]; speeds: number[] };
 
 // Brake (0-1) above this counts as the driver being on the brakes
 const BRAKE_THRESHOLD = 0;
 
-// Reads the LapDistPct and Brake columns. LapDistPct is unwrapped so it keeps
+// Reads the LapDistPct, Brake and Speed columns. LapDistPct is unwrapped so it keeps
 // increasing past the start/finish line (e.g. 0.999 -> 1.001 instead of 0.001).
 export async function readLapSamples(file: File): Promise<LapSamples> {
   const lines = (await file.text()).split(/\r?\n/);
   const header = lines[0].split(',').map((c) => c.trim());
   const pctColumn = header.indexOf('LapDistPct');
   const brakeColumn = header.indexOf('Brake');
+  const speedColumn = header.indexOf('Speed');
   const pcts: number[] = [];
   const brakes: number[] = [];
+  const speeds: number[] = [];
   let offset = 0;
 
   for (let i = 1; i < lines.length; i++) {
@@ -74,8 +77,9 @@ export async function readLapSamples(file: File): Promise<LapSamples> {
     if (pcts.length > 0 && value + offset < pcts[pcts.length - 1] - 0.5) offset += 1;
     pcts.push(value + offset);
     brakes.push(parseFloat(cells[brakeColumn]) || 0);
+    speeds.push(parseFloat(cells[speedColumn]) || 0);
   }
-  return { pcts, brakes };
+  return { pcts, brakes, speeds };
 }
 
 // Fractional sample index where the lap first reaches `target`, at or after `from`
@@ -88,10 +92,10 @@ function crossingIndex(pcts: number[], target: number, from: number) {
   return null;
 }
 
-// Seconds spent between start and end, and the highest Brake value (0-1) in
-// that stretch. Samples are evenly spaced (60 Hz), so each one is
+// Seconds spent between start and end, the highest Brake value (0-1) in that
+// stretch, and the speed (m/s) at the end of it. Samples are evenly spaced (60 Hz), so each one is
 // lapSeconds / sampleCount long.
-export function areaStats({ pcts, brakes }: LapSamples, lapSeconds: number, start: number, end: number) {
+export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: number, start: number, end: number) {
   const startIndex = crossingIndex(pcts, start, 0);
   if (startIndex === null) return null;
   // An area that crosses the start/finish line ends on the next lap
@@ -111,7 +115,12 @@ export function areaStats({ pcts, brakes }: LapSamples, lapSeconds: number, star
           : pcts[i];
     }
   }
-  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct };
+  // Interpolate between the samples on either side of the end line
+  const before = Math.floor(endIndex);
+  const after = Math.min(before + 1, speeds.length - 1);
+  const exitSpeed = speeds[before] + (endIndex - before) * (speeds[after] - speeds[before]);
+
+  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct, exitSpeed };
 }
 
 export type AreaStats = NonNullable<ReturnType<typeof areaStats>>;

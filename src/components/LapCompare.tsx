@@ -22,6 +22,8 @@ function formatFeet(feet: number) {
   return Math.round(feet).toLocaleString('en-US');
 }
 
+const MPH_PER_METER_PER_SECOND = 2.23694;
+
 // 0.12 -> "+0.120", -0.05 -> "-0.050"
 function formatSecondsDiff(diff: number) {
   return `${diff >= 0 ? '+' : '-'}${Math.abs(diff).toFixed(3)}`;
@@ -36,7 +38,7 @@ function brakeDiffFeet(basePct: number, comparePct: number, lengthFeet: number) 
 }
 
 // "T 7: Base 8.345 s, Compare 8.465 s (+0.120).  Base brake 4,345 ft at 65%, Compare brake
-// 4,495 ft (150 ft later) at 68% (3% heavier)."
+// 4,495 ft (150 ft later) at 68% (3% heavier).  Base exit 98 mph, Compare exit 101 mph (+3 mph)."
 function formatAreaLine(areaName: string, base: AreaStats, compare: AreaStats, lengthFeet: number | null) {
   const times = `Base ${base.seconds.toFixed(3)} s, Compare ${compare.seconds.toFixed(3)} s (${formatSecondsDiff(
     compare.seconds - base.seconds
@@ -61,11 +63,32 @@ function formatAreaLine(areaName: string, base: AreaStats, compare: AreaStats, l
   const pressureDiffText =
     pressureDiff === 0 ? 'same' : `${Math.abs(pressureDiff)}% ${pressureDiff > 0 ? 'heavier' : 'lighter'}`;
 
+  const baseExit = Math.round(base.exitSpeed * MPH_PER_METER_PER_SECOND);
+  const compareExit = Math.round(compare.exitSpeed * MPH_PER_METER_PER_SECOND);
+  const exitDiff = compareExit - baseExit;
+
   return (
     `${areaName}: ${times}  ` +
     `Base brake ${brakeAt(base.brakePct)} at ${basePressure}%, ` +
-    `Compare brake ${brakeAt(compare.brakePct)}${brakepointDiff} at ${comparePressure}% (${pressureDiffText}).`
+    `Compare brake ${brakeAt(compare.brakePct)}${brakepointDiff} at ${comparePressure}% (${pressureDiffText}).  ` +
+    `Base exit ${baseExit} mph, Compare exit ${compareExit} mph (${exitDiff >= 0 ? '+' : '-'}${Math.abs(exitDiff)} mph).`
   );
+}
+
+// Asks the server for a 6-7 sentence coaching summary written for the Compare lap
+async function fetchSummary(comparison: string, track: string) {
+  try {
+    const res = await fetch('/api/lap-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comparison, track }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to summarize the laps');
+    return data.summary as string;
+  } catch (err) {
+    return `Summary unavailable: ${err instanceof Error ? err.message : 'unknown error'}`;
+  }
 }
 
 type LapUploaderProps = {
@@ -233,6 +256,7 @@ export default function LapCompare() {
           readLapSamples(compareLap.file),
         ]);
         lines.push(`Focus areas (${selectedTrack.fileName}):`, '');
+        const areasStart = lines.length;
 
         for (const area of selectedTrack.areas) {
           if (area.start === null || area.end === null) {
@@ -248,6 +272,11 @@ export default function LapCompare() {
             '' // Blank line between focus areas
           );
         }
+
+        // Show the focus areas right away, then add the coaching summary below them
+        setAnalysis(`${lines.join('\n').trimEnd()}\n\nSummary: writing…`);
+        const summary = await fetchSummary(lines.slice(areasStart).join('\n').trim(), selectedTrack.fileName);
+        lines.push('Summary:', summary);
       }
 
       setAnalysis(lines.join('\n').trimEnd());
