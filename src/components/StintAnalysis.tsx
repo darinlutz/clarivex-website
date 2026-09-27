@@ -403,7 +403,7 @@ export default function StintAnalysis() {
             id="stint-analysis"
             value={analysis}
             readOnly
-            rows={8}
+            rows={12}
             placeholder={lapFiles.length === 0 ? 'Upload lap CSVs, then press Analyze Stint.' : 'Press Analyze Stint.'}
             className={`${inputClass} resize-y font-mono text-sm`}
           />
