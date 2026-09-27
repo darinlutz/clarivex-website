@@ -6,12 +6,13 @@ import FriendsRoster from '@/components/FriendsRoster';
 import ChatbotLogger from '@/components/ChatbotLogger';
 import SpaceFactQuery from '@/components/SpaceFactQuery';
 import StintAnalysis from '@/components/StintAnalysis';
+import LapCompare from '@/components/LapCompare';
 
 // Space Fact Query tab is hidden for now; set to true to show it again
 const SHOW_SPACE_FACTS_TAB = false;
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'python' | 'spaceFacts' | 'racecar' | 'stint'>(
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'python' | 'spaceFacts' | 'racecar' | 'stint' | 'lapCompare'>(
     'friends'
   );
 
@@ -31,7 +32,7 @@ export default function RacingPage() {
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
         <div className="w-full max-w-4xl">
           {/* Tab Navigation */}
-          <div className="flex gap-4 mb-6 border-b border-slate-200">
+          <div className="flex flex-wrap gap-4 mb-6 border-b border-slate-200">
             <button
               onClick={() => setActiveTab('friends')}
               className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
@@ -93,6 +94,16 @@ export default function RacingPage() {
               }`}
             >
               Stint Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('lapCompare')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'lapCompare'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Lap Compare
             </button>
           </div>
 
@@ -165,6 +176,17 @@ export default function RacingPage() {
                   Analyze a stint of laps to find where you are most inconsistent.
                 </p>
                 <StintAnalysis />
+              </div>
+            )}
+
+            {/* Lap Compare Tab */}
+            {activeTab === 'lapCompare' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Lap Compare</h2>
+                <p className="text-slate-600 mb-6">
+                  Compare two laps focus area by focus area.
+                </p>
+                <LapCompare />
               </div>
             )}
           </div>
