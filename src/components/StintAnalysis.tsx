@@ -2,8 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-// start/end are fractions of a lap (LapDistPct); null if missing in the config
-type Area = { name: string; start: number | null; end: number | null };
+// start/end are fractions of a lap (LapDistPct); brakepointTarget is in feet;
+// maxBrakeTarget is a percent. Each is null if missing in the config
+type Area = {
+  name: string;
+  start: number | null;
+  end: number | null;
+  brakepointTarget: number | null;
+  maxBrakeTarget: number | null;
+};
 type Track = { name: string; fileName: string; lengthFeet: number | null; areas: Area[] };
 
 type LapFile = {
@@ -108,12 +115,12 @@ function areaStats({ pcts, brakes }: LapSamples, lapSeconds: number, start: numb
   return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct };
 }
 
-// Lap position (unwrapped LapDistPct) -> "Brakepoint at 1234 ft."
-function formatBrakepoint(brakePct: number | null, lengthFeet: number | null) {
+// Lap position (unwrapped LapDistPct) -> "Brakepoint at 1234 ft. (Brake target = 1200)"
+function formatBrakepoint(brakePct: number | null, lengthFeet: number | null, target: number | null) {
   if (brakePct === null) return 'No braking';
   if (!lengthFeet) return 'Brakepoint at n/a (no TrackLengthInFeet)';
   const lapFraction = ((brakePct % 1) + 1) % 1; // Back to 0-1 after unwrapping
-  return `Brakepoint at ${Math.round(lapFraction * lengthFeet)} ft.`;
+  return `Brakepoint at ${Math.round(lapFraction * lengthFeet)} ft. (Brake target = ${target ?? 'n/a'})`;
 }
 
 // Sample standard deviation (n - 1); needs at least two values
@@ -226,7 +233,7 @@ export default function StintAnalysis() {
 
         for (const area of selectedTrack.areas) {
           if (area.start === null || area.end === null) {
-            lines.push(`${area.name}: missing start/end in Track_Area_Information.txt`);
+            lines.push(`${area.name}: missing start/end in Track_Area_Information.txt`, '');
             continue;
           }
 
@@ -247,13 +254,14 @@ export default function StintAnalysis() {
           const stdDev = sampleStdDev(areaTimes);
           lines.push(
             best && bestLap
-              ? `${area.name} (${range}): ${best.seconds.toFixed(3)}s, ${formatBrakepoint(best.brakePct, selectedTrack.lengthFeet)}, Max Brake ${Math.round(best.maxBrake * 100)}% [${bestLap.fileId.slice(-4)}], Stand Dev = ${stdDev === null ? 'n/a' : `${stdDev.toFixed(3)}s`}`
-              : `${area.name} (${range}): no data`
+              ? `${area.name} (${range}): ${best.seconds.toFixed(3)}s, ${formatBrakepoint(best.brakePct, selectedTrack.lengthFeet, area.brakepointTarget)}, Max Brake ${Math.round(best.maxBrake * 100)}% (Max Brake Target = ${area.maxBrakeTarget === null ? 'n/a' : `${area.maxBrakeTarget}%`}) [${bestLap.fileId.slice(-4)}], Stand Dev = ${stdDev === null ? 'n/a' : `${stdDev.toFixed(3)}s`}`
+              : `${area.name} (${range}): no data`,
+            '' // Blank line between focus areas
           );
         }
       }
 
-      setAnalysis(lines.join('\n'));
+      setAnalysis(lines.join('\n').trimEnd());
     } catch (err) {
       setAnalysis(`Error analyzing stint: ${err instanceof Error ? err.message : 'unknown error'}`);
     } finally {
