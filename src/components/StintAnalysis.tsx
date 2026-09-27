@@ -54,7 +54,7 @@ function formatLapTime(lapTime: string) {
 type LapSamples = { pcts: number[]; brakes: number[] };
 
 // Brake (0-1) above this counts as the driver being on the brakes
-const BRAKE_THRESHOLD = 0.01;
+const BRAKE_THRESHOLD = 0;
 
 // Reads the LapDistPct and Brake columns. LapDistPct is unwrapped so it keeps
 // increasing past the start/finish line (e.g. 0.999 -> 1.001 instead of 0.001).
@@ -100,7 +100,7 @@ function areaStats({ pcts, brakes }: LapSamples, lapSeconds: number, start: numb
   if (endIndex === null) return null;
 
   let maxBrake = 0;
-  let brakePct: number | null = null; // Lap position where Brake first goes over 1%
+  let brakePct: number | null = null; // Lap position where Brake first goes over 0%
   for (let i = Math.floor(startIndex); i <= Math.ceil(endIndex) && i < brakes.length; i++) {
     maxBrake = Math.max(maxBrake, brakes[i]);
     if (brakePct === null && brakes[i] > BRAKE_THRESHOLD) {
