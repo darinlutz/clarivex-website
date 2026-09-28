@@ -36,46 +36,175 @@ function brakeDiffFeet(basePct: number, comparePct: number, lengthFeet: number) 
   return diff - Math.round(diff / lengthFeet) * lengthFeet;
 }
 
-// "T 7: Base 8.345 s, Compare 8.465 s (+0.120).  Base brake 4,345 ft at 65%, Compare brake
-// 4,495 ft (150 ft later) at 68% (3% heavier).  Base exit 98 mph, Compare exit 101 mph (+3 mph)."
-function formatAreaLine(areaName: string, base: AreaStats, compare: AreaStats, lengthFeet: number | null) {
-  const times = `Base ${base.seconds.toFixed(3)} s, Compare ${compare.seconds.toFixed(3)} s (${formatSecondsDiff(
-    compare.seconds - base.seconds
-  )}).`;
+// One focus area's numbers for both laps; each diff is Compare minus Base.
+// Brakepoints are null when that lap didn't brake (or the track has no length).
+type AreaComparison = {
+  baseSeconds: number;
+  compareSeconds: number;
+  secondsDiff: number;
+  baseBrakeFeet: number | null;
+  compareBrakeFeet: number | null;
+  brakeFeetDiff: number | null; // Positive = Compare brakes later
+  basePressure: number;
+  comparePressure: number;
+  pressureDiff: number;
+  baseMin: number;
+  compareMin: number;
+  minDiff: number;
+  baseExit: number;
+  compareExit: number;
+  exitDiff: number;
+};
 
-  const brakeAt = (brakePct: number | null) => {
-    if (brakePct === null) return 'no braking';
-    if (!lengthFeet) return 'n/a ft (no TrackLengthInFeet)';
-    return `${formatFeet(brakeFeet(brakePct, lengthFeet))} ft`;
-  };
-
-  let brakepointDiff = '';
-  if (base.brakePct !== null && compare.brakePct !== null && lengthFeet) {
-    const diff = Math.round(brakeDiffFeet(base.brakePct, compare.brakePct, lengthFeet));
-    brakepointDiff =
-      diff === 0 ? ' (same)' : ` (${formatFeet(Math.abs(diff))} ft ${diff > 0 ? 'later' : 'earlier'})`;
-  }
+// Rounds everything to what's shown, so the diffs always add up
+function compareArea(base: AreaStats, compare: AreaStats, lengthFeet: number | null): AreaComparison {
+  const toFeet = (brakePct: number | null) =>
+    brakePct === null || !lengthFeet ? null : brakeFeet(brakePct, lengthFeet);
+  const toMph = (metersPerSecond: number) => Math.round(metersPerSecond * MPH_PER_METER_PER_SECOND);
 
   const basePressure = Math.round(base.maxBrake * 100);
   const comparePressure = Math.round(compare.maxBrake * 100);
-  const pressureDiff = comparePressure - basePressure;
-  const pressureDiffText =
-    pressureDiff === 0 ? 'same' : `${Math.abs(pressureDiff)}% ${pressureDiff > 0 ? 'heavier' : 'lighter'}`;
+  const baseMin = toMph(base.minSpeed);
+  const compareMin = toMph(compare.minSpeed);
+  const baseExit = toMph(base.exitSpeed);
+  const compareExit = toMph(compare.exitSpeed);
 
-  const baseMin = Math.round(base.minSpeed * MPH_PER_METER_PER_SECOND);
-  const compareMin = Math.round(compare.minSpeed * MPH_PER_METER_PER_SECOND);
-  const minDiff = compareMin - baseMin;
+  return {
+    baseSeconds: base.seconds,
+    compareSeconds: compare.seconds,
+    secondsDiff: compare.seconds - base.seconds,
+    baseBrakeFeet: toFeet(base.brakePct),
+    compareBrakeFeet: toFeet(compare.brakePct),
+    brakeFeetDiff:
+      base.brakePct !== null && compare.brakePct !== null && lengthFeet
+        ? Math.round(brakeDiffFeet(base.brakePct, compare.brakePct, lengthFeet))
+        : null,
+    basePressure,
+    comparePressure,
+    pressureDiff: comparePressure - basePressure,
+    baseMin,
+    compareMin,
+    minDiff: compareMin - baseMin,
+    baseExit,
+    compareExit,
+    exitDiff: compareExit - baseExit,
+  };
+}
 
-  const baseExit = Math.round(base.exitSpeed * MPH_PER_METER_PER_SECOND);
-  const compareExit = Math.round(compare.exitSpeed * MPH_PER_METER_PER_SECOND);
-  const exitDiff = compareExit - baseExit;
+// 150 -> "150 ft later", 0 -> "same"
+function formatBrakeDiff(diff: number) {
+  return diff === 0 ? 'same' : `${formatFeet(Math.abs(diff))} ft ${diff > 0 ? 'later' : 'earlier'}`;
+}
+
+// 3 -> "3% heavier", 0 -> "same"
+function formatPressureDiff(diff: number) {
+  return diff === 0 ? 'same' : `${Math.abs(diff)}% ${diff > 0 ? 'heavier' : 'lighter'}`;
+}
+
+// 3 -> "+3", -2 -> "-2"
+function formatSignedDiff(diff: number) {
+  return `${diff >= 0 ? '+' : '-'}${Math.abs(diff)}`;
+}
+
+// "T 7: Base 8.345 s, Compare 8.465 s (+0.120).  Base brake 4,345 ft at 65%, Compare brake
+// 4,495 ft (150 ft later) at 68% (3% heavier).  Base exit 98 mph, Compare exit 101 mph (+3 mph)."
+function formatAreaLine(areaName: string, c: AreaComparison, lengthFeet: number | null) {
+  const brakeAt = (feet: number | null) => {
+    if (feet !== null) return `${formatFeet(feet)} ft`;
+    return lengthFeet ? 'no braking' : 'n/a ft (no TrackLengthInFeet)';
+  };
+  const brakepointDiff = c.brakeFeetDiff === null ? '' : ` (${formatBrakeDiff(c.brakeFeetDiff)})`;
 
   return (
-    `${areaName}: ${times}  ` +
-    `Base brake ${brakeAt(base.brakePct)} at ${basePressure}%, ` +
-    `Compare brake ${brakeAt(compare.brakePct)}${brakepointDiff} at ${comparePressure}% (${pressureDiffText}).  ` +
-    `Base Min speed ${baseMin} mph, Compare Min speed ${compareMin} mph (${minDiff >= 0 ? '+' : '-'}${Math.abs(minDiff)} mph).  ` +
-    `Base exit ${baseExit} mph, Compare exit ${compareExit} mph (${exitDiff >= 0 ? '+' : '-'}${Math.abs(exitDiff)} mph).`
+    `${areaName}: Base ${c.baseSeconds.toFixed(3)} s, Compare ${c.compareSeconds.toFixed(3)} s (${formatSecondsDiff(c.secondsDiff)}).  ` +
+    `Base brake ${brakeAt(c.baseBrakeFeet)} at ${c.basePressure}%, ` +
+    `Compare brake ${brakeAt(c.compareBrakeFeet)}${brakepointDiff} at ${c.comparePressure}% (${formatPressureDiff(c.pressureDiff)}).  ` +
+    `Base Min speed ${c.baseMin} mph, Compare Min speed ${c.compareMin} mph (${formatSignedDiff(c.minDiff)} mph).  ` +
+    `Base exit ${c.baseExit} mph, Compare exit ${c.compareExit} mph (${formatSignedDiff(c.exitDiff)} mph).`
+  );
+}
+
+// A table row: the comparison, or why there isn't one
+type AreaRow = { name: string; comparison: AreaComparison | null; note: string };
+
+// Green when the Compare lap is better, red when it's worse
+function diffClass(diff: number, higherIsBetter: boolean) {
+  if (diff === 0) return 'text-slate-500';
+  return diff > 0 === higherIsBetter ? 'text-green-700' : 'text-red-700';
+}
+
+// Focus areas down the left, Base / Compare / Diff for each data point across the top
+function AreaTable({ rows }: { rows: AreaRow[] }) {
+  const groups = ['Time (s)', 'Brakepoint (ft)', 'Max Brake', 'Min Speed (mph)', 'Exit Speed (mph)'];
+  const cell = 'px-3 py-2 text-right whitespace-nowrap';
+  const groupStart = 'border-l border-slate-200';
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <table className="min-w-full text-sm text-dark-blue">
+        <thead className="bg-slate-100">
+          <tr>
+            <th rowSpan={2} className="sticky left-0 bg-slate-100 px-3 py-2 text-left align-bottom">
+              Focus Area
+            </th>
+            {groups.map((group) => (
+              <th key={group} colSpan={3} className={`${groupStart} px-3 py-2 text-center whitespace-nowrap`}>
+                {group}
+              </th>
+            ))}
+          </tr>
+          <tr className="text-xs text-slate-600">
+            {groups.map((group) =>
+              ['Base', 'Compare', 'Diff'].map((label) => (
+                <th key={group + label} className={`${cell} font-medium ${label === 'Base' ? groupStart : ''}`}>
+                  {label}
+                </th>
+              ))
+            )}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {rows.map(({ name, comparison: c, note }) => (
+            <tr key={name}>
+              <th scope="row" className="sticky left-0 bg-white px-3 py-2 text-left font-semibold whitespace-nowrap">
+                {name}
+              </th>
+              {!c ? (
+                <td colSpan={groups.length * 3} className={`${groupStart} px-3 py-2 text-slate-500`}>
+                  {note}
+                </td>
+              ) : (
+                <>
+                  <td className={`${cell} ${groupStart}`}>{c.baseSeconds.toFixed(3)}</td>
+                  <td className={cell}>{c.compareSeconds.toFixed(3)}</td>
+                  <td className={`${cell} ${diffClass(Math.round(c.secondsDiff * 1000), false)}`}>
+                    {formatSecondsDiff(c.secondsDiff)}
+                  </td>
+
+                  <td className={`${cell} ${groupStart}`}>
+                    {c.baseBrakeFeet === null ? '—' : formatFeet(c.baseBrakeFeet)}
+                  </td>
+                  <td className={cell}>{c.compareBrakeFeet === null ? '—' : formatFeet(c.compareBrakeFeet)}</td>
+                  <td className={cell}>{c.brakeFeetDiff === null ? '—' : formatBrakeDiff(c.brakeFeetDiff)}</td>
+
+                  <td className={`${cell} ${groupStart}`}>{c.basePressure}%</td>
+                  <td className={cell}>{c.comparePressure}%</td>
+                  <td className={cell}>{formatPressureDiff(c.pressureDiff)}</td>
+
+                  <td className={`${cell} ${groupStart}`}>{c.baseMin}</td>
+                  <td className={cell}>{c.compareMin}</td>
+                  <td className={`${cell} ${diffClass(c.minDiff, true)}`}>{formatSignedDiff(c.minDiff)}</td>
+
+                  <td className={`${cell} ${groupStart}`}>{c.baseExit}</td>
+                  <td className={cell}>{c.compareExit}</td>
+                  <td className={`${cell} ${diffClass(c.exitDiff, true)}`}>{formatSignedDiff(c.exitDiff)}</td>
+                </>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -190,6 +319,7 @@ export default function LapCompare() {
   const [baseError, setBaseError] = useState('');
   const [compareError, setCompareError] = useState('');
   const [analysis, setAnalysis] = useState('');
+  const [areaRows, setAreaRows] = useState<AreaRow[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
@@ -239,6 +369,7 @@ export default function LapCompare() {
   const analyzeLaps = async () => {
     if (!baseLap || !compareLap) return;
     setAnalyzing(true);
+    setAreaRows([]);
     try {
       const baseSeconds = lapTimeToSeconds(baseLap.lapTime);
       const compareSeconds = lapTimeToSeconds(compareLap.lapTime);
@@ -261,21 +392,29 @@ export default function LapCompare() {
         ]);
         lines.push(`Focus areas (${selectedTrack.fileName}):`, '');
         const areasStart = lines.length;
+        const rows: AreaRow[] = [];
 
+        // Each focus area gets a line (plus a blank line after it) and a table row
         for (const area of selectedTrack.areas) {
           if (area.start === null || area.end === null) {
-            lines.push(`${area.name}: missing start/end in Track_Area_Information.txt`, '');
+            const note = 'missing start/end in Track_Area_Information.txt';
+            lines.push(`${area.name}: ${note}`, '');
+            rows.push({ name: area.name, comparison: null, note });
             continue;
           }
           const base = areaStats(baseSamples, baseSeconds, area.start, area.end);
           const compare = areaStats(compareSamples, compareSeconds, area.start, area.end);
-          lines.push(
-            base && compare
-              ? formatAreaLine(area.name, base, compare, selectedTrack.lengthFeet)
-              : `${area.name}: no data for the ${!base ? 'Base' : 'Compare'} lap`,
-            '' // Blank line between focus areas
-          );
+          if (base && compare) {
+            const comparison = compareArea(base, compare, selectedTrack.lengthFeet);
+            lines.push(formatAreaLine(area.name, comparison, selectedTrack.lengthFeet), '');
+            rows.push({ name: area.name, comparison, note: '' });
+          } else {
+            const note = `no data for the ${!base ? 'Base' : 'Compare'} lap`;
+            lines.push(`${area.name}: ${note}`, '');
+            rows.push({ name: area.name, comparison: null, note });
+          }
         }
+        setAreaRows(rows);
 
         // Show the focus areas right away, then add the coaching summary below them
         setAnalysis(`${lines.join('\n').trimEnd()}\n\nSummary: writing…`);
@@ -350,6 +489,8 @@ export default function LapCompare() {
         >
           {analyzing ? 'Analyzing…' : 'Analyze Laps'}
         </button>
+
+        {areaRows.length > 0 && <AreaTable rows={areaRows} />}
 
         <div>
           <label htmlFor="lap-compare-analysis" className="block text-sm font-medium text-dark-blue mb-2">
