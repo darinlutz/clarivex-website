@@ -127,15 +127,27 @@ function formatAreaLine(areaName: string, c: AreaComparison, lengthFeet: number 
 // A table row: the comparison, or why there isn't one
 type AreaRow = { name: string; comparison: AreaComparison | null; note: string };
 
-// Green when the Compare lap is better, red when it's worse
-function diffClass(diff: number, higherIsBetter: boolean) {
-  if (diff === 0) return 'text-slate-500';
-  return diff > 0 === higherIsBetter ? 'text-green-700' : 'text-red-700';
+// Diff cell background: green when the Compare lap is better, red when worse,
+// darker when the difference is more than 1% of the Base value. `diff` is the
+// value as shown, so a displayed zero stays uncolored.
+function diffBackground(diff: number, base: number, higherIsBetter: boolean) {
+  if (diff === 0) return '';
+  const bigger = base !== 0 && Math.abs(diff) / Math.abs(base) > 0.01;
+  if (diff > 0 === higherIsBetter) return bigger ? 'bg-green-300' : 'bg-green-100';
+  return bigger ? 'bg-red-300' : 'bg-red-100';
 }
 
 // Focus areas down the left, Base / Compare / Diff for each data point across the top
+// (Max Brake shows Base and Diff; everything else shows only its Diff)
 function AreaTable({ rows }: { rows: AreaRow[] }) {
-  const groups = ['Time (s)', 'Brakepoint (ft)', 'Max Brake', 'Min Speed (mph)', 'Exit Speed (mph)'];
+  const groups = [
+    { label: 'Time', columns: ['Diff'] },
+    { label: 'Brakepoint', columns: ['Diff'] },
+    { label: 'Max Brake', columns: ['Base', 'Diff'] },
+    { label: 'Min Speed', columns: ['Diff'] },
+    { label: 'Exit Speed', columns: ['Diff'] },
+  ];
+  const columnCount = groups.reduce((sum, group) => sum + group.columns.length, 0);
   const cell = 'px-3 py-2 text-right whitespace-nowrap';
   const groupStart = 'border-l border-slate-200';
 
@@ -148,15 +160,24 @@ function AreaTable({ rows }: { rows: AreaRow[] }) {
               Focus Area
             </th>
             {groups.map((group) => (
-              <th key={group} colSpan={3} className={`${groupStart} px-3 py-2 text-center whitespace-nowrap`}>
-                {group}
+              <th
+                key={group.label}
+                colSpan={group.columns.length}
+                className={`${groupStart} px-3 py-2 text-center whitespace-nowrap`}
+              >
+                {group.label}
               </th>
             ))}
           </tr>
           <tr className="text-xs text-slate-600">
             {groups.map((group) =>
-              ['Base', 'Compare', 'Diff'].map((label) => (
-                <th key={group + label} className={`${cell} font-medium ${label === 'Base' ? groupStart : ''}`}>
+              group.columns.map((label, i) => (
+                <th
+                  key={group.label + label}
+                  className={`px-3 py-2 whitespace-nowrap font-medium ${label === 'Diff' ? 'text-center' : 'text-right'} ${
+                    i === 0 ? groupStart : ''
+                  }`}
+                >
                   {label}
                 </th>
               ))
@@ -170,34 +191,35 @@ function AreaTable({ rows }: { rows: AreaRow[] }) {
                 {name}
               </th>
               {!c ? (
-                <td colSpan={groups.length * 3} className={`${groupStart} px-3 py-2 text-slate-500`}>
+                <td colSpan={columnCount} className={`${groupStart} px-3 py-2 text-slate-500`}>
                   {note}
                 </td>
               ) : (
                 <>
-                  <td className={`${cell} ${groupStart}`}>{c.baseSeconds.toFixed(3)}</td>
-                  <td className={cell}>{c.compareSeconds.toFixed(3)}</td>
-                  <td className={`${cell} ${diffClass(Math.round(c.secondsDiff * 1000), false)}`}>
-                    {formatSecondsDiff(c.secondsDiff)}
+                  <td
+                    className={`${cell} ${groupStart} ${diffBackground(
+                      Math.round(c.secondsDiff * 1000) / 1000,
+                      c.baseSeconds,
+                      false
+                    )}`}
+                  >
+                    {formatSecondsDiff(c.secondsDiff)} s
                   </td>
 
                   <td className={`${cell} ${groupStart}`}>
-                    {c.baseBrakeFeet === null ? '—' : formatFeet(c.baseBrakeFeet)}
+                    {c.brakeFeetDiff === null ? '—' : formatBrakeDiff(c.brakeFeetDiff)}
                   </td>
-                  <td className={cell}>{c.compareBrakeFeet === null ? '—' : formatFeet(c.compareBrakeFeet)}</td>
-                  <td className={cell}>{c.brakeFeetDiff === null ? '—' : formatBrakeDiff(c.brakeFeetDiff)}</td>
 
                   <td className={`${cell} ${groupStart}`}>{c.basePressure}%</td>
-                  <td className={cell}>{c.comparePressure}%</td>
                   <td className={cell}>{formatPressureDiff(c.pressureDiff)}</td>
 
-                  <td className={`${cell} ${groupStart}`}>{c.baseMin}</td>
-                  <td className={cell}>{c.compareMin}</td>
-                  <td className={`${cell} ${diffClass(c.minDiff, true)}`}>{formatSignedDiff(c.minDiff)}</td>
+                  <td className={`${cell} ${groupStart} ${diffBackground(c.minDiff, c.baseMin, true)}`}>
+                    {formatSignedDiff(c.minDiff)} mph
+                  </td>
 
-                  <td className={`${cell} ${groupStart}`}>{c.baseExit}</td>
-                  <td className={cell}>{c.compareExit}</td>
-                  <td className={`${cell} ${diffClass(c.exitDiff, true)}`}>{formatSignedDiff(c.exitDiff)}</td>
+                  <td className={`${cell} ${groupStart} ${diffBackground(c.exitDiff, c.baseExit, true)}`}>
+                    {formatSignedDiff(c.exitDiff)} mph
+                  </td>
                 </>
               )}
             </tr>
