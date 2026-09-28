@@ -1,5 +1,5 @@
 // Shared helpers for reading Garage 61 lap CSVs and measuring focus areas
-// (used by the Stint Analysis and Lap Compare tabs).
+// (used by the Multi-Lap Analysis and Lap Compare tabs).
 
 // start/end are fractions of a lap (LapDistPct); brakepointTarget is in feet;
 // maxBrakeTarget is a percent. Each is null if missing in the config

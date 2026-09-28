@@ -5,6 +5,7 @@ import PythonRunner from '@/components/PythonRunner';
 import FriendsRoster from '@/components/FriendsRoster';
 import ChatbotLogger from '@/components/ChatbotLogger';
 import SpaceFactQuery from '@/components/SpaceFactQuery';
+import MultiLapAnalysis from '@/components/MultiLapAnalysis';
 import StintAnalysis from '@/components/StintAnalysis';
 import LapCompare from '@/components/LapCompare';
 
@@ -12,7 +13,7 @@ import LapCompare from '@/components/LapCompare';
 const SHOW_SPACE_FACTS_TAB = false;
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'stint' | 'lapCompare'>(
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'multiLap' | 'stint' | 'lapCompare'>(
     'friends'
   );
 
@@ -74,6 +75,16 @@ export default function RacingPage() {
               }`}
             >
               Racecar Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('multiLap')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'multiLap'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Multi-Lap Analysis
             </button>
             <button
               onClick={() => setActiveTab('stint')}
@@ -150,12 +161,23 @@ export default function RacingPage() {
               </div>
             )}
 
+            {/* Multi-Lap Analysis Tab */}
+            {activeTab === 'multiLap' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Multi-Lap Analysis</h2>
+                <p className="text-slate-600 mb-6">
+                  Analyze multiple laps to find where you are most inconsistent.
+                </p>
+                <MultiLapAnalysis />
+              </div>
+            )}
+
             {/* Stint Analysis Tab */}
             {activeTab === 'stint' && (
               <div>
                 <h2 className="text-2xl font-bold text-dark-blue mb-2">Stint Analysis</h2>
                 <p className="text-slate-600 mb-6">
-                  Analyze a stint of laps to find where you are most inconsistent.
+                  Analyze a Garage 61 stint export: pace, sectors, weather and fuel.
                 </p>
                 <StintAnalysis />
               </div>

@@ -15,6 +15,8 @@ import {
   type LapFile,
   type Track,
 } from '@/lib/lapData';
+import { isStintExport, parseStintExport, type StintExport } from '@/lib/stintExport';
+import WeatherTable from '@/components/WeatherTable';
 
 // Lap position (unwrapped LapDistPct) -> "Brakepoint at 1234 ft. (Brake target = 1200)"
 function formatBrakepoint(brakePct: number | null, lengthFeet: number | null, target: number | null) {
@@ -44,7 +46,7 @@ function formatSpread(values: number[], unit: string) {
 
 type AreaRun = { lap: LapFile; stats: AreaStats };
 
-// One focus area's lap-to-lap statistics for the stint analysis
+// One focus area's lap-to-lap statistics for the multi-lap analysis
 function formatAreaStats(name: string, runs: AreaRun[], lengthFeet: number | null, brakeTarget: number | null, pressureTarget: number | null) {
   const times = runs.map((r) => r.stats.seconds);
   const best = Math.min(...times);
@@ -68,23 +70,23 @@ function formatAreaStats(name: string, runs: AreaRun[], lengthFeet: number | nul
   );
 }
 
-// Asks the server for an opportunities and consistency analysis of the stint
-async function fetchStintAnalysis(stats: string, track: string) {
+// Asks the server for an opportunities and consistency analysis of the laps
+async function fetchMultiLapAnalysis(stats: string, track: string) {
   try {
-    const res = await fetch('/api/stint-summary', {
+    const res = await fetch('/api/multi-lap-summary', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stats, track }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to analyze the stint');
+    if (!res.ok) throw new Error(data.error || 'Failed to analyze the laps');
     return data.summary as string;
   } catch (err) {
     return `Analysis unavailable: ${err instanceof Error ? err.message : 'unknown error'}`;
   }
 }
 
-export default function StintAnalysis() {
+export default function MultiLapAnalysis() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [trackName, setTrackName] = useState('');
   const [error, setError] = useState('');
@@ -93,6 +95,7 @@ export default function StintAnalysis() {
   const [dragging, setDragging] = useState(false);
   const [analysis, setAnalysis] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [weather, setWeather] = useState<StintExport | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -109,14 +112,29 @@ export default function StintAnalysis() {
   const handleFiles = async (fileList: FileList | null | undefined) => {
     if (!fileList || fileList.length === 0) return;
 
-    const results = await Promise.allSettled(Array.from(fileList).map(parseLapFile));
+    // A stint export (per-lap weather) can be dropped in along with the lap CSVs
+    const files = Array.from(fileList);
+    const isExport = await Promise.all(files.map((file) => isStintExport(file).catch(() => false)));
+    const lapInputs = files.filter((_, i) => !isExport[i]);
+    const exportInputs = files.filter((_, i) => isExport[i]);
+
+    const results = await Promise.allSettled(lapInputs.map(parseLapFile));
     const added: LapFile[] = [];
     const errors: string[] = [];
 
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') added.push(result.value);
-      else errors.push(`${fileList[index].name}: ${(result.reason as Error).message}`);
+      else errors.push(`${lapInputs[index].name}: ${(result.reason as Error).message}`);
     });
+
+    if (exportInputs.length > 1) errors.push('Only 1 stint export can be used at a time; the last one was kept.');
+    for (const file of exportInputs) {
+      try {
+        setWeather(await parseStintExport(file));
+      } catch (err) {
+        errors.push(`${file.name}: ${(err as Error).message}`);
+      }
+    }
 
     // Select the track matching the uploaded files' track name
     if (added.length > 0) {
@@ -134,7 +152,7 @@ export default function StintAnalysis() {
     ]);
   };
 
-  const analyzeStint = async () => {
+  const analyzeMultiLap = async () => {
     setAnalyzing(true);
     try {
       const fastest = lapFiles.reduce((best, lap) =>
@@ -212,13 +230,13 @@ export default function StintAnalysis() {
 
           // Show the focus areas right away, then add the analysis below them
           setAnalysis(`${lines.join('\n').trimEnd()}\n\nAnalysis: writing…`);
-          lines.push('Analysis:', await fetchStintAnalysis(stats, selectedTrack.fileName));
+          lines.push('Analysis:', await fetchMultiLapAnalysis(stats, selectedTrack.fileName));
         }
       }
 
       setAnalysis(lines.join('\n').trimEnd());
     } catch (err) {
-      setAnalysis(`Error analyzing stint: ${err instanceof Error ? err.message : 'unknown error'}`);
+      setAnalysis(`Error analyzing laps: ${err instanceof Error ? err.message : 'unknown error'}`);
     } finally {
       setAnalyzing(false);
     }
@@ -227,6 +245,10 @@ export default function StintAnalysis() {
   const removeFile = (fileId: string) => {
     setLapFiles((prev) => prev.filter((lap) => lap.fileId !== fileId));
   };
+
+  // Stint export laps whose time matches an uploaded lap CSV (to the millisecond)
+  const isUploadedLap = (lapSeconds: number) =>
+    lapFiles.some((lap) => Math.abs(lapTimeToSeconds(lap.lapTime) - lapSeconds) < 0.0015);
 
   const selectedTrack = tracks.find((t) => t.name === trackName);
   const mismatchedLaps = selectedTrack
@@ -239,11 +261,11 @@ export default function StintAnalysis() {
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-8 space-y-6">
       <div>
-        <label htmlFor="stint-track-name" className="block text-sm font-medium text-dark-blue mb-2">
+        <label htmlFor="multi-lap-track-name" className="block text-sm font-medium text-dark-blue mb-2">
           Track Name
         </label>
         <select
-          id="stint-track-name"
+          id="multi-lap-track-name"
           value={trackName}
           onChange={(e) => setTrackName(e.target.value)}
           disabled={tracks.length === 0}
@@ -279,7 +301,7 @@ export default function StintAnalysis() {
         >
           <div className="text-sm text-slate-600 text-center sm:text-left">
             <p className="font-medium text-dark-blue">Drag and drop files here</p>
-            <p>Limit 25MB per file • CSV</p>
+            <p>Limit 25MB per file • CSV • Lap CSVs and a stint export</p>
           </div>
           <button
             type="button"
@@ -340,26 +362,35 @@ export default function StintAnalysis() {
         )}
       </div>
 
+      {weather && (
+        <WeatherTable
+          stint={weather}
+          onRemove={() => setWeather(null)}
+          note={lapFiles.length > 0 ? 'Highlighted laps match an uploaded lap CSV.' : undefined}
+          isHighlighted={isUploadedLap}
+        />
+      )}
+
       <div className="space-y-4">
         <button
           type="button"
-          onClick={() => void analyzeStint()}
+          onClick={() => void analyzeMultiLap()}
           disabled={lapFiles.length === 0 || analyzing}
           className="px-6 py-3 font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {analyzing ? 'Analyzing…' : 'Analyze Stint'}
+          {analyzing ? 'Analyzing…' : 'Analyze Multi-Lap'}
         </button>
 
         <div>
-          <label htmlFor="stint-analysis" className="block text-sm font-medium text-dark-blue mb-2">
+          <label htmlFor="multi-lap-analysis" className="block text-sm font-medium text-dark-blue mb-2">
             Analysis
           </label>
           <textarea
-            id="stint-analysis"
+            id="multi-lap-analysis"
             value={analysis}
             readOnly
             rows={12}
-            placeholder={lapFiles.length === 0 ? 'Upload lap CSVs, then press Analyze Stint.' : 'Press Analyze Stint.'}
+            placeholder={lapFiles.length === 0 ? 'Upload lap CSVs, then press Analyze Multi-Lap.' : 'Press Analyze Multi-Lap.'}
             className={`${inputClass} resize-y font-mono text-sm`}
           />
         </div>

@@ -31,10 +31,10 @@ export async function summarizeLapComparison(comparison: string, track: string):
   return typeof response.content === 'string' ? response.content.trim() : '';
 }
 
-const STINT_PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
+const MULTI_LAP_PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
   [
     'system',
-    'You are a sim racing driving coach. The user will give you stint statistics from several laps of ' +
+    'You are a sim racing driving coach. The user will give you multi-lap statistics from several laps of ' +
       '{track} by the same driver. It lists the lap times, then each focus area with the best, average ' +
       'and worst time through the area, the average time lost to the best, and the standard deviation ' +
       'of the time; plus the average and standard deviation of the brakepoint (feet from the start/finish ' +
@@ -52,14 +52,44 @@ const STINT_PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
   ['user', '{stats}'],
 ]);
 
-// Opportunities and consistency analysis of a Stint Analysis result
-export async function summarizeStint(stats: string, track: string): Promise<string> {
+// Opportunities and consistency analysis of a Multi-Lap Analysis result
+export async function summarizeMultiLap(stats: string, track: string): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+
+  const model = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.3 });
+  const chain = MULTI_LAP_PROMPT_TEMPLATE.pipe(model);
+  const response = await chain.invoke({ stats, track });
+  return typeof response.content === 'string' ? response.content.trim() : '';
+}
+
+const STINT_PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
+  [
+    'system',
+    'You are a sim racing driving coach. The user will give you a report on one stint at {track}, built ' +
+      'from a Garage 61 stint export: lap time statistics and trend, a theoretical best from the best ' +
+      'sectors, per-sector best/average/standard deviation, the weather over the stint with the correlation ' +
+      'between track temperature and lap time, and fuel use. Write an analysis in three short paragraphs of ' +
+      'plain prose, 9 to 12 sentences in total. First, pace: how the stint went, the trend, and how far the ' +
+      'best lap is from the theoretical best. Second, sectors: where the most time is lost and where the ' +
+      'driver is least consistent, with concrete things to work on. Third, conditions and fuel: whether the ' +
+      'weather plausibly affected pace (a correlation can also come from the driver improving over the ' +
+      'stint, so say so when that is possible) and what the fuel numbers mean for stint length. Use the ' +
+      'numbers from the report, write to the driver as "you", use no headings, lists, or markdown, and do ' +
+      'not invent data that is not in the report.',
+  ],
+  ['user', '{report}'],
+]);
+
+// Coaching analysis of a Stint Analysis report
+export async function summarizeStint(report: string, track: string): Promise<string> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
   const model = new ChatOpenAI({ model: 'gpt-4o', temperature: 0.3 });
   const chain = STINT_PROMPT_TEMPLATE.pipe(model);
-  const response = await chain.invoke({ stats, track });
+  const response = await chain.invoke({ report, track });
   return typeof response.content === 'string' ? response.content.trim() : '';
 }
