@@ -56,10 +56,10 @@ export default function Navigation() {
             </Link>
             <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
             <Link
-              href="/timesheet"
+              href="/jira"
               className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
-              Timesheet
+              Jira
             </Link>
             <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
             <Link
@@ -140,11 +140,11 @@ export default function Navigation() {
               Contact
             </Link>
             <Link
-              href="/timesheet"
+              href="/jira"
               className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
               onClick={closeMenu}
             >
-              Timesheet
+              Jira
             </Link>
             <Link
               href="/trip-planner"

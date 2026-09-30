@@ -31,13 +31,14 @@ npm run lint         # Run ESLint
 ```
 
 **Environment Variables** (`.env.local`):
-- `CLOCKIFY_API_KEY` - Clockify workspace API key
+- `CLOCKIFY_API_KEY` - Clockify workspace API key (used by `clockify_entry.py`)
 - `RESEND_API_KEY` - Resend email service API key
 - `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: translate, friend, trip planner, financial analysis)
 - `TAVILY_API_KEY` - Tavily web search API key (Financial Analysis web search agent)
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
 - `TURSO_DATABASE_URL` - Turso/libSQL database URL (Friends roster persistence). Omit locally to fall back to a `local.db` file
 - `TURSO_AUTH_TOKEN` - Turso auth token, paired with `TURSO_DATABASE_URL`
+- `ATLASSIAN_API_KEY` - Atlassian API token for Jira Cloud (gordon-darby.atlassian.net, used by the Jira page)
 
 ## Project Structure
 
@@ -49,19 +50,15 @@ src/
 │   ├── globals.css   # Global Tailwind styles
 │   ├── api/
 │   │   ├── bitcoin/      # Bitcoin price ticker data
-│   │   ├── clockify/     # Clockify integration endpoints
 │   │   ├── contact/      # Contact form submissions (Resend)
-│   │   ├── inquiry/      # Business inquiry handling
-│   │   └── timesheet/    # Timesheet management
+│   │   └── inquiry/      # Business inquiry handling
 │   ├── contact/      # Contact page
 │   ├── solutions/    # Solutions showcase page
-│   └── timesheet/    # Timesheet page
 └── components/       # Reusable React components
     ├── Navigation.tsx
     ├── Footer.tsx
     ├── BitcoinTicker.tsx
     ├── ContactForm.tsx
-    ├── TimesheetForm.tsx
 ```
 
 **Python Components** (backend automation):
@@ -112,7 +109,6 @@ export async function POST(request: Request) {
 - **Workspace ID**: `5f5fb2a73ab33d735bc7ca3a`
 - **Docs**: https://docs.clockify.me/
 - **Python tool** (`clockify_entry.py`): Creates time entries, respects workdays/holidays
-- **API endpoint**: `/api/clockify/projects` - Fetches active projects
 
 ### Resend Email Service
 - **Docs**: https://resend.com/docs
