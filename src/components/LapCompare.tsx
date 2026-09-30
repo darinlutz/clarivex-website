@@ -96,9 +96,9 @@ function formatBrakeDiff(diff: number) {
   return diff === 0 ? 'same' : `${formatFeet(Math.abs(diff))} ft ${diff > 0 ? 'later' : 'earlier'}`;
 }
 
-// 3 -> "3% heavier", 0 -> "same"
+// 3 -> "3% harder", 0 -> "same"
 function formatPressureDiff(diff: number) {
-  return diff === 0 ? 'same' : `${Math.abs(diff)}% ${diff > 0 ? 'heavier' : 'lighter'}`;
+  return diff === 0 ? 'same' : `${Math.abs(diff)}% ${diff > 0 ? 'harder' : 'lighter'}`;
 }
 
 // 3 -> "+3", -2 -> "-2"
@@ -107,7 +107,7 @@ function formatSignedDiff(diff: number) {
 }
 
 // "T 7: Base 8.345 s, Compare 8.465 s (+0.120).  Base brake 4,345 ft at 65%, Compare brake
-// 4,495 ft (150 ft later) at 68% (3% heavier).  Base exit 98 mph, Compare exit 101 mph (+3 mph)."
+// 4,495 ft (150 ft later) at 68% (3% harder).  Base exit 98 mph, Compare exit 101 mph (+3 mph)."
 function formatAreaLine(areaName: string, c: AreaComparison, lengthFeet: number | null) {
   const brakeAt = (feet: number | null) => {
     if (feet !== null) return `${formatFeet(feet)} ft`;
@@ -135,6 +135,16 @@ function diffBackground(diff: number, base: number, higherIsBetter: boolean) {
   const bigger = base !== 0 && Math.abs(diff) / Math.abs(base) > 0.01;
   if (diff > 0 === higherIsBetter) return bigger ? 'bg-green-300' : 'bg-green-100';
   return bigger ? 'bg-red-300' : 'bg-red-100';
+}
+
+// Brake Diff text: blue when the Compare lap is more than `threshold` below Base
+// (brakes earlier / lighter), red when more than `threshold` above (later / harder),
+// green when within `threshold` either way
+function brakeDiffText(diff: number | null, threshold: number) {
+  if (diff === null) return '';
+  if (diff < -threshold) return 'text-blue-600';
+  if (diff > threshold) return 'text-red-600';
+  return 'text-green-600';
 }
 
 // Focus areas down the left, Base / Compare / Diff for each data point across the top
@@ -206,12 +216,12 @@ function AreaTable({ rows }: { rows: AreaRow[] }) {
                     {formatSecondsDiff(c.secondsDiff)} s
                   </td>
 
-                  <td className={`${cell} ${groupStart}`}>
+                  <td className={`${cell} ${groupStart} ${brakeDiffText(c.brakeFeetDiff, 10)}`}>
                     {c.brakeFeetDiff === null ? '—' : formatBrakeDiff(c.brakeFeetDiff)}
                   </td>
 
                   <td className={`${cell} ${groupStart}`}>{c.basePressure}%</td>
-                  <td className={cell}>{formatPressureDiff(c.pressureDiff)}</td>
+                  <td className={`${cell} ${brakeDiffText(c.pressureDiff, 3)}`}>{formatPressureDiff(c.pressureDiff)}</td>
 
                   <td className={`${cell} ${groupStart} ${diffBackground(c.minDiff, c.baseMin, true)}`}>
                     {formatSignedDiff(c.minDiff)} mph

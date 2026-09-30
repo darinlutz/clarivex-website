@@ -8,7 +8,7 @@ const PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
       'of {track}: a Base lap and a Compare lap. Each focus area lists the time through the area for ' +
       'both laps with the difference (Compare minus Base; negative means the Compare lap was faster), ' +
       'where each lap first touched the brake in feet from the start/finish line (later or earlier ' +
-      'for the Compare lap), and the peak brake pressure for each lap (heavier or lighter for the ' +
+      'for the Compare lap), and the peak brake pressure for each lap (harder or lighter for the ' +
       'Compare lap), the minimum speed through the area (min speed, in mph) for each lap, and the speed at the end of the area (exit speed, in mph) for each lap. Write a summary of exactly 6 or 7 sentences from the perspective of the Compare ' +
       'lap that answers: where on the track, and how, could the Compare lap be better? Name the ' +
       'specific focus areas where the Compare lap lost the most time, use the numbers from the data, ' +
