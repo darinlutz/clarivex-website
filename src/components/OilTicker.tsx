@@ -76,14 +76,6 @@ export default function OilTicker() {
           <p className="text-slate-600 text-sm">Price unavailable</p>
         )}
       </div>
-
-      {/* Auto-refresh indicator */}
-      <div className="mt-4 pt-4 border-t border-slate-200">
-        <div className="flex items-center justify-center space-x-2 text-xs text-slate-500">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span>Live updates every 30 seconds</span>
-        </div>
-      </div>
     </div>
   );
 }
