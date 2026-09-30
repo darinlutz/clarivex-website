@@ -36,29 +36,49 @@ function correlation(xs: number[], ys: number[]) {
 const seconds = (value: number | null) => (value === null ? 'n/a' : `${value.toFixed(3)}s`);
 const signed = (value: number) => `${value >= 0 ? '+' : '-'}${Math.abs(value).toFixed(3)}s`;
 
-// Why a lap doesn't count toward the stint statistics, or null if it does
-function exclusionReason(lap: StintLap) {
-  if (lap.pitOut) return 'out lap';
-  if (lap.pitIn) return 'in lap';
-  if (lap.sectors.length > 0 && lap.sectors.some((s) => s === null)) return 'incomplete lap';
-  if (!lap.clean) return 'not clean';
-  return null;
+// A full, clean lap: not an out or in lap, every sector timed, and flagged clean by Garage 61
+function isFullCleanLap(lap: StintLap) {
+  return !lap.pitOut && !lap.pitIn && !lap.sectors.some((s) => s === null) && lap.clean;
+}
+
+export type StintSelection = {
+  stint: StintExport; // only the full, clean laps of the chosen run
+  run: number;
+  runCount: number;
+  lapsInExport: number;
+};
+
+// Keeps the run with the most full, clean laps (the earlier run on a tie) and drops every other lap.
+// Null when the export has no full, clean laps at all.
+export function selectBestRun(stint: StintExport): StintSelection | null {
+  const cleanByRun = new Map<number, StintLap[]>();
+  for (const lap of stint.laps) {
+    if (!cleanByRun.has(lap.run)) cleanByRun.set(lap.run, []);
+    if (isFullCleanLap(lap)) cleanByRun.get(lap.run)!.push(lap);
+  }
+  let run = NaN;
+  let laps: StintLap[] = [];
+  for (const [candidate, candidateLaps] of cleanByRun) {
+    if (candidateLaps.length > laps.length) {
+      run = candidate;
+      laps = candidateLaps;
+    }
+  }
+  if (laps.length === 0) return null;
+  return { stint: { ...stint, laps }, run, runCount: cleanByRun.size, lapsInExport: stint.laps.length };
 }
 
 // Plain-text stint report: shown in the text box and sent to the AI for the summary
-export function stintReport(stint: StintExport) {
-  const timed = stint.laps.filter((lap) => exclusionReason(lap) === null);
-  const excluded = stint.laps.filter((lap) => exclusionReason(lap) !== null);
-  const first = stint.laps[0];
+export function stintReport({ stint, run, runCount, lapsInExport }: StintSelection) {
+  const timed = stint.laps;
+  const first = timed[0];
   const lines = [
     `Driver: ${first.driver}`,
     `Started: ${new Date(first.startedAt).toLocaleString()}`,
-    `Laps in export: ${stint.laps.length}, timed laps (clean, complete, no pit): ${timed.length}`,
+    `Run analyzed: ${run}${runCount > 1 ? ` (the run with the most full, clean laps, out of ${runCount} runs)` : ''}`,
+    `Laps in export: ${lapsInExport}, full clean laps analyzed (complete, no pit): ${timed.length}`,
+    '',
   ];
-  if (excluded.length > 0) {
-    lines.push(`Excluded: ${excluded.map((lap) => `lap ${lap.lap} (${exclusionReason(lap)})`).join(', ')}`);
-  }
-  lines.push('');
 
   if (timed.length < 2) {
     lines.push('Need at least 2 clean, complete laps to analyze the stint.');
@@ -136,11 +156,11 @@ export function stintReport(stint: StintExport) {
 
   // Fuel
   const fuelPerLap = mean(timed.map((lap) => lap.fuelUsed));
-  const last = stint.laps[stint.laps.length - 1];
+  const last = timed[timed.length - 1];
   const fuelLeft = last.fuelLevel - (last.fuelUsed || 0);
   lines.push(
     'Fuel:',
-    `  Average ${fuelPerLap.toFixed(2)} L per timed lap; ${fuelLeft.toFixed(1)} L left at the end (about ${Math.floor(fuelLeft / fuelPerLap)} more lap${Math.floor(fuelLeft / fuelPerLap) === 1 ? '' : 's'})`
+    `  Average ${fuelPerLap.toFixed(2)} L per timed lap; ${fuelLeft.toFixed(1)} L left after the last clean lap (about ${Math.floor(fuelLeft / fuelPerLap)} more lap${Math.floor(fuelLeft / fuelPerLap) === 1 ? '' : 's'})`
   );
 
   return lines.join('\n');

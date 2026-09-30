@@ -3,8 +3,8 @@
 import { useRef, useState } from 'react';
 
 import WeatherTable from '@/components/WeatherTable';
-import { isStintExport, parseStintExport, type StintExport } from '@/lib/stintExport';
-import { stintReport } from '@/lib/stintStats';
+import { isStintExport, parseStintExport } from '@/lib/stintExport';
+import { selectBestRun, stintReport, type StintSelection } from '@/lib/stintStats';
 
 const inputClass =
   'w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors';
@@ -28,7 +28,7 @@ async function fetchStintSummary(report: string) {
 }
 
 export default function StintAnalysis() {
-  const [stint, setStint] = useState<StintExport | null>(null);
+  const [stint, setStint] = useState<StintSelection | null>(null);
   const [fileError, setFileError] = useState('');
   const [dragging, setDragging] = useState(false);
   const [analysis, setAnalysis] = useState('');
@@ -49,7 +49,9 @@ export default function StintAnalysis() {
       if (!(await isStintExport(file))) {
         throw new Error('not a Garage 61 stint export (expected columns like Run, Lap, Lap time, Track temp)');
       }
-      setStint(await parseStintExport(file));
+      const selection = selectBestRun(await parseStintExport(file));
+      if (!selection) throw new Error('no full, clean laps (every lap is an in/out lap, incomplete or not clean)');
+      setStint(selection);
       setFileError('');
       setAnalysis('');
     } catch (err) {
@@ -80,7 +82,14 @@ export default function StintAnalysis() {
   return (
     <div className="bg-slate-50 rounded-xl border border-slate-200 p-8 space-y-6">
       {stint ? (
-        <WeatherTable stint={stint} onRemove={removeStint} />
+        <WeatherTable
+          stint={stint.stint}
+          onRemove={removeStint}
+          note={
+            `Showing the ${stint.stint.laps.length} full, clean lap${stint.stint.laps.length === 1 ? '' : 's'} of run ${stint.run}` +
+            (stint.runCount > 1 ? ` (the run with the most, of ${stint.runCount} runs).` : '.')
+          }
+        />
       ) : (
         <div>
           <label className="block text-sm text-slate-600 mb-2">Upload Stint CSV</label>

@@ -11,7 +11,7 @@ const MODEL_NAME = 'gpt-4o';
 const PLOT_SCRIPT_PATH = path.join(process.cwd(), 'plot_stock.py');
 const TICKER_PATTERN = /^[A-Za-z.]{1,10}$/;
 
-const getCurrentDateTool = tool(
+export const getCurrentDateTool = tool(
   async () =>
     `The current date is: ${new Date().toLocaleDateString('en-US', {
       day: '2-digit',
@@ -25,7 +25,7 @@ const getCurrentDateTool = tool(
   }
 );
 
-const tavilySearchTool = tool(
+export const tavilySearchTool = tool(
   async ({ query }: { query: string }) => {
     const apiKey = process.env.TAVILY_API_KEY;
     if (!apiKey) {

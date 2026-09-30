@@ -5,9 +5,10 @@ import TripPlannerForm from '@/components/TripPlannerForm';
 import OllamaSearch from '@/components/OllamaSearch';
 import PdfAnalyzer from '@/components/PdfAnalyzer';
 import ChatbotQA from '@/components/ChatbotQA';
+import AgentRunner from '@/components/AgentRunner';
 
 export default function TripPlanner() {
-  const [activeTab, setActiveTab] = useState<'city' | 'ollama' | 'pdf' | 'qa'>('city');
+  const [activeTab, setActiveTab] = useState<'city' | 'ollama' | 'pdf' | 'qa' | 'agents'>('city');
 
   return (
     <div className="w-full">
@@ -68,6 +69,16 @@ export default function TripPlanner() {
             >
               Chatbot Q&A
             </button>
+            <button
+              onClick={() => setActiveTab('agents')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'agents'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Agents
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -113,6 +124,17 @@ export default function TripPlanner() {
                   Ask a question and get a polite answer drawn from a set of saved web articles.
                 </p>
                 <ChatbotQA />
+              </div>
+            )}
+
+            {/* Agents Tab */}
+            {activeTab === 'agents' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Agents</h2>
+                <p className="text-slate-600 mb-6">
+                  Give an agent instructions and it will carry them out, searching the web when it needs to.
+                </p>
+                <AgentRunner />
               </div>
             )}
           </div>
