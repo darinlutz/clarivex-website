@@ -36,6 +36,42 @@ function correlation(xs: number[], ys: number[]) {
 const seconds = (value: number | null) => (value === null ? 'n/a' : `${value.toFixed(3)}s`);
 const signed = (value: number) => `${value >= 0 ? '+' : '-'}${Math.abs(value).toFixed(3)}s`;
 
+export type StintConditions = {
+  trackTempC: number;
+  minTrackTempC: number;
+  maxTrackTempC: number;
+  airTempC: number;
+  relativeHumidity: number; // 0-1
+  windVelocity: number; // m/s, mean of each lap's speed
+  windDirection: number; // radians, from the speed-weighted vector average
+  clouds: { value: number; laps: number }[]; // each sky condition seen, in order of first appearance
+};
+
+// Averages of the weather over the given laps
+export function stintConditions(laps: StintLap[]): StintConditions {
+  const trackTemps = laps.map((lap) => lap.trackTempC);
+  // Averaging angles directly fails across north (350° and 10° would give 180°), so add the
+  // per-lap wind vectors and take the direction of the sum
+  const east = laps.reduce((sum, lap) => sum + lap.windVelocity * Math.sin(lap.windDirection), 0);
+  const north = laps.reduce((sum, lap) => sum + lap.windVelocity * Math.cos(lap.windDirection), 0);
+  const clouds: StintConditions['clouds'] = [];
+  for (const lap of laps) {
+    const entry = clouds.find((c) => c.value === lap.cloudCover);
+    if (entry) entry.laps++;
+    else clouds.push({ value: lap.cloudCover, laps: 1 });
+  }
+  return {
+    trackTempC: mean(trackTemps),
+    minTrackTempC: Math.min(...trackTemps),
+    maxTrackTempC: Math.max(...trackTemps),
+    airTempC: mean(laps.map((lap) => lap.airTempC)),
+    relativeHumidity: mean(laps.map((lap) => lap.relativeHumidity)),
+    windVelocity: mean(laps.map((lap) => lap.windVelocity)),
+    windDirection: Math.atan2(east, north),
+    clouds,
+  };
+}
+
 // A full, clean lap: not an out or in lap, every sector timed, and flagged clean by Garage 61
 function isFullCleanLap(lap: StintLap) {
   return !lap.pitOut && !lap.pitIn && !lap.sectors.some((s) => s === null) && lap.clean;

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import {
   formatClouds,
   formatPressure,
@@ -12,15 +14,19 @@ type WeatherTableProps = {
   onRemove: () => void;
   note?: string;
   isHighlighted?: (lapSeconds: number) => boolean;
+  showWetness?: boolean; // the Precip. and Wetness columns
+  summary?: ReactNode; // shown between the heading and the table
 };
 
+const WETNESS_HEADINGS = ['Precip.', 'Wetness'];
 const HEADINGS = [
   'Lap', 'Lap time', 'Started', 'Clean', 'Track temp', 'Air temp', 'Humidity', 'Wind', 'Clouds',
-  'Pressure', 'Precip.', 'Wetness', 'Track usage',
+  'Pressure', ...WETNESS_HEADINGS, 'Track usage',
 ];
 
 // Per-lap weather from a Garage 61 stint export
-export default function WeatherTable({ stint, onRemove, note, isHighlighted }: WeatherTableProps) {
+export default function WeatherTable({ stint, onRemove, note, isHighlighted, showWetness = true, summary }: WeatherTableProps) {
+  const headings = showWetness ? HEADINGS : HEADINGS.filter((h) => !WETNESS_HEADINGS.includes(h));
   const trackTemps = stint.laps.map((lap) => lap.trackTempC);
 
   return (
@@ -42,11 +48,12 @@ export default function WeatherTable({ stint, onRemove, note, isHighlighted }: W
         Track temp {formatTempF(Math.min(...trackTemps))} – {formatTempF(Math.max(...trackTemps))} over the stint.
         {note && ` ${note}`}
       </p>
+      {summary}
       <div className="overflow-x-auto bg-white border border-slate-200 rounded-lg">
         <table className="w-full text-sm text-dark-blue whitespace-nowrap">
           <thead className="bg-slate-100 text-left text-slate-600">
             <tr>
-              {HEADINGS.map((heading) => (
+              {headings.map((heading) => (
                 <th key={heading} className="px-3 py-2 font-medium">
                   {heading}
                 </th>
@@ -71,8 +78,12 @@ export default function WeatherTable({ stint, onRemove, note, isHighlighted }: W
                 <td className="px-3 py-2">{formatWind(lap.windVelocity, lap.windDirection)}</td>
                 <td className="px-3 py-2">{formatClouds(lap.cloudCover)}</td>
                 <td className="px-3 py-2">{formatPressure(lap.airPressure)}</td>
-                <td className="px-3 py-2">{Math.round(lap.precipitation * 100)}%</td>
-                <td className="px-3 py-2">{lap.trackWetness}</td>
+                {showWetness && (
+                  <>
+                    <td className="px-3 py-2">{Math.round(lap.precipitation * 100)}%</td>
+                    <td className="px-3 py-2">{lap.trackWetness}</td>
+                  </>
+                )}
                 <td className="px-3 py-2">{lap.trackUsage}</td>
               </tr>
             ))}

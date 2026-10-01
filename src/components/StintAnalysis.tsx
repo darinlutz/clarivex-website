@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react';
 
+import SectorChart from '@/components/SectorChart';
+import StintConditions from '@/components/StintConditions';
 import WeatherTable from '@/components/WeatherTable';
 import { isStintExport, parseStintExport } from '@/lib/stintExport';
 import { selectBestRun, stintReport, type StintSelection } from '@/lib/stintStats';
@@ -85,6 +87,8 @@ export default function StintAnalysis() {
         <WeatherTable
           stint={stint.stint}
           onRemove={removeStint}
+          showWetness={false}
+          summary={<StintConditions laps={stint.stint.laps} />}
           note={
             `Showing the ${stint.stint.laps.length} full, clean lap${stint.stint.laps.length === 1 ? '' : 's'} of run ${stint.run}` +
             (stint.runCount > 1 ? ` (the run with the most, of ${stint.runCount} runs).` : '.')
@@ -140,6 +144,8 @@ export default function StintAnalysis() {
       )}
 
       <div className="space-y-4">
+        {stint && <SectorChart laps={stint.stint.laps} sectorCount={stint.stint.sectorCount} />}
+
         <button
           type="button"
           onClick={() => void analyzeStint()}
