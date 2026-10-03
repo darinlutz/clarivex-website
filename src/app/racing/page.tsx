@@ -8,12 +8,13 @@ import SpaceFactQuery from '@/components/SpaceFactQuery';
 import MultiLapAnalysis from '@/components/MultiLapAnalysis';
 import StintAnalysis from '@/components/StintAnalysis';
 import LapCompare from '@/components/LapCompare';
+import DebriefCoach from '@/components/DebriefCoach';
 
 // Space Fact Query tab is hidden for now; set to true to show it again
 const SHOW_SPACE_FACTS_TAB = false;
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'multiLap' | 'stint' | 'lapCompare'>(
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'multiLap' | 'stint' | 'lapCompare' | 'debrief'>(
     'friends'
   );
 
@@ -106,6 +107,16 @@ export default function RacingPage() {
             >
               Lap Compare
             </button>
+            <button
+              onClick={() => setActiveTab('debrief')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'debrief'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Debrief Coach
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -191,6 +202,17 @@ export default function RacingPage() {
                   Compare two laps focus area by focus area.
                 </p>
                 <LapCompare />
+              </div>
+            )}
+
+            {/* Debrief Coach Tab */}
+            {activeTab === 'debrief' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Debrief Coach</h2>
+                <p className="text-slate-600 mb-6">
+                  An AI coach reviews every lap of your session and tells you what to fix next time.
+                </p>
+                <DebriefCoach />
               </div>
             )}
           </div>
