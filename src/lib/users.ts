@@ -44,13 +44,26 @@ export function ensureUserSchema(): Promise<void> {
         ],
         'write'
       )
-      .then(() => undefined)
+      .then(addStripeColumns)
       .catch((error) => {
         schemaReady = null;
         throw error;
       });
   }
   return schemaReady;
+}
+
+// CREATE TABLE IF NOT EXISTS won't add columns to an existing Users table, and
+// SQLite has no ADD COLUMN IF NOT EXISTS, so add any missing ones explicitly.
+async function addStripeColumns(): Promise<void> {
+  const db = getDb();
+  const info = await db.execute('PRAGMA table_info(Users)');
+  const existing = new Set(info.rows.map((row) => row.name as string));
+  for (const column of ['StripeCustomerId', 'StripeSubscriptionId']) {
+    if (!existing.has(column)) {
+      await db.execute(`ALTER TABLE Users ADD COLUMN ${column} TEXT`);
+    }
+  }
 }
 
 // Stored as "scrypt$<salt hex>$<hash hex>" so the format is self-describing.
@@ -123,4 +136,30 @@ export async function getUserById(id: number): Promise<User | null> {
   });
   const row = result.rows[0];
   return row ? rowToUser(row) : null;
+}
+
+// Links a completed Checkout Session to the user who started it.
+export async function linkStripeSubscription(
+  userId: number,
+  stripeCustomerId: string,
+  stripeSubscriptionId: string,
+  accountStatus: string
+): Promise<void> {
+  await ensureUserSchema();
+  await getDb().execute({
+    sql: `UPDATE Users SET StripeCustomerId = ?, StripeSubscriptionId = ?, AccountStatus = ?
+          WHERE Id = ?`,
+    args: [stripeCustomerId, stripeSubscriptionId, accountStatus, userId],
+  });
+}
+
+export async function setStatusBySubscriptionId(
+  stripeSubscriptionId: string,
+  accountStatus: string
+): Promise<void> {
+  await ensureUserSchema();
+  await getDb().execute({
+    sql: 'UPDATE Users SET AccountStatus = ? WHERE StripeSubscriptionId = ?',
+    args: [accountStatus, stripeSubscriptionId],
+  });
 }

@@ -29,6 +29,17 @@ export default async function AccountPage() {
             </dd>
           </div>
         </dl>
+
+        {user.accountStatus !== 'Active' && (
+          <form action="/api/create-checkout-session" method="POST" className="mt-8">
+            <button
+              type="submit"
+              className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
+            >
+              Subscribe
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );

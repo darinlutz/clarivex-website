@@ -38,6 +38,9 @@ npm run lint         # Run ESLint
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
 - `TURSO_DATABASE_URL` - Turso/libSQL database URL (Friends roster persistence). Omit locally to fall back to a `local.db` file
 - `TURSO_AUTH_TOKEN` - Turso auth token, paired with `TURSO_DATABASE_URL`
+- `STRIPE_SECRET_KEY` - Stripe secret key (Checkout Session creation, success page lookup)
+- `STRIPE_PRICE_ID` - Stripe recurring Price ID used by the Account page's Subscribe button
+- `STRIPE_WEBHOOK_SECRET` - Signing secret for `/api/stripe-webhook` (syncs `Users.AccountStatus` with the subscription)
 - `ATLASSIAN_API_KEY` - Atlassian API token for Jira Cloud (gordon-darby.atlassian.net, used by the Jira page)
 
 ## Project Structure
