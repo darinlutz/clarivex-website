@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getCurrentUser } from '@/lib/session';
+import { getSiteOrigin } from '@/lib/siteOrigin';
 import { canSubscribe } from '@/lib/users';
 
 export async function POST(request: Request) {
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const origin = new URL(request.url).origin;
+    const origin = getSiteOrigin(request);
 
     // The webhook uses client_reference_id to find which user subscribed
     const user = await getCurrentUser();

@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getCurrentUser } from '@/lib/session';
+import { getSiteOrigin } from '@/lib/siteOrigin';
 import { setStatusBySubscriptionId } from '@/lib/users';
 
 export async function POST(request: Request) {
   try {
-    const origin = new URL(request.url).origin;
+    const origin = getSiteOrigin(request);
 
     const user = await getCurrentUser();
     if (!user) {
