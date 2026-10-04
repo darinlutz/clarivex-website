@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import ForgotPasswordForm from './ForgotPasswordForm';
 
 const inputClass =
   'w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors';
@@ -17,6 +18,7 @@ export default function SignupForm() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [forgotPassword, setForgotPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -44,6 +46,10 @@ export default function SignupForm() {
       setLoading(false);
     }
   };
+
+  if (forgotPassword) {
+    return <ForgotPasswordForm onBack={() => setForgotPassword(false)} />;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -130,6 +136,19 @@ export default function SignupForm() {
         <Link href="/login" className="text-powder-600 hover:underline font-medium">
           Log in
         </Link>
+      </p>
+      <p className="text-center text-sm text-slate-600">
+        Forgot password?{' '}
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setForgotPassword(true);
+          }}
+          className="text-powder-600 hover:underline font-medium"
+        >
+          Click here
+        </a>
       </p>
     </form>
   );

@@ -70,6 +70,11 @@ export function ensureUserSchema(): Promise<void> {
             UserId INTEGER NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
             ExpiresAt INTEGER NOT NULL
           )`,
+          `CREATE TABLE IF NOT EXISTS PasswordResets (
+            TokenHash TEXT PRIMARY KEY,
+            UserId INTEGER NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+            ExpiresAt INTEGER NOT NULL
+          )`,
         ],
         'write'
       )
@@ -162,6 +167,30 @@ export async function authenticateUser(emailAddress: string, password: string): 
   if (!row) return null;
   const ok = await verifyPassword(password, row.Password as string);
   return ok ? rowToUser(row) : null;
+}
+
+export async function getUserByEmail(emailAddress: string): Promise<User | null> {
+  await ensureUserSchema();
+  const result = await getDb().execute({
+    sql: `SELECT ${USER_COLUMNS} FROM Users WHERE EmailAddress = ?`,
+    args: [emailAddress],
+  });
+  const row = result.rows[0];
+  return row ? rowToUser(row) : null;
+}
+
+// Also signs the user out everywhere, since an old session may belong to
+// whoever knew the previous password.
+export async function updatePassword(userId: number, password: string): Promise<void> {
+  await ensureUserSchema();
+  const passwordHash = await hashPassword(password);
+  await getDb().batch(
+    [
+      { sql: 'UPDATE Users SET Password = ? WHERE Id = ?', args: [passwordHash, userId] },
+      { sql: 'DELETE FROM Sessions WHERE UserId = ?', args: [userId] },
+    ],
+    'write'
+  );
 }
 
 export async function getUserById(id: number): Promise<User | null> {
