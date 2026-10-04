@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,11 +20,13 @@ export const metadata: Metadata = {
   description: "Clarivex specializes in helping businesses automate and streamline their repetitive processes with clarity and efficiency.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
+
   return (
     <html
       lang="en"
@@ -31,7 +34,7 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
     >
       <body className="min-h-screen bg-white text-dark-blue flex flex-col">
-        <Navigation />
+        <Navigation user={user ? { firstName: user.firstName } : null} />
         <main className="flex-1 pt-16">
           {children}
         </main>

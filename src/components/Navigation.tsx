@@ -2,13 +2,32 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export default function Navigation() {
+type NavigationProps = {
+  user: { firstName: string } | null;
+};
+
+export default function Navigation({ user }: NavigationProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      setLoggingOut(false);
+      closeMenu();
+      router.push('/');
+      router.refresh();
+    }
+  };
 
   return (
     <nav className="fixed w-full top-0 z-50 bg-white border-b border-slate-200 shadow-md">
@@ -89,6 +108,43 @@ export default function Navigation() {
             >
               Racing
             </Link>
+          </div>
+
+          {/* Desktop Account */}
+          <div className="hidden md:flex items-center gap-3">
+            {user ? (
+              <>
+                <span className="text-dark-blue font-medium whitespace-nowrap">Welcome, {user.firstName}</span>
+                <Link
+                  href="/account"
+                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium whitespace-nowrap"
+                >
+                  Account
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="px-4 py-2 rounded-lg border border-powder-600 text-powder-600 font-medium hover:bg-powder-600 hover:text-white transition-colors disabled:opacity-60"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium whitespace-nowrap"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-powder-500 to-powder-600 text-white font-medium hover:shadow-lg transition-all whitespace-nowrap"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -174,6 +230,46 @@ export default function Navigation() {
             >
               Racing
             </Link>
+            <div className="border-t border-slate-200 pt-2 mt-2">
+              {user ? (
+                <>
+                  <Link
+                    href="/account"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+                    onClick={closeMenu}
+                  >
+                    Account
+                  </Link>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <span className="text-base font-medium text-dark-blue">Welcome, {user.firstName}</span>
+                    <button
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className="px-4 py-2 rounded-lg border border-powder-600 text-powder-600 font-medium hover:bg-powder-600 hover:text-white transition-colors disabled:opacity-60"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+                    onClick={closeMenu}
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+                    onClick={closeMenu}
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
