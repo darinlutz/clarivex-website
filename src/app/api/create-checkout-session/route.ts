@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getCurrentUser } from '@/lib/session';
+import { canSubscribe } from '@/lib/users';
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,10 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.redirect(`${origin}/login`, 303);
+    }
+    // Prevents a second subscription while one is still running
+    if (!canSubscribe(user)) {
+      return NextResponse.redirect(`${origin}/account`, 303);
     }
 
     const stripe = new Stripe(stripeSecretKey);

@@ -12,7 +12,36 @@ export type User = {
   lastName: string;
   emailAddress: string;
   accountStatus: string;
+  signupDate: string | null;
+  subscriptionEndDate: string | null;
+  stripeSubscriptionId: string | null;
 };
+
+const USER_COLUMNS =
+  'Id, FirstName, LastName, EmailAddress, AccountStatus, SignupDate, SubscriptionEndDate, StripeSubscriptionId';
+
+// Dates are stored as ISO 8601 UTC strings, so they compare correctly as text.
+// One month from `from`, clamped so Jan 31 becomes Feb 28/29 rather than Mar 3.
+export function oneMonthFrom(from: Date = new Date()): string {
+  const end = new Date(from);
+  end.setUTCDate(1);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  const lastDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 0)).getUTCDate();
+  end.setUTCDate(Math.min(from.getUTCDate(), lastDay));
+  return end.toISOString();
+}
+
+function hasEnded(user: User): boolean {
+  return !user.subscriptionEndDate || user.subscriptionEndDate < new Date().toISOString();
+}
+
+export function canSubscribe(user: User): boolean {
+  return (
+    user.accountStatus === 'New' ||
+    user.accountStatus === 'Expired' ||
+    (user.accountStatus === 'Canceled' && hasEnded(user))
+  );
+}
 
 export class EmailTakenError extends Error {
   constructor() {
@@ -44,7 +73,7 @@ export function ensureUserSchema(): Promise<void> {
         ],
         'write'
       )
-      .then(addStripeColumns)
+      .then(addMissingColumns)
       .catch((error) => {
         schemaReady = null;
         throw error;
@@ -55,15 +84,19 @@ export function ensureUserSchema(): Promise<void> {
 
 // CREATE TABLE IF NOT EXISTS won't add columns to an existing Users table, and
 // SQLite has no ADD COLUMN IF NOT EXISTS, so add any missing ones explicitly.
-async function addStripeColumns(): Promise<void> {
+async function addMissingColumns(): Promise<void> {
   const db = getDb();
   const info = await db.execute('PRAGMA table_info(Users)');
   const existing = new Set(info.rows.map((row) => row.name as string));
-  for (const column of ['StripeCustomerId', 'StripeSubscriptionId']) {
+  for (const column of ['StripeCustomerId', 'StripeSubscriptionId', 'SignupDate', 'SubscriptionEndDate']) {
     if (!existing.has(column)) {
       await db.execute(`ALTER TABLE Users ADD COLUMN ${column} TEXT`);
     }
   }
+  // Users created before SignupDate existed signed up when their row was created
+  await db.execute(
+    `UPDATE Users SET SignupDate = strftime('%Y-%m-%dT%H:%M:%fZ', CreatedAt) WHERE SignupDate IS NULL`
+  );
 }
 
 // Stored as "scrypt$<salt hex>$<hash hex>" so the format is self-describing.
@@ -88,6 +121,9 @@ function rowToUser(row: Record<string, unknown>): User {
     lastName: row.LastName as string,
     emailAddress: row.EmailAddress as string,
     accountStatus: row.AccountStatus as string,
+    signupDate: (row.SignupDate as string | null) ?? null,
+    subscriptionEndDate: (row.SubscriptionEndDate as string | null) ?? null,
+    stripeSubscriptionId: (row.StripeSubscriptionId as string | null) ?? null,
   };
 }
 
@@ -101,10 +137,10 @@ export async function createUser(input: {
   const passwordHash = await hashPassword(input.password);
   try {
     const result = await getDb().execute({
-      sql: `INSERT INTO Users (FirstName, LastName, EmailAddress, Password, AccountStatus)
-            VALUES (?, ?, ?, ?, 'New')
-            RETURNING Id, FirstName, LastName, EmailAddress, AccountStatus`,
-      args: [input.firstName, input.lastName, input.emailAddress, passwordHash],
+      sql: `INSERT INTO Users (FirstName, LastName, EmailAddress, Password, AccountStatus, SignupDate)
+            VALUES (?, ?, ?, ?, 'New', ?)
+            RETURNING ${USER_COLUMNS}`,
+      args: [input.firstName, input.lastName, input.emailAddress, passwordHash, new Date().toISOString()],
     });
     return rowToUser(result.rows[0]);
   } catch (error) {
@@ -119,7 +155,7 @@ export async function createUser(input: {
 export async function authenticateUser(emailAddress: string, password: string): Promise<User | null> {
   await ensureUserSchema();
   const result = await getDb().execute({
-    sql: 'SELECT Id, FirstName, LastName, EmailAddress, Password, AccountStatus FROM Users WHERE EmailAddress = ?',
+    sql: `SELECT ${USER_COLUMNS}, Password FROM Users WHERE EmailAddress = ?`,
     args: [emailAddress],
   });
   const row = result.rows[0];
@@ -130,8 +166,15 @@ export async function authenticateUser(emailAddress: string, password: string): 
 
 export async function getUserById(id: number): Promise<User | null> {
   await ensureUserSchema();
-  const result = await getDb().execute({
-    sql: 'SELECT Id, FirstName, LastName, EmailAddress, AccountStatus FROM Users WHERE Id = ?',
+  const db = getDb();
+  // A paid subscription whose end date has passed (e.g. a failed renewal) is expired
+  await db.execute({
+    sql: `UPDATE Users SET AccountStatus = 'Expired'
+          WHERE Id = ? AND AccountStatus = 'Paid' AND SubscriptionEndDate < ?`,
+    args: [id, new Date().toISOString()],
+  });
+  const result = await db.execute({
+    sql: `SELECT ${USER_COLUMNS} FROM Users WHERE Id = ?`,
     args: [id],
   });
   const row = result.rows[0];
@@ -139,17 +182,27 @@ export async function getUserById(id: number): Promise<User | null> {
 }
 
 // Links a completed Checkout Session to the user who started it.
-export async function linkStripeSubscription(
+export async function startSubscription(
   userId: number,
   stripeCustomerId: string,
-  stripeSubscriptionId: string,
-  accountStatus: string
+  stripeSubscriptionId: string
 ): Promise<void> {
   await ensureUserSchema();
   await getDb().execute({
-    sql: `UPDATE Users SET StripeCustomerId = ?, StripeSubscriptionId = ?, AccountStatus = ?
+    sql: `UPDATE Users SET StripeCustomerId = ?, StripeSubscriptionId = ?, AccountStatus = 'Paid',
+            SubscriptionEndDate = ?
           WHERE Id = ?`,
-    args: [stripeCustomerId, stripeSubscriptionId, accountStatus, userId],
+    args: [stripeCustomerId, stripeSubscriptionId, oneMonthFrom(), userId],
+  });
+}
+
+// Called on each successful monthly renewal payment.
+export async function renewSubscription(stripeSubscriptionId: string): Promise<void> {
+  await ensureUserSchema();
+  await getDb().execute({
+    sql: `UPDATE Users SET AccountStatus = 'Paid', SubscriptionEndDate = ?
+          WHERE StripeSubscriptionId = ?`,
+    args: [oneMonthFrom(), stripeSubscriptionId],
   });
 }
 

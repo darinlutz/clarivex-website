@@ -1,23 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { linkStripeSubscription, setStatusBySubscriptionId } from '@/lib/users';
-
-// Maps a Stripe subscription status to the AccountStatus shown on /account
-function toAccountStatus(status: Stripe.Subscription.Status): string {
-  switch (status) {
-    case 'active':
-    case 'trialing':
-      return 'Active';
-    case 'past_due':
-    case 'unpaid':
-      return 'Past Due';
-    case 'canceled':
-    case 'incomplete_expired':
-      return 'Canceled';
-    default:
-      return 'Pending';
-  }
-}
+import { renewSubscription, setStatusBySubscriptionId, startSubscription } from '@/lib/users';
 
 export async function POST(request: Request) {
   // Check if Stripe keys are configured
@@ -59,6 +42,7 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
+      // First payment: mark the user Paid for one month
       case 'checkout.session.completed': {
         const session = event.data.object;
         const userId = Number(session.client_reference_id);
@@ -72,21 +56,23 @@ export async function POST(request: Request) {
           break;
         }
         // Subscription mode sessions only complete once the first payment succeeds
-        await linkStripeSubscription(
-          userId,
-          session.customer,
-          session.subscription,
-          'Active'
+        await startSubscription(userId, session.customer, session.subscription);
+        break;
+      }
+      // Monthly renewal paid: extend the subscription another month
+      case 'invoice.paid': {
+        const invoice = event.data.object;
+        const subscription = invoice.parent?.subscription_details?.subscription;
+        // The first invoice is handled by checkout.session.completed
+        if (invoice.billing_reason !== 'subscription_cycle' || !subscription) break;
+        await renewSubscription(
+          typeof subscription === 'string' ? subscription : subscription.id
         );
         break;
       }
-      case 'customer.subscription.updated':
+      // Subscription ended (canceled here, in the Dashboard, or after failed payments)
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
-        await setStatusBySubscriptionId(
-          subscription.id,
-          toAccountStatus(subscription.status)
-        );
+        await setStatusBySubscriptionId(event.data.object.id, 'Canceled');
         break;
       }
       default:

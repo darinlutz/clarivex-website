@@ -1,5 +1,12 @@
 import { redirect } from 'next/navigation';
+import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import { getCurrentUser } from '@/lib/session';
+import { canSubscribe } from '@/lib/users';
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { dateStyle: 'long' });
+}
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
@@ -28,9 +35,23 @@ export default async function AccountPage() {
               </span>
             </dd>
           </div>
+          <div className="flex justify-between gap-4 px-4 py-3">
+            <dt className="text-sm font-medium text-slate-500">Signup Date</dt>
+            <dd className="text-dark-blue font-medium text-right">
+              {formatDate(user.signupDate)}
+            </dd>
+          </div>
+          {user.accountStatus === 'Paid' && (
+            <div className="flex justify-between gap-4 px-4 py-3">
+              <dt className="text-sm font-medium text-slate-500">Subscription End Date</dt>
+              <dd className="text-dark-blue font-medium text-right">
+                {formatDate(user.subscriptionEndDate)}
+              </dd>
+            </div>
+          )}
         </dl>
 
-        {user.accountStatus !== 'Active' && (
+        {canSubscribe(user) && (
           <form action="/api/create-checkout-session" method="POST" className="mt-8">
             <button
               type="submit"
@@ -40,6 +61,8 @@ export default async function AccountPage() {
             </button>
           </form>
         )}
+
+        {user.accountStatus === 'Paid' && <CancelSubscriptionButton />}
       </div>
     </section>
   );
