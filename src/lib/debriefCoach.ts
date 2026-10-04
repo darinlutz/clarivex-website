@@ -39,8 +39,8 @@ export type DebriefSession = z.infer<typeof debriefSessionSchema>;
 type DebriefArea = DebriefSession['areas'][number];
 type DebriefRun = z.infer<typeof runSchema>;
 
+// No headline here: "Fix this first" is built from fixes[0] so the two can never disagree
 const debriefSchema = z.object({
-  headline: z.string().describe('One sentence: the single most important thing to fix next session'),
   fixes: z
     .array(
       z.object({
@@ -55,7 +55,8 @@ const debriefSchema = z.object({
   keepDoing: z.array(z.string()).describe('1 to 3 short things you already do well, with numbers'),
 });
 
-export type Debrief = z.infer<typeof debriefSchema>;
+type DebriefFixes = z.infer<typeof debriefSchema>;
+export type Debrief = DebriefFixes & { headline: string };
 
 function mean(values: number[]) {
   return values.reduce((sum, v) => sum + v, 0) / values.length;
@@ -95,8 +96,8 @@ function median(values: number[]) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function createTools(session: DebriefSession) {
-  // Incident laps would swamp the averages, so the area statistics leave them out
+// Incident laps would swamp the averages, so the area statistics leave them out
+function cleanSession(session: DebriefSession) {
   const cutoff = median(session.laps.map((l) => l.lapTime)) * INCIDENT_LAP_FACTOR;
   const incidentLaps = session.laps.filter((l) => l.lapTime > cutoff);
   const cleanLaps = session.laps.filter((l) => l.lapTime <= cutoff);
@@ -104,6 +105,35 @@ function createTools(session: DebriefSession) {
   const areas = session.areas
     .map((a) => ({ ...a, runs: a.runs.filter(isClean) }))
     .filter((a) => a.runs.length > 0);
+  return { cutoff, incidentLaps, cleanLaps, areas };
+}
+
+// Fastest third against slowest third of an area's runs (at least one run each)
+function fastSlow(area: DebriefArea) {
+  const runs = [...area.runs].sort((a, b) => a.seconds - b.seconds);
+  const k = Math.max(1, Math.floor(runs.length / 3));
+  return { runs, k, fast: runs.slice(0, k), slow: runs.slice(-k) };
+}
+
+// Fast and slow runs braking within this many feet of each other is treated as no difference
+const BRAKE_DIFF_FEET = 10;
+
+type BrakeDirection = { direction: 'later' | 'earlier'; aimFeet: number; diffFeet: number };
+
+// Which way the fastest runs moved the brakepoint compared with the slowest, decided here rather than by
+// the model so "later" and "earlier" can't get flipped. null when the data doesn't show a clear difference.
+function brakeDirection(area: DebriefArea): BrakeDirection | null {
+  const { fast, slow } = fastSlow(area);
+  const fastFeet = brakeFeetOf(fast);
+  const slowFeet = brakeFeetOf(slow);
+  if (fastFeet.length === 0 || slowFeet.length === 0) return null;
+  const diff = mean(fastFeet) - mean(slowFeet);
+  if (Math.abs(diff) < BRAKE_DIFF_FEET) return null;
+  return { direction: diff > 0 ? 'later' : 'earlier', aimFeet: Math.round(mean(fastFeet)), diffFeet: Math.round(Math.abs(diff)) };
+}
+
+function createTools(session: DebriefSession) {
+  const { cutoff, incidentLaps, cleanLaps, areas } = cleanSession(session);
   const findArea = (name: string) => areas.find((a) => a.name.toLowerCase() === name.trim().toLowerCase());
   const areaNames = areas.map((a) => a.name).join(', ');
 
@@ -144,11 +174,7 @@ function createTools(session: DebriefSession) {
       const area = findArea(name);
       if (!area) return `No focus area named "${name}". Focus areas: ${areaNames}`;
 
-      const runs = [...area.runs].sort((a, b) => a.seconds - b.seconds);
-      // Fastest third against slowest third (at least one run each)
-      const k = Math.max(1, Math.floor(runs.length / 3));
-      const fast = runs.slice(0, k);
-      const slow = runs.slice(-k);
+      const { runs, k, fast, slow } = fastSlow(area);
       const split = (label: string, pick: (r: DebriefRun[]) => string) => `${label} ${pick(fast)} vs ${pick(slow)}`;
 
       const lines = [
@@ -169,6 +195,15 @@ function createTools(session: DebriefSession) {
           '.',
       ];
 
+      const brake = brakeDirection(area);
+      lines.push(
+        brake
+          ? `Brakepoint verdict: your fastest runs braked ${brake.diffFeet} ft ${brake.direction.toUpperCase()} than your ` +
+              `slowest. Any brakepoint fix for this area must say brake ${brake.direction.toUpperCase()}, near ${brake.aimFeet} ft.`
+          : `Brakepoint verdict: your fast and slow runs brake within ${BRAKE_DIFF_FEET} ft of each other here, so the ` +
+              'brakepoint does not explain the time. Do not give a brakepoint fix for this area.'
+      );
+
       const brakes = brakeFeetOf(runs);
       if (area.brakepointTarget !== null && brakes.length > 0) {
         const target = area.brakepointTarget;
@@ -177,7 +212,8 @@ function createTools(session: DebriefSession) {
         lines.push(
           `Against the brakepoint target: early on ${early.length} of ${brakes.length} laps` +
             `${early.length > 0 ? ` (avg ${(target - mean(early)).toFixed(0)} ft early)` : ''}, late on ${late.length}` +
-            `${late.length > 0 ? ` (avg ${(mean(late) - target).toFixed(0)} ft late)` : ''}.`
+            `${late.length > 0 ? ` (avg ${(mean(late) - target).toFixed(0)} ft late)` : ''}. ` +
+            'The target is only a reference: when it disagrees with the brakepoint verdict, follow the verdict.'
         );
       }
       if (area.maxBrakeTarget !== null) {
@@ -237,9 +273,38 @@ const SYSTEM_PROMPT =
   'make in the car with a number to aim for (for example "brake about 30 ft later, near 1230 ft" or "build to ' +
   'about 90% peak pressure"). Base the number to aim for on what your fastest runs did; the targets are only a ' +
   'reference, so when your fastest runs beat the area while missing a target, tell the driver to copy the ' +
-  'fastest runs, and never give a fix that contradicts its own evidence. Only blame braking or speed when the fast and slow runs actually differ in it; if ' +
+  'fastest runs, and never give a fix that contradicts its own evidence. get_area_detail gives a brakepoint ' +
+  'verdict for each area: any brakepoint fix must use exactly that direction (later or earlier) and number, and ' +
+  'the problem and evidence must agree with it. Only blame braking or speed when the fast and slow runs actually differ in it; if ' +
   'nothing in the data explains the time, say the cause is not in the data instead of guessing. Use the numbers ' +
   'from the tools, never invent data, write to the driver as "you", and use plain text with no markdown.';
+
+// "brake about 30 ft later", "braking earlier", "brake later" -> the direction words in a fix
+const BRAKE_DIRECTION_RE = /\bbrak\w*\b(?:\W+[\w%~]+){0,5}?\W+(later|earlier|sooner)\b/gi;
+
+function brakeDirectionsIn(text: string) {
+  return new Set([...text.matchAll(BRAKE_DIRECTION_RE)].map((m) => (m[1].toLowerCase() === 'later' ? 'later' : 'earlier')));
+}
+
+// Fixes whose brake instruction points the opposite way to what the fastest runs did
+function brakeContradictions(response: DebriefFixes, areas: DebriefArea[]) {
+  return response.fixes.flatMap((fix) => {
+    const area = areas.find((a) => a.name.toLowerCase() === fix.area.trim().toLowerCase());
+    const brake = area && brakeDirection(area);
+    if (!brake) return [];
+    const said = brakeDirectionsIn(fix.fix);
+    const opposite = brake.direction === 'later' ? 'earlier' : 'later';
+    if (!said.has(opposite) || said.has(brake.direction)) return [];
+    return [
+      {
+        fix,
+        message:
+          `In ${fix.area} you said to brake ${opposite}, but your fastest runs braked ${brake.diffFeet} ft ` +
+          `${brake.direction} than your slowest (aim near ${brake.aimFeet} ft).`,
+      },
+    ];
+  });
+}
 
 // Tool calls the agent made, e.g. "get_area_detail(T 1&2)", shown under the debrief
 function toolSteps(messages: unknown[]) {
@@ -263,13 +328,42 @@ export async function runDebriefCoach(session: DebriefSession): Promise<{ debrie
     responseFormat: debriefSchema,
   });
 
-  const result = await agent.invoke(
+  let result = await agent.invoke(
     { messages: [{ role: 'user', content: `Debrief my session at ${session.track} in the ${session.car}. What should I fix?` }] },
     { recursionLimit: 30 }
   );
+
+  // The model can still flip "later" and "earlier", so check every fix against the data and give it one chance
+  // to correct itself before dropping any fix that still contradicts it
+  const { areas } = cleanSession(session);
+  let problems = brakeContradictions(result.structuredResponse, areas);
+  if (problems.length > 0) {
+    result = await agent.invoke(
+      {
+        messages: [
+          ...result.messages,
+          {
+            role: 'user',
+            content:
+              `Your debrief contradicts the brakepoint data: ${problems.map((p) => p.message).join(' ')} ` +
+              'Rewrite the whole debrief so every brakepoint fix, problem and evidence agrees with the brakepoint verdicts.',
+          },
+        ],
+      },
+      { recursionLimit: 30 }
+    );
+    problems = brakeContradictions(result.structuredResponse, areas);
+  }
+
+  const response: DebriefFixes = result.structuredResponse;
+  const fixes = response.fixes.filter((fix) => !problems.some((p) => p.fix === fix));
+  if (fixes.length === 0) {
+    throw new Error('The coach gave brakepoint advice that contradicts the data');
+  }
+
   const toolNames = new Set<string>(tools.map((t) => t.name));
   return {
-    debrief: result.structuredResponse,
+    debrief: { ...response, fixes, headline: `${fixes[0].area}: ${fixes[0].fix}` },
     steps: toolSteps(result.messages).filter((step) => toolNames.has(step.slice(0, step.indexOf('(')))),
   };
 }

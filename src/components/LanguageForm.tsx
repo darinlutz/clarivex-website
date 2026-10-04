@@ -409,12 +409,19 @@ export default function LanguageForm({
   const activeWordCategory: WordCategory =
     mode === 'fastPhrases' || mode === 'generalPhrases' ? mode : wordCategory;
 
+  // Resets the "Shown" counter when the active category changes. Done
+  // during render rather than in the effect below so it doesn't trigger
+  // a second render pass.
+  const [countedWordCategory, setCountedWordCategory] = useState(activeWordCategory);
+  if (countedWordCategory !== activeWordCategory) {
+    setCountedWordCategory(activeWordCategory);
+    setWordsShownCount(0);
+  }
+
   // Keeps the "Available" label in sync with whatever category is
-  // currently active, and resets the "Shown" counter for the newly active
-  // category.
+  // currently active.
   useEffect(() => {
     let isCurrent = true;
-    setWordsShownCount(0);
 
     fetch('/api/language/word/count', {
       method: 'POST',
