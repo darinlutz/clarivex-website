@@ -170,7 +170,7 @@ export async function getUserById(id: number): Promise<User | null> {
   // A paid subscription whose end date has passed (e.g. a failed renewal) is expired
   await db.execute({
     sql: `UPDATE Users SET AccountStatus = 'Expired'
-          WHERE Id = ? AND AccountStatus = 'Paid' AND SubscriptionEndDate < ?`,
+          WHERE Id = ? AND AccountStatus = 'Active' AND SubscriptionEndDate < ?`,
     args: [id, new Date().toISOString()],
   });
   const result = await db.execute({
@@ -189,7 +189,7 @@ export async function startSubscription(
 ): Promise<void> {
   await ensureUserSchema();
   await getDb().execute({
-    sql: `UPDATE Users SET StripeCustomerId = ?, StripeSubscriptionId = ?, AccountStatus = 'Paid',
+    sql: `UPDATE Users SET StripeCustomerId = ?, StripeSubscriptionId = ?, AccountStatus = 'Active',
             SubscriptionEndDate = ?
           WHERE Id = ?`,
     args: [stripeCustomerId, stripeSubscriptionId, oneMonthFrom(), userId],
@@ -200,7 +200,7 @@ export async function startSubscription(
 export async function renewSubscription(stripeSubscriptionId: string): Promise<void> {
   await ensureUserSchema();
   await getDb().execute({
-    sql: `UPDATE Users SET AccountStatus = 'Paid', SubscriptionEndDate = ?
+    sql: `UPDATE Users SET AccountStatus = 'Active', SubscriptionEndDate = ?
           WHERE StripeSubscriptionId = ?`,
     args: [oneMonthFrom(), stripeSubscriptionId],
   });

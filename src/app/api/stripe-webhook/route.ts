@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      // First payment: mark the user Paid for one month
+      // First payment: mark the user Active for one month
       case 'checkout.session.completed': {
         const session = event.data.object;
         const userId = Number(session.client_reference_id);

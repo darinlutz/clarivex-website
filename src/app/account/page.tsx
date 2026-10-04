@@ -41,7 +41,7 @@ export default async function AccountPage() {
               {formatDate(user.signupDate)}
             </dd>
           </div>
-          {user.accountStatus === 'Paid' && (
+          {user.accountStatus === 'Active' && (
             <div className="flex justify-between gap-4 px-4 py-3">
               <dt className="text-sm font-medium text-slate-500">Subscription End Date</dt>
               <dd className="text-dark-blue font-medium text-right">
@@ -62,7 +62,7 @@ export default async function AccountPage() {
           </form>
         )}
 
-        {user.accountStatus === 'Paid' && <CancelSubscriptionButton />}
+        {user.accountStatus === 'Active' && <CancelSubscriptionButton />}
       </div>
     </section>
   );

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.redirect(`${origin}/login`, 303);
     }
 
-    if (user.accountStatus !== 'Paid' || !user.stripeSubscriptionId) {
+    if (user.accountStatus !== 'Active' || !user.stripeSubscriptionId) {
       return NextResponse.json(
         { error: 'No active subscription to cancel' },
         { status: 400 }

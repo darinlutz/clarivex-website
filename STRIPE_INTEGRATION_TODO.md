@@ -78,11 +78,11 @@ STRIPE_INTEGRATION_TODO.md                      # this file
 3. The customer pays on the Stripe-hosted page.
 4. Stripe redirects to `/success?session_id=...`. The page retrieves the session and shows a confirmation if `status` is `complete`. If the customer backs out, Stripe sends them to `/account`.
 5. Stripe calls `/api/stripe-webhook`:
-   - `checkout.session.completed`: looks up the user by `client_reference_id`, stores the Stripe customer and subscription IDs, sets `AccountStatus = 'Paid'`, and sets `SubscriptionEndDate` to now + 1 month.
-   - `invoice.paid` (monthly renewals only, `billing_reason = subscription_cycle`): sets `Paid` and moves `SubscriptionEndDate` to now + 1 month.
+   - `checkout.session.completed`: looks up the user by `client_reference_id`, stores the Stripe customer and subscription IDs, sets `AccountStatus = 'Active'`, and sets `SubscriptionEndDate` to now + 1 month.
+   - `invoice.paid` (monthly renewals only, `billing_reason = subscription_cycle`): sets `Active` and moves `SubscriptionEndDate` to now + 1 month.
    - `customer.subscription.deleted`: sets `Canceled`.
-6. Whenever a user is loaded, a `Paid` account whose `SubscriptionEndDate` has passed becomes `Expired`, for example after a failed renewal.
-7. **Cancel Subscription** (shown only when `Paid`) cancels the Stripe subscription immediately, with no further charges and no refund. It sets `Canceled` and keeps `SubscriptionEndDate`.
+6. Whenever a user is loaded, a `Active` account whose `SubscriptionEndDate` has passed becomes `Expired`, for example after a failed renewal.
+7. **Cancel Subscription** (shown only when `Active`) cancels the Stripe subscription immediately, with no further charges and no refund. It sets `Canceled` and keeps `SubscriptionEndDate`.
 8. **Subscribe** is shown only when the status is `New`, `Expired`, or `Canceled` with `SubscriptionEndDate` in the past. The checkout route enforces the same rule.
 
 ## Testing
@@ -99,7 +99,7 @@ More test cards are at https://docs.stripe.com/testing.
 
 ## Next Steps
 
-- **Gate paid features:** check `user.accountStatus === 'Paid'` wherever subscribers get access.
+- **Gate paid features:** check `user.accountStatus === 'Active'` wherever subscribers get access.
 - **Self-service billing:** add a Stripe Customer Portal link so subscribers can update cards or cancel. This uses the stored `StripeCustomerId`.
 - **Go live:** set up the live webhook endpoint (Setup step 3), and use `sk_live_...` and a live-mode `STRIPE_PRICE_ID` in your production environment. Test-mode prices don't exist in live mode.
 
