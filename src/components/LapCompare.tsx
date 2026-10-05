@@ -48,6 +48,9 @@ type AreaComparison = {
   basePressure: number;
   comparePressure: number;
   pressureDiff: number;
+  baseEntry: number;
+  compareEntry: number;
+  entryDiff: number;
   baseMin: number;
   compareMin: number;
   minDiff: number;
@@ -64,6 +67,8 @@ function compareArea(base: AreaStats, compare: AreaStats, lengthFeet: number | n
 
   const basePressure = Math.round(base.maxBrake * 100);
   const comparePressure = Math.round(compare.maxBrake * 100);
+  const baseEntry = toMph(base.entrySpeed);
+  const compareEntry = toMph(compare.entrySpeed);
   const baseMin = toMph(base.minSpeed);
   const compareMin = toMph(compare.minSpeed);
   const baseExit = toMph(base.exitSpeed);
@@ -82,6 +87,9 @@ function compareArea(base: AreaStats, compare: AreaStats, lengthFeet: number | n
     basePressure,
     comparePressure,
     pressureDiff: comparePressure - basePressure,
+    baseEntry,
+    compareEntry,
+    entryDiff: compareEntry - baseEntry,
     baseMin,
     compareMin,
     minDiff: compareMin - baseMin,
@@ -119,6 +127,7 @@ function formatAreaLine(areaName: string, c: AreaComparison, lengthFeet: number 
     `${areaName}: Base ${c.baseSeconds.toFixed(3)} s, Compare ${c.compareSeconds.toFixed(3)} s (${formatSecondsDiff(c.secondsDiff)}).  ` +
     `Base brake ${brakeAt(c.baseBrakeFeet)} at ${c.basePressure}%, ` +
     `Compare brake ${brakeAt(c.compareBrakeFeet)}${brakepointDiff} at ${c.comparePressure}% (${formatPressureDiff(c.pressureDiff)}).  ` +
+    `Base entry ${c.baseEntry} mph, Compare entry ${c.compareEntry} mph (${formatSignedDiff(c.entryDiff)} mph).  ` +
     `Base Min speed ${c.baseMin} mph, Compare Min speed ${c.compareMin} mph (${formatSignedDiff(c.minDiff)} mph).  ` +
     `Base exit ${c.baseExit} mph, Compare exit ${c.compareExit} mph (${formatSignedDiff(c.exitDiff)} mph).`
   );
@@ -154,6 +163,7 @@ function AreaTable({ rows }: { rows: AreaRow[] }) {
     { label: 'Time', columns: ['Diff'] },
     { label: 'Brakepoint', columns: ['Diff'] },
     { label: 'Max Brake', columns: ['Base', 'Diff'] },
+    { label: 'Entry Speed', columns: ['Diff'] },
     { label: 'Min Speed', columns: ['Diff'] },
     { label: 'Exit Speed', columns: ['Diff'] },
   ];
@@ -222,6 +232,10 @@ function AreaTable({ rows }: { rows: AreaRow[] }) {
 
                   <td className={`${cell} ${groupStart}`}>{c.basePressure}%</td>
                   <td className={`${cell} ${brakeDiffText(c.pressureDiff, 3)}`}>{formatPressureDiff(c.pressureDiff)}</td>
+
+                  <td className={`${cell} ${groupStart} ${diffBackground(c.entryDiff, c.baseEntry, true)}`}>
+                    {formatSignedDiff(c.entryDiff)} mph
+                  </td>
 
                   <td className={`${cell} ${groupStart} ${diffBackground(c.minDiff, c.baseMin, true)}`}>
                     {formatSignedDiff(c.minDiff)} mph

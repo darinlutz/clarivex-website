@@ -117,7 +117,11 @@ export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: numb
           : pcts[i];
     }
   }
-  // Interpolate between the samples on either side of the end line
+  // Interpolate between the samples on either side of the start and end lines
+  const entryBefore = Math.floor(startIndex);
+  const entryAfter = Math.min(entryBefore + 1, speeds.length - 1);
+  const entrySpeed = speeds[entryBefore] + (startIndex - entryBefore) * (speeds[entryAfter] - speeds[entryBefore]);
+
   const before = Math.floor(endIndex);
   const after = Math.min(before + 1, speeds.length - 1);
   const exitSpeed = speeds[before] + (endIndex - before) * (speeds[after] - speeds[before]);
@@ -125,7 +129,7 @@ export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: numb
   let minSpeed = exitSpeed;
   for (let i = Math.ceil(startIndex); i <= before; i++) minSpeed = Math.min(minSpeed, speeds[i]);
 
-  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct, minSpeed, exitSpeed };
+  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct, entrySpeed, minSpeed, exitSpeed };
 }
 
 export type AreaStats = NonNullable<ReturnType<typeof areaStats>>;
