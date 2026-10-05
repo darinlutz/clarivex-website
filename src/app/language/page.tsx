@@ -71,7 +71,7 @@ async function resolveWritingAnswerText(
 
 export default function Language() {
   const [activeTab, setActiveTab] = useState<
-    'reading' | 'writing' | 'translator' | 'friend'
+    'reading' | 'writing' | 'translator' | 'friend' | 'setup'
   >('reading');
   const [userLanguage, setUserLanguage] = useState<Language>('English');
   const [learnLanguage, setLearnLanguage] = useState<Language>('Vietnamese');
@@ -154,6 +154,14 @@ export default function Language() {
   const [friendSpeakStatus, setFriendSpeakStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [friendReplyTranslation, setFriendReplyTranslation] = useState('');
   const [showFriendReplyTranslation, setShowFriendReplyTranslation] = useState(false);
+
+  // The Google Sheet the vocabulary comes from. Null means the built-in one.
+  const [sheetLink, setSheetLink] = useState('');
+  const [connectedSheetLink, setConnectedSheetLink] = useState<string | null>(null);
+  const [sheetStatus, setSheetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [sheetMessage, setSheetMessage] = useState('');
+  // Bumped whenever the sheet changes so word counts are refetched
+  const [sheetVersion, setSheetVersion] = useState(0);
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -541,7 +549,93 @@ export default function Language() {
     return () => {
       isCurrent = false;
     };
-  }, [activeWordCategory]);
+  }, [activeWordCategory, sheetVersion]);
+
+  // Shows which sheet is connected when the page loads
+  useEffect(() => {
+    let isCurrent = true;
+
+    fetch('/api/language/sheet')
+      .then((response) => response.json())
+      .then((data) => {
+        if (isCurrent && typeof data.link === 'string') {
+          setConnectedSheetLink(data.link);
+          setSheetLink(data.link);
+        }
+      })
+      .catch(() => {
+        // The built-in sheet stays in use if this fails
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const handleConnectSheet = async () => {
+    if (!sheetLink.trim()) return;
+
+    setSheetStatus('loading');
+    setSheetMessage('');
+
+    try {
+      const response = await fetch('/api/language/sheet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ link: sheetLink }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to connect the Google Sheet');
+      }
+
+      setConnectedSheetLink(data.link);
+      setSheetStatus('success');
+      setSheetMessage(`Connected. Found ${data.wordCount} vocabulary entries.`);
+      // Words from the old sheet no longer apply
+      setUsedWordsByCategory({});
+      setWritingKnownWordsByCategory({});
+      setWritingKnownSentences([]);
+      setWritingFlaggedItem(null);
+      setSheetVersion((version) => version + 1);
+    } catch (error) {
+      setSheetStatus('error');
+      setSheetMessage(
+        error instanceof Error ? error.message : 'Failed to connect the Google Sheet. Please try again.'
+      );
+    }
+  };
+
+  const handleDisconnectSheet = async () => {
+    setSheetStatus('loading');
+    setSheetMessage('');
+
+    try {
+      const response = await fetch('/api/language/sheet', { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error('Failed to disconnect the Google Sheet');
+      }
+
+      setConnectedSheetLink(null);
+      setSheetLink('');
+      setSheetStatus('success');
+      setSheetMessage('Disconnected. Using the default vocabulary sheet.');
+      setUsedWordsByCategory({});
+      setWritingKnownWordsByCategory({});
+      setWritingKnownSentences([]);
+      setWritingFlaggedItem(null);
+      setSheetVersion((version) => version + 1);
+    } catch (error) {
+      setSheetStatus('error');
+      setSheetMessage(
+        error instanceof Error ? error.message : 'Failed to disconnect the Google Sheet. Please try again.'
+      );
+    }
+  };
 
   const handleTranslatorSpeak = async (text: string) => {
     if (!text.trim()) return;
@@ -957,6 +1051,16 @@ export default function Language() {
               }`}
             >
               Friend
+            </button>
+            <button
+              onClick={() => setActiveTab('setup')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'setup'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Setup
             </button>
           </div>
 
@@ -1612,6 +1716,93 @@ export default function Language() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Setup Tab */}
+            {activeTab === 'setup' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Setup</h2>
+                <p className="text-slate-600 mb-8">
+                  Paste a link to your own Google Sheet of vocabulary to practice with it instead of the
+                  default sheet. The sheet must be shared as &quot;Anyone with the link&quot; and use the same
+                  layout as the default sheet.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="sheetLink" className="block text-sm font-medium text-dark-blue mb-2">
+                      Google Sheet Link
+                    </label>
+                    <input
+                      id="sheetLink"
+                      name="sheetLink"
+                      type="url"
+                      value={sheetLink}
+                      onChange={(e) => setSheetLink(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleConnectSheet();
+                      }}
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+                    />
+                  </div>
+
+                  <p className="text-sm text-slate-600">
+                    Currently using:{' '}
+                    {connectedSheetLink ? (
+                      <a
+                        href={connectedSheetLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-powder-600 underline break-all"
+                      >
+                        your Google Sheet
+                      </a>
+                    ) : (
+                      'the default vocabulary sheet'
+                    )}
+                  </p>
+
+                  {/* Status Message */}
+                  {sheetMessage && (
+                    <div
+                      className={`p-3 rounded-lg text-sm ${
+                        sheetStatus === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                      }`}
+                    >
+                      {sheetMessage}
+                    </div>
+                  )}
+
+                  <div className="pt-4 space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleConnectSheet}
+                      disabled={!sheetLink.trim() || sheetStatus === 'loading'}
+                      className="w-full px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
+                    >
+                      {sheetStatus === 'loading' ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Connecting...
+                        </span>
+                      ) : (
+                        'Connect Google Sheet'
+                      )}
+                    </button>
+                    {connectedSheetLink && (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectSheet}
+                        disabled={sheetStatus === 'loading'}
+                        className="w-full px-4 py-2 bg-white border border-slate-300 text-dark-blue font-bold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Use Default Sheet
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

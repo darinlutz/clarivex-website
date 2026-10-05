@@ -2,10 +2,7 @@ import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
-
-// Published-to-web CSV export of the user's personal Vietnamese vocabulary notes.
-const VOCAB_SHEET_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/1IFBHrYHXXnM2QgdhRekn7OhQ7mIkun46IKQjO1agw_4/export?format=csv&gid=0';
+import { getVocabSheetCsvUrl } from './vocabSheet';
 
 // The sheet lays out several categories side-by-side (English | Vietnamese
 // column pairs, separated by blank spacer columns): row 1 holds the category
@@ -107,10 +104,22 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
-export async function fetchVocabulary(): Promise<VocabEntry[]> {
-  const res = await fetch(VOCAB_SHEET_CSV_URL);
+// Defaults to the sheet connected on the Setup tab, or the built-in one.
+export async function fetchVocabulary(csvUrl?: string): Promise<VocabEntry[]> {
+  const res = await fetch(csvUrl ?? (await getVocabSheetCsvUrl()), { cache: 'no-store' });
+  if (res.status === 401 || res.status === 403 || res.status === 404) {
+    throw new Error(
+      'The vocabulary sheet was not found or is not shared. In Google Sheets, set sharing to "Anyone with the link".'
+    );
+  }
   if (!res.ok) {
-    throw new Error(`Failed to fetch Vietnamese notes sheet (${res.status})`);
+    throw new Error(`Failed to fetch the vocabulary sheet (${res.status})`);
+  }
+  // A sheet that isn't shared publicly redirects to Google's sign-in page
+  if (!res.headers.get('content-type')?.includes('text/csv')) {
+    throw new Error(
+      'The vocabulary sheet is not publicly readable. In Google Sheets, set sharing to "Anyone with the link".'
+    );
   }
   const text = await res.text();
   const rows = parseCsv(text);
