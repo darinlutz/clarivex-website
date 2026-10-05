@@ -4,12 +4,30 @@ import { getCurrentUser } from '@/lib/session';
 import { getSiteOrigin } from '@/lib/siteOrigin';
 import { canSubscribe } from '@/lib/users';
 
+// Each plan is a Stripe Product; Checkout charges its default Price
+const PLAN_PRODUCT_ENV = {
+  monthly: 'STRIPE_MONTHLY_PRODUCT_ID',
+  lifetime: 'STRIPE_LIFETIME_PRODUCT_ID',
+} as const;
+
+type Plan = keyof typeof PLAN_PRODUCT_ENV;
+
+function isPlan(value: unknown): value is Plan {
+  return value === 'monthly' || value === 'lifetime';
+}
+
 export async function POST(request: Request) {
   try {
-    // Check if Stripe secret key and price are configured
+    const formData = await request.formData();
+    const plan = formData.get('plan');
+    if (!isPlan(plan)) {
+      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    }
+
+    // Check if Stripe secret key and the plan's product are configured
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    const priceId = process.env.STRIPE_PRICE_ID;
-    if (!stripeSecretKey || !priceId) {
+    const productId = process.env[PLAN_PRODUCT_ENV[plan]];
+    if (!stripeSecretKey || !productId) {
       return NextResponse.json(
         { error: 'Stripe is not configured' },
         { status: 500 }
@@ -30,7 +48,21 @@ export async function POST(request: Request) {
 
     const stripe = new Stripe(stripeSecretKey);
 
-    const mode: Stripe.Checkout.SessionCreateParams.Mode = 'subscription';
+    const product = await stripe.products.retrieve(productId, {
+      expand: ['default_price'],
+    });
+    const price = product.default_price;
+    if (!price || typeof price === 'string') {
+      console.error(`Stripe product ${productId} has no default price`);
+      return NextResponse.json(
+        { error: 'Stripe product has no price' },
+        { status: 500 }
+      );
+    }
+
+    // Monthly is a recurring price; Lifetime is a one-time payment
+    const mode: Stripe.Checkout.SessionCreateParams.Mode =
+      price.type === 'recurring' ? 'subscription' : 'payment';
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       ui_mode: 'hosted_page',
@@ -46,10 +78,15 @@ export async function POST(request: Request) {
       customer_email: user.emailAddress,
       success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/account`,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: price.id, quantity: 1 }],
+      // The webhook reads the plan to decide how to update the account
+      metadata: { plan },
     };
     if (sessionParams.mode === 'subscription') {
       sessionParams.payment_method_collection = 'always';
+    } else {
+      // Payment mode only creates a Stripe Customer when asked to
+      sessionParams.customer_creation = 'always';
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);

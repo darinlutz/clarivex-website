@@ -207,6 +207,21 @@ export async function startSubscription(
   );
 }
 
+// A paid Lifetime purchase never expires. Clearing the subscription ID keeps
+// events from an earlier monthly subscription from changing the status.
+export async function grantLifetimeAccess(
+  userId: number,
+  stripeCustomerId: string | null
+): Promise<void> {
+  await ensureUserSchema();
+  await query(
+    `UPDATE users SET account_status = 'Paid', subscription_end_date = NULL,
+       stripe_subscription_id = NULL, stripe_customer_id = COALESCE($1, stripe_customer_id)
+     WHERE id = $2`,
+    [stripeCustomerId, userId]
+  );
+}
+
 // Called on each successful monthly renewal payment.
 export async function renewSubscription(stripeSubscriptionId: string): Promise<void> {
   await ensureUserSchema();

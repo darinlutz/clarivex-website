@@ -52,12 +52,22 @@ export default async function AccountPage() {
         </dl>
 
         {canSubscribe(user) && (
-          <form action="/api/create-checkout-session" method="POST" className="mt-8">
+          <form action="/api/create-checkout-session" method="POST" className="mt-8 space-y-3">
             <button
               type="submit"
+              name="plan"
+              value="monthly"
               className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
             >
-              Subscribe
+              Monthly Subscription
+            </button>
+            <button
+              type="submit"
+              name="plan"
+              value="lifetime"
+              className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
+            >
+              Lifetime Subscription
             </button>
           </form>
         )}

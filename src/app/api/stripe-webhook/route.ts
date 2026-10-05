@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { renewSubscription, setStatusBySubscriptionId, startSubscription } from '@/lib/users';
+import {
+  grantLifetimeAccess,
+  renewSubscription,
+  setStatusBySubscriptionId,
+  startSubscription,
+} from '@/lib/users';
 
 export async function POST(request: Request) {
   // Check if Stripe keys are configured
@@ -42,10 +47,26 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      // First payment: mark the user Active for one month
-      case 'checkout.session.completed': {
+      // First payment: mark the user Active for one month, or Paid for Lifetime
+      case 'checkout.session.completed':
+      // Delayed payment methods (e.g. bank debits) confirm Lifetime payments here
+      case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object;
         const userId = Number(session.client_reference_id);
+        if (session.mode === 'payment') {
+          if (session.metadata?.plan !== 'lifetime' || !Number.isInteger(userId)) {
+            console.warn('Payment session not linked to a Lifetime purchase:', session.id);
+            break;
+          }
+          // A delayed payment completes the session before the money arrives
+          if (session.payment_status !== 'paid') break;
+          await grantLifetimeAccess(
+            userId,
+            typeof session.customer === 'string' ? session.customer : null
+          );
+          break;
+        }
+        if (event.type !== 'checkout.session.completed') break;
         if (
           session.mode !== 'subscription' ||
           !Number.isInteger(userId) ||
