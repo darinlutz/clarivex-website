@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { getDb } from './db';
+import { query, transaction } from './db';
 import { ensureUserSchema, getUserById, updatePassword, type User } from './users';
 
 const RESET_TTL_MS = 60 * 60 * 1000;
@@ -15,28 +15,25 @@ function hashToken(token: string): string {
 export async function createPasswordResetToken(userId: number): Promise<string> {
   await ensureUserSchema();
   const token = randomBytes(32).toString('hex');
-  await getDb().batch(
-    [
-      { sql: 'DELETE FROM PasswordResets WHERE UserId = ?', args: [userId] },
-      {
-        sql: 'INSERT INTO PasswordResets (TokenHash, UserId, ExpiresAt) VALUES (?, ?, ?)',
-        args: [hashToken(token), userId, Date.now() + RESET_TTL_MS],
-      },
-    ],
-    'write'
-  );
+  await transaction(async (client) => {
+    await client.query('DELETE FROM password_resets WHERE user_id = $1', [userId]);
+    await client.query('INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES ($1, $2, $3)', [
+      hashToken(token),
+      userId,
+      Date.now() + RESET_TTL_MS,
+    ]);
+  });
   return token;
 }
 
 export async function getPasswordResetUser(token: string): Promise<User | null> {
   await ensureUserSchema();
-  const result = await getDb().execute({
-    sql: 'SELECT UserId, ExpiresAt FROM PasswordResets WHERE TokenHash = ?',
-    args: [hashToken(token)],
-  });
-  const row = result.rows[0];
-  if (!row || Number(row.ExpiresAt) < Date.now()) return null;
-  return getUserById(Number(row.UserId));
+  const [row] = await query('SELECT user_id, expires_at FROM password_resets WHERE token_hash = $1', [
+    hashToken(token),
+  ]);
+  // BIGINT columns come back from pg as strings
+  if (!row || Number(row.expires_at) < Date.now()) return null;
+  return getUserById(Number(row.user_id));
 }
 
 // Returns false when the link is invalid, expired, or already used.
@@ -44,6 +41,6 @@ export async function resetPasswordWithToken(token: string, password: string): P
   const user = await getPasswordResetUser(token);
   if (!user) return false;
   await updatePassword(user.id, password);
-  await getDb().execute({ sql: 'DELETE FROM PasswordResets WHERE UserId = ?', args: [user.id] });
+  await query('DELETE FROM password_resets WHERE user_id = $1', [user.id]);
   return true;
 }

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
-import { getDb } from './db';
+import { query } from './db';
 import { ensureUserSchema, getUserById, type User } from './users';
 
 const SESSION_COOKIE = 'session';
@@ -16,10 +16,11 @@ export async function createSession(userId: number): Promise<void> {
   await ensureUserSchema();
   const token = randomBytes(32).toString('hex');
   const expiresAt = Date.now() + SESSION_TTL_MS;
-  await getDb().execute({
-    sql: 'INSERT INTO Sessions (TokenHash, UserId, ExpiresAt) VALUES (?, ?, ?)',
-    args: [hashToken(token), userId, expiresAt],
-  });
+  await query('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)', [
+    hashToken(token),
+    userId,
+    expiresAt,
+  ]);
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
@@ -37,13 +38,10 @@ export async function getCurrentUser(): Promise<User | null> {
 
   try {
     await ensureUserSchema();
-    const result = await getDb().execute({
-      sql: 'SELECT UserId, ExpiresAt FROM Sessions WHERE TokenHash = ?',
-      args: [hashToken(token)],
-    });
-    const row = result.rows[0];
-    if (!row || Number(row.ExpiresAt) < Date.now()) return null;
-    return await getUserById(Number(row.UserId));
+    const [row] = await query('SELECT user_id, expires_at FROM sessions WHERE token_hash = $1', [hashToken(token)]);
+    // BIGINT columns come back from pg as strings
+    if (!row || Number(row.expires_at) < Date.now()) return null;
+    return await getUserById(Number(row.user_id));
   } catch (error) {
     console.error('Session lookup error:', error);
     return null;
@@ -55,7 +53,7 @@ export async function deleteSession(): Promise<void> {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (token) {
     await ensureUserSchema();
-    await getDb().execute({ sql: 'DELETE FROM Sessions WHERE TokenHash = ?', args: [hashToken(token)] });
+    await query('DELETE FROM sessions WHERE token_hash = $1', [hashToken(token)]);
   }
   cookieStore.delete(SESSION_COOKIE);
 }
