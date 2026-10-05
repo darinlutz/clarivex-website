@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { fetchVocabulary } from '@/lib/language';
+import { fetchVocabulary, SheetFormatError } from '@/lib/language';
 import {
+  connectedSheetResponse,
   getConnectedSheet,
   parseSheetLink,
-  serializeSheet,
   sheetCsvUrl,
   sheetViewUrl,
   VOCAB_SHEET_COOKIE,
 } from '@/lib/vocabSheet';
-
-const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
+import { getServiceAccountEmail } from '@/lib/vocabSheetWriter';
 
 // Which sheet the Language page is currently using
 export async function GET() {
@@ -37,21 +36,25 @@ export async function POST(request: Request) {
     try {
       wordCount = (await fetchVocabulary(sheetCsvUrl(sheet))).length;
     } catch (error) {
+      // The Setup tab offers to erase a wrongly formatted sheet and fill it with samples
+      if (error instanceof SheetFormatError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            formatError: true,
+            canReset: sheet.kind === 'doc' && !!getServiceAccountEmail(),
+            serviceAccountEmail: getServiceAccountEmail(),
+          },
+          { status: 422 }
+        );
+      }
       return NextResponse.json(
         { error: error instanceof Error ? error.message : 'Could not read that Google Sheet' },
         { status: 400 }
       );
     }
 
-    const response = NextResponse.json({ success: true, link: sheetViewUrl(sheet), wordCount });
-    response.cookies.set(VOCAB_SHEET_COOKIE, serializeSheet(sheet), {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: ONE_YEAR_SECONDS,
-    });
-    return response;
+    return connectedSheetResponse(sheet, wordCount);
   } catch (error) {
     console.error('Connect sheet error:', error);
     return NextResponse.json({ error: 'Failed to connect the Google Sheet' }, { status: 500 });

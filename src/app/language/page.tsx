@@ -162,6 +162,11 @@ export default function Language() {
   const [sheetMessage, setSheetMessage] = useState('');
   // Bumped whenever the sheet changes so word counts are refetched
   const [sheetVersion, setSheetVersion] = useState(0);
+  // Set when the pasted sheet is in the wrong format, to offer erasing it
+  const [sheetResetOffer, setSheetResetOffer] = useState<{
+    canReset: boolean;
+    serviceAccountEmail: string | null;
+  } | null>(null);
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -572,14 +577,16 @@ export default function Language() {
     };
   }, []);
 
-  const handleConnectSheet = async () => {
+  // Connecting and resetting share everything but the endpoint
+  const connectSheet = async (endpoint: string) => {
     if (!sheetLink.trim()) return;
 
     setSheetStatus('loading');
     setSheetMessage('');
+    setSheetResetOffer(null);
 
     try {
-      const response = await fetch('/api/language/sheet', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -588,6 +595,13 @@ export default function Language() {
       });
 
       const data = await response.json();
+
+      if (data.formatError) {
+        setSheetResetOffer({
+          canReset: !!data.canReset,
+          serviceAccountEmail: data.serviceAccountEmail ?? null,
+        });
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to connect the Google Sheet');
@@ -610,9 +624,13 @@ export default function Language() {
     }
   };
 
+  const handleConnectSheet = () => connectSheet('/api/language/sheet');
+  const handleResetSheet = () => connectSheet('/api/language/sheet/reset');
+
   const handleDisconnectSheet = async () => {
     setSheetStatus('loading');
     setSheetMessage('');
+    setSheetResetOffer(null);
 
     try {
       const response = await fetch('/api/language/sheet', { method: 'DELETE' });
@@ -1740,7 +1758,11 @@ export default function Language() {
                       name="sheetLink"
                       type="url"
                       value={sheetLink}
-                      onChange={(e) => setSheetLink(e.target.value)}
+                      onChange={(e) => {
+                        setSheetLink(e.target.value);
+                        // The erase offer was for the previous link
+                        setSheetResetOffer(null);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleConnectSheet();
                       }}
@@ -1773,6 +1795,49 @@ export default function Language() {
                       }`}
                     >
                       {sheetMessage}
+                    </div>
+                  )}
+
+                  {/* Offer to erase a wrongly formatted sheet and fill it with samples */}
+                  {sheetResetOffer && (
+                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-sm space-y-3">
+                      {sheetResetOffer.canReset ? (
+                        <>
+                          <p className="font-semibold">
+                            Erase this Google Sheet and fill it with sample words in the right format?
+                          </p>
+                          <p>
+                            Everything on this tab of the sheet will be permanently deleted. First share the
+                            sheet with{' '}
+                            <span className="font-mono break-all">{sheetResetOffer.serviceAccountEmail}</span>{' '}
+                            as an Editor so the app can change it.
+                          </p>
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={handleResetSheet}
+                              disabled={sheetStatus === 'loading'}
+                              className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Erase Sheet and Add Sample Words
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSheetResetOffer(null)}
+                              disabled={sheetStatus === 'loading'}
+                              className="px-4 py-2 bg-white border border-slate-300 text-dark-blue font-bold rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <p>
+                          {sheetResetOffer.serviceAccountEmail
+                            ? 'To have the app set this sheet up for you, paste the link from the address bar while editing the sheet (not a "Publish to web" link).'
+                            : 'Fix the layout of the sheet, then press Connect Google Sheet again.'}
+                        </p>
+                      )}
                     </div>
                   )}
 

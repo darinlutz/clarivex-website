@@ -104,6 +104,16 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
+// The sheet can be read but isn't laid out the way fetchVocabulary expects.
+export class SheetFormatError extends Error {
+  constructor() {
+    super(
+      'This Google Sheet is not in the vocabulary format: category names in row 2, ' +
+        '"English" and "Vietnamese" column headers in row 3, and words starting in row 5.'
+    );
+  }
+}
+
 // Defaults to the sheet connected on the Setup tab, or the built-in one.
 export async function fetchVocabulary(csvUrl?: string): Promise<VocabEntry[]> {
   const res = await fetch(csvUrl ?? (await getVocabSheetCsvUrl()), { cache: 'no-store' });
@@ -125,11 +135,20 @@ export async function fetchVocabulary(csvUrl?: string): Promise<VocabEntry[]> {
   const rows = parseCsv(text);
 
   const headerRow = rows[CATEGORY_HEADER_ROW] ?? [];
+  const subHeaderRow = rows[CATEGORY_HEADER_ROW + 1] ?? [];
   const categories: Array<{ name: string; col: number }> = [];
   headerRow.forEach((cell, col) => {
     const name = cell.trim();
     if (name) categories.push({ name, col });
   });
+
+  // Every category must sit over an "English" | "Vietnamese" column pair
+  const isPairHeader = (col: number) =>
+    (subHeaderRow[col] ?? '').trim().toLowerCase() === 'english' &&
+    (subHeaderRow[col + 1] ?? '').trim().toLowerCase() === 'vietnamese';
+  if (categories.length === 0 || !categories.every(({ col }) => isPairHeader(col))) {
+    throw new SheetFormatError();
+  }
 
   const entries: VocabEntry[] = [];
   for (let r = DATA_START_ROW; r < rows.length; r++) {
@@ -145,7 +164,7 @@ export async function fetchVocabulary(csvUrl?: string): Promise<VocabEntry[]> {
   }
 
   if (entries.length === 0) {
-    throw new Error('No vocabulary entries found in the Vietnamese notes sheet');
+    throw new SheetFormatError();
   }
 
   return entries;
