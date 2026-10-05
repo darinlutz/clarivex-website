@@ -38,7 +38,7 @@ npm run lint         # Run ESLint
 - `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: translate, friend, trip planner, financial analysis)
 - `TAVILY_API_KEY` - Tavily web search API key (Financial Analysis web search agent)
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
-- `DATABASE_URL` - PostgreSQL connection string (users, sessions, password resets, Friends roster), e.g. `postgres://user:pass@host:5432/clarivex`. On Render, the web service uses the database's **Internal** URL exactly as shown (no `sslmode`; same region required). From outside Render (e.g. local dev against the hosted DB), use the **External** URL with `?sslmode=require`; never add `sslmode=require` to the internal URL, since `pg` then verifies the certificate against the short internal hostname and the connection fails. Required; tables are created on first use. For local dev: `docker run -d --name clarivex-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=clarivex -p 5432:5432 postgres:17` → `postgres://postgres:postgres@localhost:5432/clarivex`
+- `DATABASE_URL` - PostgreSQL connection string (users, sessions, password resets, Friends roster), e.g. `postgres://user:pass@host:5432/clarivex`. Passed to `pg` as-is. Required; tables are created on first use
 - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` - Legacy Turso database; only read by `npm run db:migrate-from-turso`, which copies its data into `DATABASE_URL` once
 - `STRIPE_SECRET_KEY` - Stripe secret key (Checkout Session creation, success page lookup)
 - `STRIPE_MONTHLY_PRODUCT_ID` - Stripe Product ID for the Account page's Monthly Subscription button; its default Price must be recurring
