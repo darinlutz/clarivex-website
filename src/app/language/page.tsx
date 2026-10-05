@@ -73,6 +73,8 @@ export default function Language() {
   const [activeTab, setActiveTab] = useState<
     'reading' | 'writing' | 'translator' | 'friend' | 'setup'
   >('reading');
+  // The practice tabs start hidden; the "Show tabs?" switch reveals them
+  const [showTabs, setShowTabs] = useState(false);
   const [userLanguage, setUserLanguage] = useState<Language>('English');
   const [learnLanguage, setLearnLanguage] = useState<Language>('Vietnamese');
   const [vietnameseText, setVietnameseText] = useState('');
@@ -1022,10 +1024,34 @@ export default function Language() {
               ))}
             </select>
           </div>
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <span id="showTabsLabel" className="text-sm font-medium text-dark-blue">
+              Show tabs?
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showTabs}
+              aria-labelledby="showTabsLabel"
+              onClick={() => setShowTabs(!showTabs)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-powder-500 focus-visible:ring-offset-2 ${
+                showTabs ? 'bg-powder-600' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  showTabs ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+            <span className="text-sm text-slate-600 w-7">{showTabs ? 'On' : 'Off'}</span>
+          </div>
         </div>
       </section>
 
       {/* Language Practice Content */}
+      {showTabs && (
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
         <div className="w-full max-w-5xl">
           {/* Tab Navigation */}
@@ -1874,6 +1900,7 @@ export default function Language() {
           </div>
         </div>
       </section>
+      )}
     </div>
   );
 }
