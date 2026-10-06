@@ -50,6 +50,21 @@ export class EmailTakenError extends Error {
   }
 }
 
+// Belt color for each level, indexed by level (0-10)
+const BELT_COLORS = [
+  'No Belt',
+  'White',
+  'Green',
+  'Yellow',
+  'Orange',
+  'Blue',
+  'Purple',
+  'Red',
+  'Gold',
+  'Brown',
+  'Black',
+];
+
 let schemaReady: Promise<void> | null = null;
 
 export function ensureUserSchema(): Promise<void> {
@@ -75,6 +90,18 @@ export function ensureUserSchema(): Promise<void> {
       // user who existed at that point gets Level 2; new signups start at 0.
       await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 2');
       await client.query('ALTER TABLE users ALTER COLUMN level SET DEFAULT 0');
+      // The belt color for each user level. Seeded once; existing rows are
+      // left alone so colors can be edited in the database.
+      await client.query(`CREATE TABLE IF NOT EXISTS belt_level_key (
+        level INTEGER PRIMARY KEY,
+        belt_color TEXT NOT NULL
+      )`);
+      await client.query(
+        `INSERT INTO belt_level_key (level, belt_color)
+         SELECT * FROM unnest($1::int[], $2::text[])
+         ON CONFLICT (level) DO NOTHING`,
+        [BELT_COLORS.map((_, level) => level), BELT_COLORS]
+      );
       // Email addresses are unique regardless of case
       await client.query(
         'CREATE UNIQUE INDEX IF NOT EXISTS users_email_address_key ON users (lower(email_address))'
@@ -184,6 +211,14 @@ export async function updatePassword(userId: number, password: string): Promise<
     await client.query('UPDATE users SET password = $1 WHERE id = $2', [passwordHash, userId]);
     await client.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
   });
+}
+
+// The belt color name for a level (from belt_level_key), or null if the
+// level has no belt defined.
+export async function getBeltColor(level: number): Promise<string | null> {
+  await ensureUserSchema();
+  const [row] = await query('SELECT belt_color FROM belt_level_key WHERE level = $1', [level]);
+  return (row?.belt_color as string | undefined) ?? null;
 }
 
 export async function getUserById(id: number): Promise<User | null> {

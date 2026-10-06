@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import { getCurrentUser } from '@/lib/session';
-import { canSubscribe } from '@/lib/users';
+import { canSubscribe, getBeltColor } from '@/lib/users';
+import BeltIcon from '@/components/BeltIcon';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -11,6 +12,7 @@ function formatDate(iso: string | null): string {
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
+  const beltColor = await getBeltColor(user.level);
 
   return (
     <section className="py-12 px-4 bg-gradient-to-b from-slate-100 to-white flex justify-center">
@@ -44,6 +46,13 @@ export default async function AccountPage() {
           <div className="flex justify-between gap-4 px-4 py-3">
             <dt className="text-sm font-medium text-slate-500">Level</dt>
             <dd className="text-dark-blue font-medium text-right">{user.level}</dd>
+          </div>
+          <div className="flex justify-between items-center gap-4 px-4 py-3">
+            <dt className="text-sm font-medium text-slate-500">Current Belt</dt>
+            <dd className="flex items-center gap-3 text-dark-blue font-medium text-right">
+              {beltColor ?? '—'}
+              {beltColor && <BeltIcon color={beltColor} />}
+            </dd>
           </div>
           {user.accountStatus === 'Active' && (
             <div className="flex justify-between gap-4 px-4 py-3">

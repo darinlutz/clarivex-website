@@ -35,7 +35,7 @@ npm run lint         # Run ESLint
 - `RESEND_API_KEY` - Resend email service API key
 - `RESEND_FROM_EMAIL` - Sender for password reset emails, on a domain verified in Resend (e.g. `Clarivex <no-reply@clarivex.app>`). Defaults to `onboarding@resend.dev`, which only delivers to the Resend account owner
 - `SITE_URL` - Public site URL used in password reset links (e.g. `https://clarivex.app`). Set in production; locally it falls back to the request's host
-- `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: translate, friend, trip planner, financial analysis)
+- `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: translate, friend, trip planner, financial analysis; web search for the Trends page)
 - `TAVILY_API_KEY` - Tavily web search API key (Financial Analysis web search agent)
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
 - `DATABASE_URL` - PostgreSQL connection string (users, sessions, password resets, Friends roster), e.g. `postgres://user:pass@host:5432/clarivex`. Passed to `pg` as-is. Required; tables are created on first use
