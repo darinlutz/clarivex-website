@@ -399,6 +399,14 @@ const TrackConfig = {
                 MaxBrakeTarget: 75,
                 ThrottlePickupTarget: 1102
             },
+{
+                name: "T 3&4",
+                start: 0.16,
+                end: 0.25,
+                Notes: "",
+                BrakepointTarget: 2702,
+                MaxBrakeTarget: 80
+            },
             {
                 name: "T 5",
                 start: 0.31,
