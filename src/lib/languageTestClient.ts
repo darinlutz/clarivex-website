@@ -231,6 +231,10 @@ export async function speakText(text: string, voice: string): Promise<void> {
   await audio.play();
 }
 
+// Questions per test, and the score (percent) needed to pass
+export const TEST_LENGTH = 10;
+export const PASSING_SCORE = 80;
+
 // The 1-10 sentence Difficulty scale shared by the test tabs
 export const DIFFICULTY_LEVELS = Array.from({ length: 10 }, (_, i) => i + 1);
 

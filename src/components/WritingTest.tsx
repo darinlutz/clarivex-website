@@ -7,6 +7,7 @@ import type { WordCategory } from '@/lib/language';
 import type { AlignedSegment } from '@/lib/wordAlignment';
 import ColoredSegments from '@/components/ColoredSegments';
 import TestDifficultySelector from '@/components/TestDifficultySelector';
+import TestScore from '@/components/TestScore';
 import {
   alignTexts,
   FEMALE_VOICE,
@@ -16,6 +17,7 @@ import {
   playError,
   speakText,
   TEST_LANGUAGES,
+  TEST_LENGTH,
   withLanguages,
   type TestDifficulty,
   type TestHistory,
@@ -23,6 +25,9 @@ import {
 } from '@/lib/languageTestClient';
 
 type SpeakStatus = 'idle' | 'loading' | 'error';
+
+// Submits allowed per item before the answer is revealed
+const CHANCES = 3;
 
 type Alignment = {
   key: string;
@@ -47,7 +52,15 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
   const [item, setItem] = useState<TestItem | null>(null);
   const [userInput, setUserInput] = useState('');
   const [showText, setShowText] = useState(true);
-  const [result, setResult] = useState<'none' | 'correct' | 'wrong'>('none');
+  // "failed" means every chance was used without a match
+  const [result, setResult] = useState<'none' | 'correct' | 'wrong' | 'failed'>('none');
+  const [wrongAttempts, setWrongAttempts] = useState(0);
+  // Items shown so far in this test
+  const [count, setCount] = useState(0);
+  // Items matched within the allowed chances
+  const [correctCount, setCorrectCount] = useState(0);
+  // Percent correct once the test is finished, otherwise null
+  const [score, setScore] = useState<number | null>(null);
   const [alignment, setAlignment] = useState<Alignment | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -73,6 +86,9 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
   const wordText = item?.texts[wordLanguage] ?? '';
   const answerText = item?.texts[answerLanguage] ?? '';
   const solved = result === 'correct';
+  // The current item is over: matched, or out of chances
+  const itemDone = solved || result === 'failed';
+  const testInProgress = count > 0 && score === null;
   const alignmentKey = item ? `${item.id}|${wordLanguage}|${answerLanguage}` : '';
   const currentAlignment = alignment?.key === alignmentKey ? alignment : null;
 
@@ -130,7 +146,8 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
     }
   };
 
-  const handleStartTest = async () => {
+  // Loads a new item; returns whether it succeeded
+  const loadItem = async (): Promise<boolean> => {
     setStatus('loading');
     setMessage('');
 
@@ -149,26 +166,61 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
       setItem(newItem);
       setUserInput('');
       setResult('none');
+      setWrongAttempts(0);
       setShowText(false);
       setStatus('idle');
 
       speak(newItem.texts[wordLanguage] ?? '', MALE_VOICE, setSpeakStatus);
+      return true;
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Failed to start the test. Please try again.');
+      return false;
     }
   };
 
+  // Start Test -> Next Question (x9) -> Finish Test -> score, after which
+  // the button starts a new test.
+  const handleTestButton = async () => {
+    const finished = score !== null;
+
+    if (!finished && count >= TEST_LENGTH) {
+      setScore(Math.round((correctCount / TEST_LENGTH) * 100));
+      return;
+    }
+
+    if (await loadItem()) {
+      if (finished || count === 0) {
+        setScore(null);
+        setCorrectCount(0);
+        setCount(1);
+      } else {
+        setCount(count + 1);
+      }
+    }
+  };
+
+  const buttonLabel = !testInProgress
+    ? 'Start Test'
+    : count < TEST_LENGTH
+      ? 'Next Question'
+      : 'Finish Test';
+
   const handleSubmit = () => {
-    if (!wordText || solved) return;
+    if (!wordText || itemDone || score !== null) return;
 
     if (userInput === wordText) {
       setResult('correct');
+      if (testInProgress) setCorrectCount((n) => n + 1);
       setShowText(true);
       playChime();
       speak(wordText, FEMALE_VOICE, setSpeakFemaleStatus);
     } else {
-      setResult('wrong');
+      const attempts = wrongAttempts + 1;
+      setWrongAttempts(attempts);
+      // Out of chances: reveal the answer and move on
+      setResult(attempts >= CHANCES ? 'failed' : 'wrong');
+      if (attempts >= CHANCES) setShowText(true);
       playError();
     }
   };
@@ -211,6 +263,11 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
             {showText ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
+        {testInProgress && (
+          <div className="mb-2 text-right text-sm font-semibold text-powder-600">
+            {count} of {TEST_LENGTH}
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row gap-3">
           {solved && currentAlignment ? (
             // A textarea can't color individual words, so once solved the
@@ -273,13 +330,13 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
               handleSubmit();
             }
           }}
-          readOnly={solved}
+          readOnly={itemDone}
           placeholder={`Type the ${wordLanguage} you hear, then press Submit`}
           rows={2}
           className={`w-full px-4 py-3 bg-white rounded-lg text-dark-blue focus:outline-none focus:ring-1 transition-colors resize-none ${
             result === 'correct'
               ? 'border-4 border-green-600 focus:ring-green-600'
-              : result === 'wrong'
+              : result === 'wrong' || result === 'failed'
                 ? 'border-2 border-red-600 focus:ring-red-600'
                 : 'border border-slate-300 focus:border-powder-600 focus:ring-powder-500'
           }`}
@@ -287,14 +344,18 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!wordText || !userInput || solved}
+          disabled={!wordText || !userInput || itemDone || score !== null}
           className={`mt-3 w-full ${buttonClassName}`}
         >
           Submit
         </button>
-        {result !== 'none' && (
+        {(solved || wrongAttempts > 0) && (
           <div className={`mt-2 text-sm font-semibold ${solved ? 'text-green-600' : 'text-red-600'}`}>
-            {solved ? 'MATCH' : 'No Match - try again'}
+            {solved
+              ? 'MATCH'
+              : result === 'failed'
+                ? 'No Match - out of chances. The answer is shown above.'
+                : `No Match - try again. ${CHANCES - wrongAttempts} more chance${CHANCES - wrongAttempts === 1 ? '' : 's'}`}
           </div>
         )}
       </div>
@@ -344,12 +405,16 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
         sheetVersion={sheetVersion}
       />
 
-      {/* Start Test Button */}
+      {/* Score */}
+      {score !== null && <TestScore score={score} />}
+
+      {/* Start Test / Next Question / Finish Test Button */}
       <div className="pt-4 pb-2">
         <button
           type="button"
-          onClick={handleStartTest}
-          disabled={status === 'loading'}
+          onClick={handleTestButton}
+          // Each item must be matched or use up its chances before moving on
+          disabled={status === 'loading' || (testInProgress && !itemDone)}
           className={`w-full ${buttonClassName}`}
         >
           {status === 'loading' ? (
@@ -358,7 +423,7 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
               Generating...
             </span>
           ) : (
-            'Start Test'
+            buttonLabel
           )}
         </button>
       </div>

@@ -12,13 +12,12 @@ import {
   playChime,
   playError,
   speakText,
+  TEST_LENGTH,
 } from '@/lib/languageTestClient';
+import TestScore from '@/components/TestScore';
 
 type SpeakStatus = 'idle' | 'loading' | 'error';
 
-// Questions per test, and the score (percent) needed to pass
-const TEST_LENGTH = 10;
-const PASSING_SCORE = 80;
 
 type Choice = { text: string; correct: boolean };
 
@@ -291,18 +290,7 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
       </div>
 
       {/* Score */}
-      {score !== null && (
-        <div
-          className={`p-4 rounded-lg border font-semibold text-center ${
-            score >= PASSING_SCORE
-              ? 'bg-green-100 border-green-300 text-green-800'
-              : 'bg-red-100 border-red-300 text-red-800'
-          }`}
-        >
-          <span>Score: {score}%</span>
-          <span className="ml-6">Result: {score >= PASSING_SCORE ? 'Pass' : 'Try again.'}</span>
-        </div>
-      )}
+      {score !== null && <TestScore score={score} />}
 
       {/* Start Test / Next Question / Finish Test Button */}
       <div className="pt-4 pb-2">
