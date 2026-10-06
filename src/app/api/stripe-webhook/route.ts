@@ -6,6 +6,7 @@ import {
   setStatusBySubscriptionId,
   startSubscription,
 } from '@/lib/users';
+import { ACCOUNT_STATUS } from '@/lib/accountStatus';
 
 export async function POST(request: Request) {
   // Check if Stripe keys are configured
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
-      // First payment: mark the user Active for one month, or Paid for Lifetime
+      // First payment: start a one-month Monthly Subscription, or a Lifetime Subscription
       case 'checkout.session.completed':
       // Delayed payment methods (e.g. bank debits) confirm Lifetime payments here
       case 'checkout.session.async_payment_succeeded': {
@@ -60,10 +61,19 @@ export async function POST(request: Request) {
           }
           // A delayed payment completes the session before the money arrives
           if (session.payment_status !== 'paid') break;
-          await grantLifetimeAccess(
+          const previousSubscriptionId = await grantLifetimeAccess(
             userId,
             typeof session.customer === 'string' ? session.customer : null
           );
+          // A monthly subscriber upgraded: stop charging them monthly
+          if (previousSubscriptionId) {
+            try {
+              await stripe.subscriptions.cancel(previousSubscriptionId);
+            } catch (error) {
+              // e.g. it was already canceled; the account is Lifetime either way
+              console.error('Failed to cancel monthly subscription after Lifetime purchase:', error);
+            }
+          }
           break;
         }
         if (event.type !== 'checkout.session.completed') break;
@@ -93,7 +103,7 @@ export async function POST(request: Request) {
       }
       // Subscription ended (canceled here, in the Dashboard, or after failed payments)
       case 'customer.subscription.deleted': {
-        await setStatusBySubscriptionId(event.data.object.id, 'Canceled');
+        await setStatusBySubscriptionId(event.data.object.id, ACCOUNT_STATUS.canceled);
         break;
       }
       default:

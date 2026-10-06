@@ -7,6 +7,7 @@ import type { WordCategory } from '@/lib/language';
 import type { AlignedSegment } from '@/lib/wordAlignment';
 import type { LanguageActivity, LanguageProgress, RecordedActivity } from '@/lib/languageLevels';
 import { isAdmin } from '@/lib/roles';
+import { isLanguage } from '@/lib/languages';
 import { LANGUAGES } from '@/lib/languages';
 
 export const TEST_LANGUAGES: readonly Language[] = LANGUAGES;
@@ -254,9 +255,15 @@ export const difficultyOptionLabel = (level: number) =>
 // The signed-in user's belt progress, by language
 export type ProgressMap = Partial<Record<Language, LanguageProgress>>;
 
-// Loads the user's progress and whether they're an Admin; null when signed
-// out (progress isn't tracked)
-export async function fetchLanguageProgress(): Promise<{ progressByLanguage: ProgressMap; isAdmin: boolean } | null> {
+// Loads the user's progress, whether they're an Admin and their saved
+// "want to learn" / "I speak" languages; null when signed out (progress
+// isn't tracked)
+export async function fetchLanguageProgress(): Promise<{
+  progressByLanguage: ProgressMap;
+  isAdmin: boolean;
+  activeLearningLanguage: Language | null;
+  nativeLanguage: Language | null;
+} | null> {
   const response = await fetch('/api/language/progress');
   if (response.status === 401) return null;
   const data = await response.json();
@@ -268,6 +275,8 @@ export async function fetchLanguageProgress(): Promise<{ progressByLanguage: Pro
       (data.progress as LanguageProgress[]).map((entry) => [entry.language, entry])
     ),
     isAdmin: isAdmin(data.role),
+    activeLearningLanguage: isLanguage(data.activeLearningLanguage) ? data.activeLearningLanguage : null,
+    nativeLanguage: isLanguage(data.nativeLanguage) ? data.nativeLanguage : null,
   };
 }
 
@@ -312,4 +321,21 @@ export async function startLanguageProgress(language: Language): Promise<Languag
     throw new Error(data.error || 'Failed to add language');
   }
   return data.progress as LanguageProgress;
+}
+
+// Saves the signed-in user's "want to learn" and/or "I speak" picks so the
+// Language page can restore them next time. Ignored when signed out.
+export async function saveLanguagePreferences(preferences: {
+  activeLearningLanguage?: Language;
+  nativeLanguage?: Language;
+}): Promise<void> {
+  const response = await fetch('/api/account/languages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(preferences),
+  });
+  if (!response.ok && response.status !== 401) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to save your languages');
+  }
 }

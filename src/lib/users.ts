@@ -2,6 +2,8 @@ import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { isUniqueViolation, query, transaction } from './db';
 import { ROLES } from './roles';
+import { ACCOUNT_STATUS, canBuyPlan } from './accountStatus';
+import { isLanguage, type Language } from './languages';
 
 const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
@@ -18,10 +20,14 @@ export type User = {
   stripeSubscriptionId: string | null;
   // One of ROLES
   role: string;
+  // Last picked in the Language page's "want to learn" / "I speak"
+  // comboboxes; null until the user picks one
+  activeLearningLanguage: Language | null;
+  nativeLanguage: Language | null;
 };
 
 const USER_COLUMNS =
-  'id, first_name, last_name, email_address, account_status, signup_date, subscription_end_date, stripe_subscription_id, role';
+  'id, first_name, last_name, email_address, account_status, signup_date, subscription_end_date, stripe_subscription_id, role, active_learning_language, native_language';
 
 // Dates are stored as ISO 8601 UTC strings, so they compare correctly as text.
 // One month from `from`, clamped so Jan 31 becomes Feb 28/29 rather than Mar 3.
@@ -34,16 +40,8 @@ export function oneMonthFrom(from: Date = new Date()): string {
   return end.toISOString();
 }
 
-function hasEnded(user: User): boolean {
-  return !user.subscriptionEndDate || user.subscriptionEndDate < new Date().toISOString();
-}
-
-export function canSubscribe(user: User): boolean {
-  return (
-    user.accountStatus === 'New' ||
-    user.accountStatus === 'Expired' ||
-    (user.accountStatus === 'Canceled' && hasEnded(user))
-  );
+export function canBuy(user: User, plan: 'monthly' | 'lifetime'): boolean {
+  return canBuyPlan(user.accountStatus, plan);
 }
 
 export class EmailTakenError extends Error {
@@ -81,7 +79,7 @@ export function ensureUserSchema(): Promise<void> {
         last_name TEXT NOT NULL,
         email_address TEXT NOT NULL,
         password TEXT NOT NULL,
-        account_status TEXT NOT NULL DEFAULT 'New',
+        account_status TEXT NOT NULL DEFAULT '${ACCOUNT_STATUS.unsubscribed}',
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         stripe_customer_id TEXT,
         stripe_subscription_id TEXT,
@@ -101,11 +99,28 @@ export function ensureUserSchema(): Promise<void> {
           ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT '${ROLES.unsubscribed}';
           UPDATE users SET role = CASE account_status
             WHEN 'Active' THEN '${ROLES.monthly}'
+            WHEN '${ACCOUNT_STATUS.monthly}' THEN '${ROLES.monthly}'
             WHEN 'Paid' THEN '${ROLES.lifetime}'
+            WHEN '${ACCOUNT_STATUS.lifetime}' THEN '${ROLES.lifetime}'
             ELSE '${ROLES.unsubscribed}' END;
           UPDATE users SET role = '${ROLES.admin}' WHERE lower(email_address) = 'darinlutz@yahoo.com';
         END IF;
       END $$`);
+      // Account statuses were renamed: New -> Unsubscribed, Active -> Monthly
+      // Subscription, Paid -> Lifetime Subscription. Converts any old values.
+      // The Language page's "want to learn" and "I speak" picks, restored
+      // when the user comes back
+      await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS active_learning_language TEXT');
+      await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS native_language TEXT');
+      await client.query(
+        `ALTER TABLE users ALTER COLUMN account_status SET DEFAULT '${ACCOUNT_STATUS.unsubscribed}'`
+      );
+      await client.query(
+        `UPDATE users SET account_status = CASE account_status
+           WHEN 'New' THEN $1 WHEN 'Active' THEN $2 WHEN 'Paid' THEN $3 END
+         WHERE account_status IN ('New', 'Active', 'Paid')`,
+        [ACCOUNT_STATUS.unsubscribed, ACCOUNT_STATUS.monthly, ACCOUNT_STATUS.lifetime]
+      );
       // The belt color for each level. Seeded once; existing rows are left
       // alone so colors can be edited in the database.
       await client.query(`CREATE TABLE IF NOT EXISTS belt_level_key (
@@ -215,6 +230,8 @@ function rowToUser(row: Record<string, unknown>): User {
     emailAddress: row.email_address as string,
     accountStatus: row.account_status as string,
     role: row.role as string,
+    activeLearningLanguage: isLanguage(row.active_learning_language) ? row.active_learning_language : null,
+    nativeLanguage: isLanguage(row.native_language) ? row.native_language : null,
     signupDate: (row.signup_date as string | null) ?? null,
     subscriptionEndDate: (row.subscription_end_date as string | null) ?? null,
     stripeSubscriptionId: (row.stripe_subscription_id as string | null) ?? null,
@@ -232,9 +249,9 @@ export async function createUser(input: {
   try {
     const rows = await query(
       `INSERT INTO users (first_name, last_name, email_address, password, account_status, signup_date, role)
-       VALUES ($1, $2, $3, $4, 'New', $5, $6)
+       VALUES ($1, $2, $3, $4, $7, $5, $6)
        RETURNING ${USER_COLUMNS}`,
-      [input.firstName, input.lastName, input.emailAddress, passwordHash, new Date().toISOString(), ROLES.unsubscribed]
+      [input.firstName, input.lastName, input.emailAddress, passwordHash, new Date().toISOString(), ROLES.unsubscribed, ACCOUNT_STATUS.unsubscribed]
     );
     return rowToUser(rows[0]);
   } catch (error) {
@@ -278,20 +295,34 @@ export async function updatePassword(userId: number, password: string): Promise<
 
 export async function getUserById(id: number): Promise<User | null> {
   await ensureUserSchema();
-  // A paid subscription whose end date has passed (e.g. a failed renewal) is expired
+  // A monthly subscription whose end date has passed (e.g. a failed renewal) is expired
   await query(
-    `UPDATE users SET account_status = 'Expired'
-     WHERE id = $1 AND account_status = 'Active' AND subscription_end_date < $2`,
-    [id, new Date().toISOString()]
+    `UPDATE users SET account_status = $3
+     WHERE id = $1 AND account_status = $4 AND subscription_end_date < $2`,
+    [id, new Date().toISOString(), ACCOUNT_STATUS.expired, ACCOUNT_STATUS.monthly]
   );
   const [row] = await query(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [id]);
   return row ? rowToUser(row) : null;
 }
 
-// Links a completed Checkout Session to the user who started it.
+// Saves the Language page's "want to learn" and/or "I speak" picks
+export async function setLanguagePreferences(
+  userId: number,
+  preferences: { activeLearningLanguage?: Language; nativeLanguage?: Language }
+): Promise<void> {
+  await ensureUserSchema();
+  await query(
+    `UPDATE users SET active_learning_language = COALESCE($2, active_learning_language),
+       native_language = COALESCE($3, native_language)
+     WHERE id = $1`,
+    [userId, preferences.activeLearningLanguage ?? null, preferences.nativeLanguage ?? null]
+  );
+}
+
 // SQL for setting role to the given parameter, except that Admins stay Admin
 const KEEP_ADMIN_ELSE = (param: string) => `CASE WHEN role = '${ROLES.admin}' THEN role ELSE ${param} END`;
 
+// Links a completed Checkout Session to the user who started it.
 export async function startSubscription(
   userId: number,
   stripeCustomerId: string,
@@ -299,36 +330,41 @@ export async function startSubscription(
 ): Promise<void> {
   await ensureUserSchema();
   await query(
-    `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, account_status = 'Active',
+    `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, account_status = $6,
        subscription_end_date = $3, role = ${KEEP_ADMIN_ELSE('$5')}
      WHERE id = $4`,
-    [stripeCustomerId, stripeSubscriptionId, oneMonthFrom(), userId, ROLES.monthly]
+    [stripeCustomerId, stripeSubscriptionId, oneMonthFrom(), userId, ROLES.monthly, ACCOUNT_STATUS.monthly]
   );
 }
 
 // A paid Lifetime purchase never expires. Clearing the subscription ID keeps
 // events from an earlier monthly subscription from changing the status.
+// Returns that earlier monthly subscription's ID, if any, so the caller can
+// cancel it in Stripe.
 export async function grantLifetimeAccess(
   userId: number,
   stripeCustomerId: string | null
-): Promise<void> {
+): Promise<string | null> {
   await ensureUserSchema();
-  await query(
-    `UPDATE users SET account_status = 'Paid', subscription_end_date = NULL,
-       stripe_subscription_id = NULL, stripe_customer_id = COALESCE($1, stripe_customer_id),
-       role = ${KEEP_ADMIN_ELSE('$3')}
-     WHERE id = $2`,
-    [stripeCustomerId, userId, ROLES.lifetime]
+  const [row] = await query(
+    `UPDATE users SET account_status = $4, subscription_end_date = NULL,
+       stripe_subscription_id = NULL, stripe_customer_id = COALESCE($1, users.stripe_customer_id),
+       role = CASE WHEN users.role = '${ROLES.admin}' THEN users.role ELSE $3 END
+     FROM (SELECT id, stripe_subscription_id FROM users WHERE id = $2) AS previous
+     WHERE users.id = previous.id
+     RETURNING previous.stripe_subscription_id AS previous_subscription_id`,
+    [stripeCustomerId, userId, ROLES.lifetime, ACCOUNT_STATUS.lifetime]
   );
+  return (row?.previous_subscription_id as string | null | undefined) ?? null;
 }
 
 // Called on each successful monthly renewal payment.
 export async function renewSubscription(stripeSubscriptionId: string): Promise<void> {
   await ensureUserSchema();
   await query(
-    `UPDATE users SET account_status = 'Active', subscription_end_date = $1
+    `UPDATE users SET account_status = $3, subscription_end_date = $1
      WHERE stripe_subscription_id = $2`,
-    [oneMonthFrom(), stripeSubscriptionId]
+    [oneMonthFrom(), stripeSubscriptionId, ACCOUNT_STATUS.monthly]
   );
 }
 

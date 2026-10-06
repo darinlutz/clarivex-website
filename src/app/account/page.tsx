@@ -1,12 +1,28 @@
 import { redirect } from 'next/navigation';
 import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import { getCurrentUser } from '@/lib/session';
-import { canSubscribe } from '@/lib/users';
+import { canBuy } from '@/lib/users';
+import { ACCOUNT_STATUS } from '@/lib/accountStatus';
 import { getLanguageProgress } from '@/lib/languageProgress';
 import Link from 'next/link';
 import { beltName, continueTrainingHref, describeNextStep } from '@/lib/languageLevels';
 import BeltIcon from '@/components/BeltIcon';
 import DeleteLanguageButton from '@/components/DeleteLanguageButton';
+
+// Green for a current subscription, red once it's canceled or expired,
+// blue (the site color) otherwise
+function statusBadgeClass(accountStatus: string): string {
+  switch (accountStatus) {
+    case ACCOUNT_STATUS.monthly:
+    case ACCOUNT_STATUS.lifetime:
+      return 'bg-green-100 text-green-700';
+    case ACCOUNT_STATUS.canceled:
+    case ACCOUNT_STATUS.expired:
+      return 'bg-red-100 text-red-700';
+    default:
+      return 'bg-powder-500/15 text-powder-600';
+  }
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -17,6 +33,9 @@ export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   const belts = await getLanguageProgress(user.id);
+  const isMonthly = user.accountStatus === ACCOUNT_STATUS.monthly;
+  const canBuyMonthly = canBuy(user, 'monthly');
+  const canBuyLifetime = canBuy(user, 'lifetime');
 
   return (
     <section className="py-12 px-4 bg-gradient-to-b from-slate-100 to-white flex justify-center">
@@ -36,7 +55,9 @@ export default async function AccountPage() {
           <div className="flex justify-between items-center gap-4 px-4 py-3">
             <dt className="text-sm font-medium text-slate-500">Account Status</dt>
             <dd>
-              <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-powder-500/15 text-powder-600">
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${statusBadgeClass(user.accountStatus)}`}
+              >
                 {user.accountStatus}
               </span>
             </dd>
@@ -78,7 +99,7 @@ export default async function AccountPage() {
               <dd className="text-dark-blue font-medium text-right">None yet</dd>
             </div>
           )}
-          {user.accountStatus === 'Active' && (
+          {isMonthly && (
             <div className="flex justify-between gap-4 px-4 py-3">
               <dt className="text-sm font-medium text-slate-500">Subscription End Date</dt>
               <dd className="text-dark-blue font-medium text-right">
@@ -88,28 +109,32 @@ export default async function AccountPage() {
           )}
         </dl>
 
-        {canSubscribe(user) && (
+        {(canBuyMonthly || canBuyLifetime) && (
           <form action="/api/create-checkout-session" method="POST" className="mt-8 space-y-3">
-            <button
-              type="submit"
-              name="plan"
-              value="monthly"
-              className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
-            >
-              Monthly Subscription
-            </button>
-            <button
-              type="submit"
-              name="plan"
-              value="lifetime"
-              className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
-            >
-              Lifetime Subscription
-            </button>
+            {canBuyMonthly && (
+              <button
+                type="submit"
+                name="plan"
+                value="monthly"
+                className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
+              >
+                Monthly Subscription
+              </button>
+            )}
+            {canBuyLifetime && (
+              <button
+                type="submit"
+                name="plan"
+                value="lifetime"
+                className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
+              >
+                Lifetime Subscription
+              </button>
+            )}
           </form>
         )}
 
-        {user.accountStatus === 'Active' && <CancelSubscriptionButton />}
+        {isMonthly && <CancelSubscriptionButton />}
       </div>
     </section>
   );

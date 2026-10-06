@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getCurrentUser } from '@/lib/session';
 import { getSiteOrigin } from '@/lib/siteOrigin';
-import { canSubscribe } from '@/lib/users';
+import { canBuy } from '@/lib/users';
 
 // Each plan is a Stripe Product; Checkout charges its default Price
 const PLAN_PRODUCT_ENV = {
@@ -41,8 +41,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.redirect(`${origin}/login`, 303);
     }
-    // Prevents a second subscription while one is still running
-    if (!canSubscribe(user)) {
+    // Prevents buying a plan the account already has (or one it's past,
+    // e.g. Monthly on a Lifetime account)
+    if (!canBuy(user, plan)) {
       return NextResponse.redirect(`${origin}/account`, 303);
     }
 

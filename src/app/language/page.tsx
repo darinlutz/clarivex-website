@@ -13,7 +13,12 @@ import type { GrammarToken } from '@/lib/grammarCheck';
 import type { WordCategory } from '@/lib/language';
 import { isLanguage, LANGUAGES } from '@/lib/languages';
 import { startingProgress, type RecordedActivity } from '@/lib/languageLevels';
-import { fetchLanguageProgress, startLanguageProgress, type ProgressMap } from '@/lib/languageTestClient';
+import {
+  fetchLanguageProgress,
+  saveLanguagePreferences,
+  startLanguageProgress,
+  type ProgressMap,
+} from '@/lib/languageTestClient';
 
 const TRANSLATOR_LANGUAGES: readonly Language[] = LANGUAGES;
 
@@ -116,6 +121,10 @@ function Language() {
     const learn = searchParams.get('learn');
     return isLanguage(learn) ? learn : 'Vietnamese';
   });
+  // Which of the two language comboboxes have been set on this visit (by
+  // the user, or by a ?learn= link), so restoring the saved languages
+  // doesn't override them
+  const languagePickedRef = useRef({ learn: searchParams.get('learn') !== null, native: false });
   // The user's belt and next step per language: undefined while loading,
   // null when signed out (progress isn't saved)
   const [progressByLanguage, setProgressByLanguage] = useState<ProgressMap | null | undefined>(undefined);
@@ -222,6 +231,14 @@ function Language() {
         if (!isCurrent) return;
         setProgressByLanguage(progress?.progressByLanguage ?? null);
         setIsAdmin(progress?.isAdmin ?? false);
+        // Restore the user's saved languages, unless they've already picked
+        // one on this visit (or a ?learn= link chose the language)
+        if (progress?.nativeLanguage && !languagePickedRef.current.native) {
+          setUserLanguage(progress.nativeLanguage);
+        }
+        if (progress?.activeLearningLanguage && !languagePickedRef.current.learn) {
+          setLearnLanguage(progress.activeLearningLanguage);
+        }
       })
       // Progress is a nice-to-have here; the tabs still work without it
       .catch(() => {
@@ -233,11 +250,20 @@ function Language() {
     };
   }, []);
 
+  // Remembers the user's "I speak" pick for next time
+  const handleUserLanguageChange = (language: Language) => {
+    setUserLanguage(language);
+    languagePickedRef.current.native = true;
+    saveLanguagePreferences({ nativeLanguage: language }).catch(() => {});
+  };
+
   // Picking a language to learn adds it to the signed-in user's profile at
   // Level 0 (the Account page lists it, with a Delete button until a belt
   // is earned)
   const handleLearnLanguageChange = (language: Language) => {
     setLearnLanguage(language);
+    languagePickedRef.current.learn = true;
+    saveLanguagePreferences({ activeLearningLanguage: language }).catch(() => {});
     if (!progressByLanguage || progressByLanguage[language]) return;
 
     startLanguageProgress(language)
@@ -1083,7 +1109,7 @@ function Language() {
               id="userLanguage"
               name="userLanguage"
               value={userLanguage}
-              onChange={(e) => setUserLanguage(e.target.value as Language)}
+              onChange={(e) => handleUserLanguageChange(e.target.value as Language)}
               className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
             >
               {TRANSLATOR_LANGUAGES.map((lang) => (
