@@ -133,6 +133,32 @@ function formatAreaLine(areaName: string, c: AreaComparison, lengthFeet: number 
   );
 }
 
+// Brakepoints within this many feet, or peak pressures within this many %, count as the same
+const ADVICE_BRAKE_FEET = 10;
+const ADVICE_PRESSURE_PCT = 3;
+
+// Which way the Compare lap should change its braking in an area, decided here rather than by the
+// model so "later"/"earlier" and "harder"/"lighter" can't get flipped. Only sent to the summary.
+function formatAreaAdvice(areaName: string, c: AreaComparison) {
+  if (c.secondsDiff <= 0) {
+    return `${areaName} advice: the Compare lap was faster here, so it should keep its braking; do not tell it to copy the Base lap.`;
+  }
+  const changes = [];
+  if (c.brakeFeetDiff !== null && Math.abs(c.brakeFeetDiff) >= ADVICE_BRAKE_FEET) {
+    // Compare braked earlier (negative diff) -> brake later, and vice versa
+    changes.push(`brake ${formatFeet(Math.abs(c.brakeFeetDiff))} ft ${c.brakeFeetDiff < 0 ? 'LATER' : 'EARLIER'}`);
+  }
+  if (Math.abs(c.pressureDiff) >= ADVICE_PRESSURE_PCT) {
+    changes.push(
+      `use ${c.pressureDiff < 0 ? 'MORE' : 'LESS'} peak brake pressure (${c.pressureDiff < 0 ? 'harder' : 'lighter'}, ` +
+        `about ${c.basePressure}% instead of ${c.comparePressure}%)`
+    );
+  }
+  return changes.length > 0
+    ? `${areaName} advice: to match the faster Base lap, the Compare lap should ${changes.join(' and ')}.`
+    : `${areaName} advice: braking is about the same on both laps, so the time is in the speeds; do not give braking advice here.`;
+}
+
 // A table row: the comparison, or why there isn't one
 type AreaRow = { name: string; comparison: AreaComparison | null; note: string };
 
@@ -439,6 +465,7 @@ export default function LapCompare() {
         lines.push(`Focus areas (${selectedTrack.fileName}):`, '');
         const areasStart = lines.length;
         const rows: AreaRow[] = [];
+        const advice: string[] = [];
 
         // Each focus area gets a line (plus a blank line after it) and a table row
         for (const area of selectedTrack.areas) {
@@ -454,6 +481,7 @@ export default function LapCompare() {
             const comparison = compareArea(base, compare, selectedTrack.lengthFeet);
             lines.push(formatAreaLine(area.name, comparison, selectedTrack.lengthFeet), '');
             rows.push({ name: area.name, comparison, note: '' });
+            advice.push(formatAreaAdvice(area.name, comparison));
           } else {
             const note = `no data for the ${!base ? 'Base' : 'Compare'} lap`;
             lines.push(`${area.name}: ${note}`, '');
@@ -464,7 +492,10 @@ export default function LapCompare() {
 
         // Show the focus areas right away, then add the coaching summary below them
         setAnalysis(`${lines.join('\n').trimEnd()}\n\nSummary: writing…`);
-        const summary = await fetchSummary(lines.slice(areasStart).join('\n').trim(), selectedTrack.fileName);
+        const summary = await fetchSummary(
+          [lines.slice(areasStart).join('\n').trim(), '', 'Braking advice (follow exactly):', ...advice].join('\n'),
+          selectedTrack.fileName
+        );
         lines.push('Summary:', summary);
       }
 

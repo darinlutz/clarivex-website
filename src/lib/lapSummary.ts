@@ -13,7 +13,13 @@ const PROMPT_TEMPLATE = ChatPromptTemplate.fromMessages([
       'lap that answers: where on the track, and how, could the Compare lap be better? Name the ' +
       'specific focus areas where the Compare lap lost the most time, use the numbers from the data, ' +
       'and give concrete advice based on the brakepoint, brake pressure, min speed and exit speed differences. Briefly note ' +
-      'where the Compare lap was already stronger. Write plain prose in a single paragraph with no ' +
+      'where the Compare lap was already stronger. After the focus areas comes a "Braking advice" line for ' +
+      'each area, worked out from the data: any braking advice you give for an area must use exactly that ' +
+      'direction (later or earlier, more or less pressure) and never the opposite. A Compare lap that braked ' +
+      'lighter must never be told to reduce brake pressure, and one that braked earlier must never be told to ' +
+      'brake earlier. Both laps were driven in the same conditions, which may be wet, so do not assume a dry ' +
+      'track; when the advice is more pressure, say to build it progressively to avoid locking up. ' +
+      'Write plain prose in a single paragraph with no ' +
       'headings, lists, or markdown, and do not invent data that is not in the comparison.',
   ],
   ['user', '{comparison}'],
