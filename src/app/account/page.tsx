@@ -3,7 +3,8 @@ import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import { getCurrentUser } from '@/lib/session';
 import { canSubscribe } from '@/lib/users';
 import { getLanguageProgress } from '@/lib/languageProgress';
-import { beltName } from '@/lib/languageLevels';
+import Link from 'next/link';
+import { beltName, continueTrainingHref, describeNextStep } from '@/lib/languageLevels';
 import BeltIcon from '@/components/BeltIcon';
 
 function formatDate(iso: string | null): string {
@@ -47,15 +48,27 @@ export default async function AccountPage() {
           </div>
           {/* One belt per language the user has started */}
           {belts.length > 0 ? (
-            belts.map(({ language, beltColor }) => (
-              <div key={language} className="flex justify-between items-center gap-4 px-4 py-3">
-                <dt className="text-sm font-medium text-slate-500">{language}</dt>
-                <dd className="flex items-center gap-3 text-dark-blue font-medium text-right">
-                  {beltName(beltColor)}
-                  <BeltIcon color={beltColor} />
-                </dd>
-              </div>
-            ))
+            belts.map((progress) => {
+              const continueHref = continueTrainingHref(progress);
+              return (
+                <div key={progress.language} className="flex justify-between items-center gap-4 px-4 py-3">
+                  <dt className="text-sm font-medium text-slate-500">{progress.language}</dt>
+                  <dd className="flex items-center gap-3 flex-wrap justify-end text-dark-blue font-medium text-right">
+                    {beltName(progress.beltColor)}
+                    <BeltIcon color={progress.beltColor} />
+                    {continueHref && (
+                      <Link
+                        href={continueHref}
+                        title={`Next step: ${describeNextStep(progress)}`}
+                        className="text-sm font-semibold text-powder-600 hover:underline"
+                      >
+                        Continue training
+                      </Link>
+                    )}
+                  </dd>
+                </div>
+              );
+            })
           ) : (
             <div className="flex justify-between gap-4 px-4 py-3">
               <dt className="text-sm font-medium text-slate-500">Belts</dt>

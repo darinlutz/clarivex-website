@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowUpDown, Eye, EyeOff } from 'lucide-react';
 import LanguageForm from '@/components/LanguageForm';
 import ReadingTest from '@/components/ReadingTest';
@@ -10,7 +11,7 @@ import LanguageProgressBanner from '@/components/LanguageProgressBanner';
 import type { Language } from '@/lib/translate';
 import type { GrammarToken } from '@/lib/grammarCheck';
 import type { WordCategory } from '@/lib/language';
-import { LANGUAGES } from '@/lib/languages';
+import { isLanguage, LANGUAGES } from '@/lib/languages';
 import { startingProgress, type RecordedActivity } from '@/lib/languageLevels';
 import { fetchLanguageProgress, type ProgressMap } from '@/lib/languageTestClient';
 
@@ -79,14 +80,42 @@ async function resolveWritingAnswerText(
   return translateText(englishText, 'English', language);
 }
 
-export default function Language() {
-  const [activeTab, setActiveTab] = useState<
-    'training' | 'readingTest' | 'writingTest' | 'reading' | 'writing' | 'translator' | 'friend' | 'setup'
-  >('reading');
+const TABS = [
+  'training',
+  'readingTest',
+  'writingTest',
+  'reading',
+  'writing',
+  'translator',
+  'friend',
+  'setup',
+] as const;
+type Tab = (typeof TABS)[number];
+
+// useSearchParams needs a Suspense boundary for the production build
+export default function LanguagePage() {
+  return (
+    <Suspense fallback={null}>
+      <Language />
+    </Suspense>
+  );
+}
+
+function Language() {
+  // ?tab= and ?learn= open a given tab and language, e.g. the Account
+  // page's "Continue training" link
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const tab = searchParams.get('tab');
+    return TABS.find((t) => t === tab) ?? 'reading';
+  });
   // The practice tabs start shown; the "Show tabs?" switch hides them
   const [showTabs, setShowTabs] = useState(true);
   const [userLanguage, setUserLanguage] = useState<Language>('English');
-  const [learnLanguage, setLearnLanguage] = useState<Language>('Vietnamese');
+  const [learnLanguage, setLearnLanguage] = useState<Language>(() => {
+    const learn = searchParams.get('learn');
+    return isLanguage(learn) ? learn : 'Vietnamese';
+  });
   // The user's belt and next step per language: undefined while loading,
   // null when signed out (progress isn't saved)
   const [progressByLanguage, setProgressByLanguage] = useState<ProgressMap | null | undefined>(undefined);

@@ -39,6 +39,22 @@ export function describeNextStep(progress: LanguageProgress): string {
   return `Level ${progress.workingLevel} ${ACTIVITY_NAMES[progress.nextStep]}`;
 }
 
+// The Language page tab for each step
+const STEP_TABS: Record<LanguageActivity, string> = {
+  training: 'training',
+  reading: 'readingTest',
+  writing: 'writingTest',
+};
+
+// Link to the Language page tab for the user's next step in a language
+// (its Difficulty defaults to the level being worked on), or null once
+// every belt is earned.
+export function continueTrainingHref(progress: LanguageProgress): string | null {
+  if (progress.nextStep === 'complete') return null;
+  const params = new URLSearchParams({ tab: STEP_TABS[progress.nextStep], learn: progress.language });
+  return `/language?${params}`;
+}
+
 // e.g. "Green Belt", or "No Belt"
 export function beltName(color: string): string {
   return color === 'No Belt' ? color : `${color} Belt`;
