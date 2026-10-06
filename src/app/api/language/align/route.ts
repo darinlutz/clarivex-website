@@ -1,0 +1,37 @@
+import { NextResponse } from 'next/server';
+import type { Language } from '@/lib/translate';
+import { alignTranslation } from '@/lib/wordAlignment';
+
+const VALID_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+
+// Pairs up the words of a sentence and its translation so matching words
+// can be shown in the same color.
+export async function POST(request: Request) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { sentence, translation } = body;
+
+    if (
+      typeof sentence !== 'string' || !sentence.trim() ||
+      typeof translation !== 'string' || !translation.trim()
+    ) {
+      return NextResponse.json({ error: 'Missing sentence or translation' }, { status: 400 });
+    }
+
+    if (!VALID_LANGUAGES.includes(body.from) || !VALID_LANGUAGES.includes(body.to)) {
+      return NextResponse.json({ error: 'Invalid language' }, { status: 400 });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY is not configured');
+      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+    }
+
+    const segments = await alignTranslation(sentence, body.from, translation, body.to);
+
+    return NextResponse.json({ success: true, ...segments }, { status: 200 });
+  } catch (error) {
+    console.error('Align error:', error);
+    return NextResponse.json({ error: 'Failed to align translation' }, { status: 500 });
+  }
+}

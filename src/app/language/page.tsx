@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUpDown, Eye, EyeOff } from 'lucide-react';
 import LanguageForm from '@/components/LanguageForm';
+import ReadingTest from '@/components/ReadingTest';
+import WritingTest from '@/components/WritingTest';
 import type { Language } from '@/lib/translate';
 import type { GrammarToken } from '@/lib/grammarCheck';
 import type { WordCategory } from '@/lib/language';
@@ -71,10 +73,10 @@ async function resolveWritingAnswerText(
 
 export default function Language() {
   const [activeTab, setActiveTab] = useState<
-    'reading' | 'writing' | 'translator' | 'friend' | 'setup'
+    'readingTest' | 'writingTest' | 'reading' | 'writing' | 'translator' | 'friend' | 'setup'
   >('reading');
-  // The practice tabs start hidden; the "Show tabs?" switch reveals them
-  const [showTabs, setShowTabs] = useState(false);
+  // The practice tabs start shown; the "Show tabs?" switch hides them
+  const [showTabs, setShowTabs] = useState(true);
   const [userLanguage, setUserLanguage] = useState<Language>('English');
   const [learnLanguage, setLearnLanguage] = useState<Language>('Vietnamese');
   const [vietnameseText, setVietnameseText] = useState('');
@@ -1055,10 +1057,30 @@ export default function Language() {
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
         <div className="w-full max-w-5xl">
           {/* Tab Navigation */}
-          <div className="flex gap-4 mb-6 border-b border-slate-200">
+          <div className="flex gap-4 mb-6 border-b border-slate-200 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('readingTest')}
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
+                activeTab === 'readingTest'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Reading Test
+            </button>
+            <button
+              onClick={() => setActiveTab('writingTest')}
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
+                activeTab === 'writingTest'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Writing Test
+            </button>
             <button
               onClick={() => setActiveTab('reading')}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
                 activeTab === 'reading'
                   ? 'text-powder-600 border-powder-600'
                   : 'text-slate-600 border-transparent hover:text-dark-blue'
@@ -1068,7 +1090,7 @@ export default function Language() {
             </button>
             <button
               onClick={() => setActiveTab('writing')}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
                 activeTab === 'writing'
                   ? 'text-powder-600 border-powder-600'
                   : 'text-slate-600 border-transparent hover:text-dark-blue'
@@ -1078,7 +1100,7 @@ export default function Language() {
             </button>
             <button
               onClick={() => setActiveTab('translator')}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
                 activeTab === 'translator'
                   ? 'text-powder-600 border-powder-600'
                   : 'text-slate-600 border-transparent hover:text-dark-blue'
@@ -1088,7 +1110,7 @@ export default function Language() {
             </button>
             <button
               onClick={() => setActiveTab('friend')}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
                 activeTab === 'friend'
                   ? 'text-powder-600 border-powder-600'
                   : 'text-slate-600 border-transparent hover:text-dark-blue'
@@ -1098,7 +1120,7 @@ export default function Language() {
             </button>
             <button
               onClick={() => setActiveTab('setup')}
-              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
                 activeTab === 'setup'
                   ? 'text-powder-600 border-powder-600'
                   : 'text-slate-600 border-transparent hover:text-dark-blue'
@@ -1110,6 +1132,32 @@ export default function Language() {
 
           {/* Tab Content */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
+            {/* Reading Test Tab */}
+            {activeTab === 'readingTest' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Reading Test</h2>
+                <p className="text-slate-600 mb-8">
+                  Read the {learnLanguage} sentence, then pick its {userLanguage} translation.
+                </p>
+                <ReadingTest learnLanguage={learnLanguage} userLanguage={userLanguage} />
+              </div>
+            )}
+
+            {/* Writing Test Tab */}
+            {activeTab === 'writingTest' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Writing Test</h2>
+                <p className="text-slate-600 mb-8">
+                  Listen to the {learnLanguage}, type exactly what you hear, then press Submit.
+                </p>
+                <WritingTest
+                  learnLanguage={learnLanguage}
+                  userLanguage={userLanguage}
+                  sheetVersion={sheetVersion}
+                />
+              </div>
+            )}
+
             {/* Reading & Speaking Tab */}
             {activeTab === 'reading' && (
               <div>

@@ -138,7 +138,7 @@ export default function JiraIssues() {
           <table className="w-full text-sm text-dark-blue">
             <thead className="bg-slate-100 text-left text-slate-600">
               <tr>
-                {['Key', 'Summary', 'Type', 'Status', 'Priority', 'Due', 'Updated', 'Logged', ''].map((heading) => (
+                {['Key', 'Summary', 'Status', 'Due', 'Updated', 'Logged', ''].map((heading) => (
                   <th key={heading} className="px-3 py-2 font-medium whitespace-nowrap">
                     {heading}
                   </th>
@@ -165,7 +165,6 @@ export default function JiraIssues() {
                         {issue.summary}
                         <div className="text-xs text-slate-500">{issue.project}</div>
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap">{issue.type}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         <span
                           className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -175,7 +174,6 @@ export default function JiraIssues() {
                           {issue.status}
                         </span>
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap">{issue.priority ?? '—'}</td>
                       <td className={`px-3 py-2 whitespace-nowrap ${pastDue ? 'text-red-600 font-semibold' : ''}`}>
                         {issue.dueDate ? formatDate(issue.dueDate) : '—'}
                       </td>
@@ -205,7 +203,7 @@ export default function JiraIssues() {
                     </tr>
                     {loggingKey === issue.key && (
                       <tr className="bg-powder-50">
-                        <td colSpan={9} className="px-3 py-3">
+                        <td colSpan={7}className="px-3 py-3">
                           <JiraLogWork
                             issueKey={issue.key}
                             onCancel={() => setLoggingKey(null)}
