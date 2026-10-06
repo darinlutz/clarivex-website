@@ -141,7 +141,7 @@ export default function Navigation({ user }: NavigationProps) {
                   href="/signup"
                   className="px-4 py-2 rounded-lg bg-gradient-to-r from-powder-500 to-powder-600 text-white font-medium hover:shadow-lg transition-all whitespace-nowrap"
                 >
-                  Sign Up
+                  Get Started
                 </Link>
               </>
             )}
@@ -265,7 +265,7 @@ export default function Navigation({ user }: NavigationProps) {
                     className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
                     onClick={closeMenu}
                   >
-                    Sign Up
+                    Get Started
                   </Link>
                 </>
               )}
