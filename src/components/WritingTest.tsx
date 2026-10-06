@@ -6,84 +6,29 @@ import type { Language } from '@/lib/translate';
 import type { WordCategory } from '@/lib/language';
 import type { AlignedSegment } from '@/lib/wordAlignment';
 import ColoredSegments from '@/components/ColoredSegments';
+import TestDifficultySelector from '@/components/TestDifficultySelector';
 import {
-  DIFFICULTY_LEVELS,
-  difficultyOptionLabel,
+  alignTexts,
   FEMALE_VOICE,
+  fetchTestItem,
   MALE_VOICE,
   playChime,
   playError,
   speakText,
+  TEST_LANGUAGES,
+  withLanguages,
+  type TestDifficulty,
+  type TestHistory,
+  type TestItem,
 } from '@/lib/languageTestClient';
 
-const TEST_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
-
-const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
-  { value: 'activities', label: 'Activities' },
-  { value: 'adjectives', label: 'Adjectives' },
-  { value: 'classifiers', label: 'Classifiers' },
-  { value: 'clothing', label: 'Clothing' },
-  { value: 'colors', label: 'Colors' },
-  { value: 'conjunctionsPrepositions', label: 'Conjunctions & Prepositions' },
-  { value: 'focus', label: 'Focus' },
-  { value: 'foodDrink', label: 'Food & Drink' },
-  { value: 'houseHome', label: 'House & Home' },
-  { value: 'numbers', label: 'Numbers & Money' },
-  { value: 'peopleAnimals', label: 'People & Animals' },
-  { value: 'places', label: 'Places' },
-  { value: 'pronouns', label: 'Pronouns' },
-  { value: 'things', label: 'Things' },
-  { value: 'timeRelated', label: 'Time Related' },
-  { value: 'verbs', label: 'Verbs' },
-];
-
-// "words" and "fastPhrases" come from the vocabulary sheet; "1"-"10" are
-// generated sentences on the same scale as the Reading Test tab.
-type TestDifficulty = 'fastPhrases' | 'words' | `${number}`;
-
 type SpeakStatus = 'idle' | 'loading' | 'error';
-
-// The current word/phrase/sentence in every language it's known in so far.
-// `source` is the language other translations are made from.
-type TestItem = {
-  id: number;
-  texts: Partial<Record<Language, string>>;
-  source: Language;
-};
 
 type Alignment = {
   key: string;
   sentenceSegments: AlignedSegment[];
   translationSegments: AlignedSegment[];
 };
-
-async function translateText(text: string, from: Language, to: Language): Promise<string> {
-  if (!text.trim() || from === to) return text;
-
-  const response = await fetch('/api/translate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, from, to }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to translate text');
-  }
-
-  return data.translation;
-}
-
-// Fills in the item's text for each of the given languages it doesn't have yet
-async function withLanguages(item: TestItem, languages: Language[]): Promise<TestItem> {
-  const sourceText = item.texts[item.source] ?? '';
-  const missing = Array.from(new Set(languages)).filter((lang) => item.texts[lang] === undefined);
-  const translated = await Promise.all(
-    missing.map(async (lang) => [lang, await translateText(sourceText, item.source, lang)] as const)
-  );
-  return { ...item, texts: { ...item.texts, ...Object.fromEntries(translated) } };
-}
 
 interface WritingTestProps {
   learnLanguage: Language;
@@ -99,7 +44,6 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
   const [appliedAnswerLanguage, setAppliedAnswerLanguage] = useState(userLanguage);
   const [difficulty, setDifficulty] = useState<TestDifficulty>('words');
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
-  const [wordCategoryCount, setWordCategoryCount] = useState<number | null>(null);
   const [item, setItem] = useState<TestItem | null>(null);
   const [userInput, setUserInput] = useState('');
   const [showText, setShowText] = useState(true);
@@ -112,8 +56,7 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
 
   // Session memory so the same words/sentences don't keep coming up.
   // Resets on page reload.
-  const usedWordsByCategory = useRef<Partial<Record<WordCategory, string[]>>>({});
-  const recentSentences = useRef<string[]>([]);
+  const history = useRef<TestHistory>({ usedWordsByCategory: {}, recentSentences: [] });
   const nextItemId = useRef(1);
 
   // Lets the page-level "I want to learn" / "I speak" selectors drive this
@@ -130,8 +73,6 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
   const wordText = item?.texts[wordLanguage] ?? '';
   const answerText = item?.texts[answerLanguage] ?? '';
   const solved = result === 'correct';
-  const vocabCategory: WordCategory | null =
-    difficulty === 'words' ? wordCategory : difficulty === 'fastPhrases' ? 'fastPhrases' : null;
   const alignmentKey = item ? `${item.id}|${wordLanguage}|${answerLanguage}` : '';
   const currentAlignment = alignment?.key === alignmentKey ? alignment : null;
 
@@ -166,56 +107,15 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
 
     let isCurrent = true;
     const key = alignmentKey;
-    fetch('/api/language/align', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sentence: wordText,
-        from: wordLanguage,
-        translation: answerText,
-        to: answerLanguage,
-      }),
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (isCurrent && data) {
-          setAlignment({
-            key,
-            sentenceSegments: data.sentenceSegments,
-            translationSegments: data.translationSegments,
-          });
-        }
-      })
+    alignTexts(wordText, wordLanguage, answerText, answerLanguage).then((segments) => {
       // Coloring is a nice-to-have; without it the text stays plain
-      .catch(() => {});
+      if (isCurrent && segments) setAlignment({ key, ...segments });
+    });
 
     return () => {
       isCurrent = false;
     };
   }, [solved, wordText, answerText, currentAlignment, alignmentKey, wordLanguage, answerLanguage]);
-
-  // Keeps the "Available" label in sync with the active vocabulary category
-  useEffect(() => {
-    if (!vocabCategory) return;
-
-    let isCurrent = true;
-    fetch('/api/language/word/count', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category: vocabCategory }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (isCurrent) setWordCategoryCount(typeof data.count === 'number' ? data.count : null);
-      })
-      .catch(() => {
-        if (isCurrent) setWordCategoryCount(null);
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [vocabCategory, sheetVersion]);
 
   const speak = async (text: string, voice: string, setSpeak: (s: SpeakStatus) => void) => {
     if (!text.trim()) return;
@@ -230,61 +130,22 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
     }
   };
 
-  const fetchNewItem = async (): Promise<TestItem> => {
-    const id = nextItemId.current++;
-
-    if (vocabCategory) {
-      const response = await fetch('/api/language/word', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: vocabCategory,
-          usedWords: usedWordsByCategory.current[vocabCategory] ?? [],
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get a new word');
-      }
-
-      usedWordsByCategory.current = {
-        ...usedWordsByCategory.current,
-        [vocabCategory]: [...(usedWordsByCategory.current[vocabCategory] ?? []), data.vietnamese].slice(-100),
-      };
-      // The vocabulary is Vietnamese/English; other languages are translated
-      // from the English.
-      return { id, texts: { Vietnamese: data.vietnamese, English: data.english }, source: 'English' };
-    }
-
-    const response = await fetch('/api/language/writing-test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        learnLanguage: wordLanguage,
-        userLanguage: answerLanguage,
-        difficulty: Number(difficulty),
-        avoid: recentSentences.current,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to generate a sentence');
-    }
-
-    recentSentences.current = [...recentSentences.current, data.sentence].slice(-20);
-    return {
-      id,
-      texts: { [answerLanguage]: data.translation, [wordLanguage]: data.sentence },
-      source: wordLanguage,
-    };
-  };
-
   const handleStartTest = async () => {
     setStatus('loading');
     setMessage('');
 
     try {
-      const newItem = await withLanguages(await fetchNewItem(), [wordLanguage, answerLanguage]);
+      const newItem = await withLanguages(
+        await fetchTestItem(
+          nextItemId.current++,
+          difficulty,
+          wordCategory,
+          wordLanguage,
+          answerLanguage,
+          history.current
+        ),
+        [wordLanguage, answerLanguage]
+      );
       setItem(newItem);
       setUserInput('');
       setResult('none');
@@ -474,53 +335,14 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
       )}
 
       {/* Difficulty / Word Category Selectors */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <label htmlFor="writingTestDifficulty" className="block text-sm font-medium text-dark-blue">
-          Difficulty
-        </label>
-        <select
-          id="writingTestDifficulty"
-          name="writingTestDifficulty"
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value as TestDifficulty)}
-          className={selectClassName}
-        >
-          <option value="fastPhrases">Fast Phrases</option>
-          <option value="words">Words</option>
-          {DIFFICULTY_LEVELS.map((level) => (
-            <option key={level} value={String(level)}>
-              {difficultyOptionLabel(level)}
-            </option>
-          ))}
-        </select>
-
-        {difficulty === 'words' && (
-          <>
-            <label htmlFor="writingTestWordCategory" className="block text-sm font-medium text-dark-blue">
-              Word Categories
-            </label>
-            <select
-              id="writingTestWordCategory"
-              name="writingTestWordCategory"
-              value={wordCategory}
-              onChange={(e) => setWordCategory(e.target.value as WordCategory)}
-              className={selectClassName}
-            >
-              {WORD_CATEGORIES.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
-
-        {vocabCategory && (
-          <span className="text-sm font-medium text-dark-blue">
-            Available: {wordCategoryCount ?? '...'}
-          </span>
-        )}
-      </div>
+      <TestDifficultySelector
+        idPrefix="writingTest"
+        difficulty={difficulty}
+        onDifficultyChange={setDifficulty}
+        wordCategory={wordCategory}
+        onWordCategoryChange={setWordCategory}
+        sheetVersion={sheetVersion}
+      />
 
       {/* Start Test Button */}
       <div className="pt-4 pb-2">

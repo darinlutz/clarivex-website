@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowUpDown, Eye, EyeOff } from 'lucide-react';
 import LanguageForm from '@/components/LanguageForm';
 import ReadingTest from '@/components/ReadingTest';
+import Training from '@/components/Training';
 import WritingTest from '@/components/WritingTest';
 import type { Language } from '@/lib/translate';
 import type { GrammarToken } from '@/lib/grammarCheck';
@@ -73,7 +74,7 @@ async function resolveWritingAnswerText(
 
 export default function Language() {
   const [activeTab, setActiveTab] = useState<
-    'readingTest' | 'writingTest' | 'reading' | 'writing' | 'translator' | 'friend' | 'setup'
+    'training' | 'readingTest' | 'writingTest' | 'reading' | 'writing' | 'translator' | 'friend' | 'setup'
   >('reading');
   // The practice tabs start shown; the "Show tabs?" switch hides them
   const [showTabs, setShowTabs] = useState(true);
@@ -1059,6 +1060,16 @@ export default function Language() {
           {/* Tab Navigation */}
           <div className="flex gap-4 mb-6 border-b border-slate-200 overflow-x-auto">
             <button
+              onClick={() => setActiveTab('training')}
+              className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
+                activeTab === 'training'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Training
+            </button>
+            <button
               onClick={() => setActiveTab('readingTest')}
               className={`px-6 py-3 font-semibold border-b-2 whitespace-nowrap flex-shrink-0 transition-colors ${
                 activeTab === 'readingTest'
@@ -1132,6 +1143,17 @@ export default function Language() {
 
           {/* Tab Content */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
+            {/* Training Tab */}
+            {activeTab === 'training' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Training</h2>
+                <p className="text-slate-600 mb-8">
+                  Study 10 {learnLanguage} words or phrases with their {userLanguage} translations.
+                </p>
+                <Training learnLanguage={learnLanguage} userLanguage={userLanguage} sheetVersion={sheetVersion} />
+              </div>
+            )}
+
             {/* Reading Test Tab */}
             {activeTab === 'readingTest' && (
               <div>

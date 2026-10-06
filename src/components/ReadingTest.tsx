@@ -16,6 +16,10 @@ import {
 
 type SpeakStatus = 'idle' | 'loading' | 'error';
 
+// Questions per test, and the score (percent) needed to pass
+const TEST_LENGTH = 10;
+const PASSING_SCORE = 80;
+
 type Choice = { text: string; correct: boolean };
 
 function shuffle<T>(items: T[]): T[] {
@@ -46,6 +50,12 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<SpeakStatus>('idle');
   const [speakFemaleStatus, setSpeakFemaleStatus] = useState<SpeakStatus>('idle');
+  // Questions shown so far in this test
+  const [count, setCount] = useState(0);
+  // Questions answered correctly on the first click
+  const [correctCount, setCorrectCount] = useState(0);
+  // Percent correct once the test is finished, otherwise null
+  const [score, setScore] = useState<number | null>(null);
   // Recent sentences, so the same one doesn't keep coming up. Resets on reload.
   const recentSentences = useRef<string[]>([]);
 
@@ -65,7 +75,8 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
   const handleSpeak = () => speak(sentence, MALE_VOICE, setSpeakStatus);
   const handleSpeakFemale = () => speak(sentence, FEMALE_VOICE, setSpeakFemaleStatus);
 
-  const handleStartTest = async () => {
+  // Loads a new question; returns whether it succeeded
+  const loadQuestion = async (): Promise<boolean> => {
     setStatus('loading');
     setMessage('');
 
@@ -102,19 +113,50 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
       setStatus('idle');
 
       speak(data.sentence, MALE_VOICE, setSpeakStatus);
+      return true;
     } catch (error) {
       setStatus('error');
       setMessage(
         error instanceof Error ? error.message : 'Failed to generate a reading test. Please try again.'
       );
+      return false;
     }
   };
 
+  // Start Test -> Next Question (x9) -> Finish Test -> score, after which
+  // the button starts a new test.
+  const handleTestButton = async () => {
+    const finished = score !== null;
+
+    if (!finished && count >= TEST_LENGTH) {
+      setScore(Math.round((correctCount / TEST_LENGTH) * 100));
+      return;
+    }
+
+    if (await loadQuestion()) {
+      if (finished || count === 0) {
+        setScore(null);
+        setCorrectCount(0);
+        setCount(1);
+      } else {
+        setCount(count + 1);
+      }
+    }
+  };
+
+  const testInProgress = count > 0 && score === null;
+  const buttonLabel = !testInProgress
+    ? 'Start Test'
+    : count < TEST_LENGTH
+      ? 'Next Question'
+      : 'Finish Test';
+
   const handleChoiceClick = (index: number) => {
-    if (solved) return;
+    if (solved || score !== null) return;
 
     if (choices[index].correct) {
       setSolved(true);
+      if (wrongPicks.length === 0 && testInProgress) setCorrectCount((n) => n + 1);
       playChime();
       speak(sentence, FEMALE_VOICE, setSpeakFemaleStatus);
     } else {
@@ -136,7 +178,14 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
     <div className="space-y-6">
       {/* Sentence Field */}
       <div>
-        <span className="block mb-2 text-sm font-medium text-dark-blue">{learnLanguage}</span>
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <span className="text-sm font-medium text-dark-blue">{learnLanguage}</span>
+          {testInProgress && (
+            <span className="text-sm font-semibold text-powder-600">
+              {count} of {TEST_LENGTH}
+            </span>
+          )}
+        </div>
         <div className="flex flex-col sm:flex-row gap-3">
           {solved && sentenceSegments.length > 0 ? (
             // A textarea can't color individual words, so once solved the
@@ -241,12 +290,27 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
         </select>
       </div>
 
-      {/* Start Test Button */}
+      {/* Score */}
+      {score !== null && (
+        <div
+          className={`p-4 rounded-lg border font-semibold text-center ${
+            score >= PASSING_SCORE
+              ? 'bg-green-100 border-green-300 text-green-800'
+              : 'bg-red-100 border-red-300 text-red-800'
+          }`}
+        >
+          <span>Score: {score}%</span>
+          <span className="ml-6">Result: {score >= PASSING_SCORE ? 'Pass' : 'Try again.'}</span>
+        </div>
+      )}
+
+      {/* Start Test / Next Question / Finish Test Button */}
       <div className="pt-4 pb-2">
         <button
           type="button"
-          onClick={handleStartTest}
-          disabled={status === 'loading'}
+          onClick={handleTestButton}
+          // Each question must be answered before moving on
+          disabled={status === 'loading' || (testInProgress && !solved)}
           className="w-full px-4 py-2 bg-gradient-to-r from-powder-500 to-powder-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-powder-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 disabled:hover:scale-100"
         >
           {status === 'loading' ? (
@@ -255,7 +319,7 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
               Generating...
             </span>
           ) : (
-            'Start Test'
+            buttonLabel
           )}
         </button>
       </div>
