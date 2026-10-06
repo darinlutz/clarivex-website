@@ -41,6 +41,10 @@ export default async function AccountPage() {
               {formatDate(user.signupDate)}
             </dd>
           </div>
+          <div className="flex justify-between gap-4 px-4 py-3">
+            <dt className="text-sm font-medium text-slate-500">Level</dt>
+            <dd className="text-dark-blue font-medium text-right">{user.level}</dd>
+          </div>
           {user.accountStatus === 'Active' && (
             <div className="flex justify-between gap-4 px-4 py-3">
               <dt className="text-sm font-medium text-slate-500">Subscription End Date</dt>

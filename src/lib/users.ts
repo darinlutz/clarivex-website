@@ -15,10 +15,11 @@ export type User = {
   signupDate: string | null;
   subscriptionEndDate: string | null;
   stripeSubscriptionId: string | null;
+  level: number;
 };
 
 const USER_COLUMNS =
-  'id, first_name, last_name, email_address, account_status, signup_date, subscription_end_date, stripe_subscription_id';
+  'id, first_name, last_name, email_address, account_status, signup_date, subscription_end_date, stripe_subscription_id, level';
 
 // Dates are stored as ISO 8601 UTC strings, so they compare correctly as text.
 // One month from `from`, clamped so Jan 31 becomes Feb 28/29 rather than Mar 3.
@@ -70,6 +71,10 @@ export function ensureUserSchema(): Promise<void> {
         signup_date TEXT,
         subscription_end_date TEXT
       )`);
+      // Added after launch. The column is created with DEFAULT 2 so every
+      // user who existed at that point gets Level 2; new signups start at 0.
+      await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 2');
+      await client.query('ALTER TABLE users ALTER COLUMN level SET DEFAULT 0');
       // Email addresses are unique regardless of case
       await client.query(
         'CREATE UNIQUE INDEX IF NOT EXISTS users_email_address_key ON users (lower(email_address))'
@@ -122,6 +127,7 @@ function rowToUser(row: Record<string, unknown>): User {
     signupDate: (row.signup_date as string | null) ?? null,
     subscriptionEndDate: (row.subscription_end_date as string | null) ?? null,
     stripeSubscriptionId: (row.stripe_subscription_id as string | null) ?? null,
+    level: Number(row.level ?? 0),
   };
 }
 
@@ -135,8 +141,8 @@ export async function createUser(input: {
   const passwordHash = await hashPassword(input.password);
   try {
     const rows = await query(
-      `INSERT INTO users (first_name, last_name, email_address, password, account_status, signup_date)
-       VALUES ($1, $2, $3, $4, 'New', $5)
+      `INSERT INTO users (first_name, last_name, email_address, password, account_status, signup_date, level)
+       VALUES ($1, $2, $3, $4, 'New', $5, 0)
        RETURNING ${USER_COLUMNS}`,
       [input.firstName, input.lastName, input.emailAddress, passwordHash, new Date().toISOString()]
     );
