@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { chatWithFriend, ChatMessage } from '@/lib/friend';
 import { Difficulty } from '@/lib/language';
 import { Language } from '@/lib/translate';
+import { LANGUAGES } from '@/lib/languages';
 
 interface FriendRequest {
   history: ChatMessage[];
@@ -10,7 +11,7 @@ interface FriendRequest {
 }
 
 const VALID_DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
-const VALID_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+const VALID_LANGUAGES: readonly Language[] = LANGUAGES;
 
 export async function POST(request: Request) {
   try {

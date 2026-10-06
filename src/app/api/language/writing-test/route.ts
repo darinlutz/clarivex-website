@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { Language } from '@/lib/translate';
+import { LANGUAGES } from '@/lib/languages';
 import {
   generateTestSentence,
   isValidTestDifficulty,
@@ -7,7 +8,7 @@ import {
   MIN_READING_TEST_DIFFICULTY,
 } from '@/lib/readingTest';
 
-const VALID_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+const VALID_LANGUAGES: readonly Language[] = LANGUAGES;
 
 export async function POST(request: Request) {
   try {

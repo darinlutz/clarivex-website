@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Language } from '@/lib/translate';
 import type { WordCategory } from '@/lib/language';
 import type { AlignedSegment } from '@/lib/wordAlignment';
@@ -16,6 +16,10 @@ import {
   type TestDifficulty,
   type TestHistory,
 } from '@/lib/languageTestClient';
+import { difficultyLevel, type ProgressMap } from '@/lib/languageTestClient';
+import type { RecordedActivity } from '@/lib/languageLevels';
+import { progressFor, useProgressRecorder, useWorkingLevelDefault } from '@/lib/useLanguageProgress';
+import ProgressUpdate from '@/components/ProgressUpdate';
 
 // Items per training session
 const TRAINING_LENGTH = 10;
@@ -34,17 +38,30 @@ interface TrainingProps {
   userLanguage: Language;
   // Bumped by the page whenever the vocabulary sheet changes
   sheetVersion?: number;
+  // The user's belt progress; null when signed out
+  progressByLanguage: ProgressMap | null;
+  onProgressRecorded: (result: RecordedActivity) => void;
 }
 
-export default function Training({ learnLanguage, userLanguage, sheetVersion = 0 }: TrainingProps) {
+export default function Training({
+  learnLanguage,
+  userLanguage,
+  sheetVersion = 0,
+  progressByLanguage,
+  onProgressRecorded,
+}: TrainingProps) {
   const [difficulty, setDifficulty] = useState<TestDifficulty>('words');
+  useWorkingLevelDefault(progressFor(progressByLanguage, learnLanguage), (level) =>
+    setDifficulty(String(level) as TestDifficulty)
+  );
+  const progressRecorder = useProgressRecorder(onProgressRecorded);
+  // The language and level of this session, saved when it's completed
+  const sessionInfo = useRef({ language: learnLanguage, level: difficultyLevel(difficulty) });
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
   const [item, setItem] = useState<TrainingItem | null>(null);
   // How many items have been shown this session
   const [count, setCount] = useState(0);
   const [completed, setCompleted] = useState(false);
-  // The signed-in user's level; null while loading or when signed out
-  const [level, setLevel] = useState<number | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [speakStatus, setSpeakStatus] = useState<SpeakStatus>('idle');
@@ -54,20 +71,6 @@ export default function Training({ learnLanguage, userLanguage, sheetVersion = 0
   // Resets on page reload.
   const history = useRef<TestHistory>({ usedWordsByCategory: {}, recentSentences: [] });
   const nextItemId = useRef(1);
-
-  useEffect(() => {
-    let isCurrent = true;
-    fetch('/api/account/level')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        if (isCurrent && typeof data?.level === 'number') setLevel(data.level);
-      })
-      .catch(() => {});
-
-    return () => {
-      isCurrent = false;
-    };
-  }, []);
 
   const speak = async (text: string, voice: string, setSpeak: (s: SpeakStatus) => void) => {
     if (!text.trim()) return;
@@ -85,7 +88,11 @@ export default function Training({ learnLanguage, userLanguage, sheetVersion = 0
   const handleNext = async () => {
     if (count >= TRAINING_LENGTH) {
       setCompleted(true);
+      progressRecorder.record({ ...sessionInfo.current, activity: 'training' });
       return;
+    }
+    if (count === 0) {
+      sessionInfo.current = { language: learnLanguage, level: difficultyLevel(difficulty) };
     }
 
     setStatus('loading');
@@ -131,6 +138,8 @@ export default function Training({ learnLanguage, userLanguage, sheetVersion = 0
   const spinner = (
     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></span>
   );
+  // Difficulty is locked during a session, so it's the session's level
+  const completedLevel = difficultyLevel(difficulty);
   const buttonLabel =
     count === 0 ? 'Start Training' : count < TRAINING_LENGTH ? 'Next' : 'Complete Training';
 
@@ -209,11 +218,15 @@ export default function Training({ learnLanguage, userLanguage, sheetVersion = 0
         wordCategory={wordCategory}
         onWordCategoryChange={setWordCategory}
         sheetVersion={sheetVersion}
+        // Fixed once a session starts, since it's saved for this level
+        disabled={count > 0}
       />
+
+      <ProgressUpdate outcome={progressRecorder.outcome} />
 
       {completed ? (
         <div className="p-4 rounded-lg bg-green-100 border border-green-300 text-green-800 font-semibold text-center">
-          {level === null ? 'Training complete' : `Training complete for Level ${level}`}
+          {completedLevel === null ? 'Training complete' : `Training complete for Level ${completedLevel}`}
         </div>
       ) : (
         <div className="pt-4 pb-2">

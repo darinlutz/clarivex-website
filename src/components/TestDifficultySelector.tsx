@@ -11,7 +11,7 @@ import {
 } from '@/lib/languageTestClient';
 
 const selectClassName =
-  'px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors';
+  'px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
 
 interface TestDifficultySelectorProps {
   // Prefixes the element ids so several tabs can each have one
@@ -22,6 +22,8 @@ interface TestDifficultySelectorProps {
   onWordCategoryChange: (category: WordCategory) => void;
   // Bumped by the page whenever the vocabulary sheet changes
   sheetVersion?: number;
+  // Locks both comboboxes, e.g. while a test is in progress
+  disabled?: boolean;
 }
 
 // The Difficulty (Fast Phrases, Words, 1-10) and Word Categories
@@ -33,6 +35,7 @@ export default function TestDifficultySelector({
   wordCategory,
   onWordCategoryChange,
   sheetVersion = 0,
+  disabled = false,
 }: TestDifficultySelectorProps) {
   const [wordCategoryCount, setWordCategoryCount] = useState<number | null>(null);
   const vocabCategory = vocabCategoryFor(difficulty, wordCategory);
@@ -70,6 +73,7 @@ export default function TestDifficultySelector({
         name={`${idPrefix}Difficulty`}
         value={difficulty}
         onChange={(e) => onDifficultyChange(e.target.value as TestDifficulty)}
+        disabled={disabled}
         className={selectClassName}
       >
         <option value="fastPhrases">Fast Phrases</option>
@@ -91,6 +95,7 @@ export default function TestDifficultySelector({
             name={`${idPrefix}WordCategory`}
             value={wordCategory}
             onChange={(e) => onWordCategoryChange(e.target.value as WordCategory)}
+            disabled={disabled}
             className={selectClassName}
           >
             {WORD_CATEGORIES.map(({ value, label }) => (

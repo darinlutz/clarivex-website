@@ -14,7 +14,11 @@ import {
   speakText,
   TEST_LENGTH,
 } from '@/lib/languageTestClient';
+import type { ProgressMap } from '@/lib/languageTestClient';
+import type { RecordedActivity } from '@/lib/languageLevels';
+import { progressFor, useProgressRecorder, useWorkingLevelDefault } from '@/lib/useLanguageProgress';
 import TestScore from '@/components/TestScore';
+import ProgressUpdate from '@/components/ProgressUpdate';
 
 type SpeakStatus = 'idle' | 'loading' | 'error';
 
@@ -33,10 +37,22 @@ function shuffle<T>(items: T[]): T[] {
 interface ReadingTestProps {
   learnLanguage: Language;
   userLanguage: Language;
+  // The user's belt progress; null when signed out
+  progressByLanguage: ProgressMap | null;
+  onProgressRecorded: (result: RecordedActivity) => void;
 }
 
-export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTestProps) {
+export default function ReadingTest({
+  learnLanguage,
+  userLanguage,
+  progressByLanguage,
+  onProgressRecorded,
+}: ReadingTestProps) {
   const [difficulty, setDifficulty] = useState(1);
+  useWorkingLevelDefault(progressFor(progressByLanguage, learnLanguage), setDifficulty);
+  const progressRecorder = useProgressRecorder(onProgressRecorded);
+  // The language and level of the test in progress, saved with its score
+  const testInfo = useRef({ language: learnLanguage, level: difficulty });
   const [sentence, setSentence] = useState('');
   // The sentence and its translation split into word pairs, colored once
   // the correct answer is picked
@@ -128,12 +144,16 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
     const finished = score !== null;
 
     if (!finished && count >= TEST_LENGTH) {
-      setScore(Math.round((correctCount / TEST_LENGTH) * 100));
+      const finalScore = Math.round((correctCount / TEST_LENGTH) * 100);
+      setScore(finalScore);
+      progressRecorder.record({ ...testInfo.current, activity: 'reading', score: finalScore });
       return;
     }
 
     if (await loadQuestion()) {
       if (finished || count === 0) {
+        testInfo.current = { language: learnLanguage, level: difficulty };
+        progressRecorder.clear();
         setScore(null);
         setCorrectCount(0);
         setCount(1);
@@ -279,6 +299,8 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
           name="readingTestDifficulty"
           value={difficulty}
           onChange={(e) => setDifficulty(Number(e.target.value))}
+          // Fixed for the length of a test, since its score is saved for this level
+          disabled={testInProgress}
           className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
         >
           {DIFFICULTY_LEVELS.map((level) => (
@@ -291,6 +313,7 @@ export default function ReadingTest({ learnLanguage, userLanguage }: ReadingTest
 
       {/* Score */}
       {score !== null && <TestScore score={score} />}
+      <ProgressUpdate outcome={progressRecorder.outcome} />
 
       {/* Start Test / Next Question / Finish Test Button */}
       <div className="pt-4 pb-2">

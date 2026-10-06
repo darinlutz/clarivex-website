@@ -6,11 +6,15 @@ import LanguageForm from '@/components/LanguageForm';
 import ReadingTest from '@/components/ReadingTest';
 import Training from '@/components/Training';
 import WritingTest from '@/components/WritingTest';
+import LanguageProgressBanner from '@/components/LanguageProgressBanner';
 import type { Language } from '@/lib/translate';
 import type { GrammarToken } from '@/lib/grammarCheck';
 import type { WordCategory } from '@/lib/language';
+import { LANGUAGES } from '@/lib/languages';
+import { startingProgress, type RecordedActivity } from '@/lib/languageLevels';
+import { fetchLanguageProgress, type ProgressMap } from '@/lib/languageTestClient';
 
-const TRANSLATOR_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+const TRANSLATOR_LANGUAGES: readonly Language[] = LANGUAGES;
 
 const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
   { value: 'activities', label: 'Activities' },
@@ -36,6 +40,7 @@ const LANGUAGE_CODES: Record<Language, string> = {
   English: 'en',
   German: 'de',
   Japanese: 'ja',
+  Spanish: 'es',
   Vietnamese: 'vi',
 };
 
@@ -80,6 +85,9 @@ export default function Language() {
   const [showTabs, setShowTabs] = useState(true);
   const [userLanguage, setUserLanguage] = useState<Language>('English');
   const [learnLanguage, setLearnLanguage] = useState<Language>('Vietnamese');
+  // The user's belt and next step per language: undefined while loading,
+  // null when signed out (progress isn't saved)
+  const [progressByLanguage, setProgressByLanguage] = useState<ProgressMap | null | undefined>(undefined);
   const [vietnameseText, setVietnameseText] = useState('');
   const [userInput, setUserInput] = useState('');
   const [showVietnamese, setShowVietnamese] = useState(true);
@@ -172,6 +180,27 @@ export default function Language() {
     canReset: boolean;
     serviceAccountEmail: string | null;
   } | null>(null);
+
+  useEffect(() => {
+    let isCurrent = true;
+    fetchLanguageProgress()
+      .then((progress) => {
+        if (isCurrent) setProgressByLanguage(progress);
+      })
+      // Progress is a nice-to-have here; the tabs still work without it
+      .catch(() => {
+        if (isCurrent) setProgressByLanguage(null);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  // A tab saved a Training/test result; keep the banner and tabs current
+  const handleProgressRecorded = (result: RecordedActivity) => {
+    setProgressByLanguage((prev) => ({ ...prev, [result.progress.language]: result.progress }));
+  };
 
   const maskText = (text: string) => text.replace(/\S/g, '•');
 
@@ -1027,6 +1056,16 @@ export default function Language() {
               ))}
             </select>
           </div>
+          {progressByLanguage !== undefined && (
+            <div className="mt-4">
+              <LanguageProgressBanner
+                progress={
+                  progressByLanguage &&
+                  (progressByLanguage[learnLanguage] ?? startingProgress(learnLanguage))
+                }
+              />
+            </div>
+          )}
           <div className="flex items-center justify-center gap-2 mt-4">
             <span id="showTabsLabel" className="text-sm font-medium text-dark-blue">
               Show tabs?
@@ -1150,7 +1189,13 @@ export default function Language() {
                 <p className="text-slate-600 mb-8">
                   Study 10 {learnLanguage} words or phrases with their {userLanguage} translations.
                 </p>
-                <Training learnLanguage={learnLanguage} userLanguage={userLanguage} sheetVersion={sheetVersion} />
+                <Training
+                  learnLanguage={learnLanguage}
+                  userLanguage={userLanguage}
+                  sheetVersion={sheetVersion}
+                  progressByLanguage={progressByLanguage ?? null}
+                  onProgressRecorded={handleProgressRecorded}
+                />
               </div>
             )}
 
@@ -1161,7 +1206,12 @@ export default function Language() {
                 <p className="text-slate-600 mb-8">
                   Read the {learnLanguage} sentence, then pick its {userLanguage} translation.
                 </p>
-                <ReadingTest learnLanguage={learnLanguage} userLanguage={userLanguage} />
+                <ReadingTest
+                  learnLanguage={learnLanguage}
+                  userLanguage={userLanguage}
+                  progressByLanguage={progressByLanguage ?? null}
+                  onProgressRecorded={handleProgressRecorded}
+                />
               </div>
             )}
 
@@ -1173,6 +1223,8 @@ export default function Language() {
                   Listen to the {learnLanguage}, type exactly what you hear, then press Submit.
                 </p>
                 <WritingTest
+                  progressByLanguage={progressByLanguage ?? null}
+                  onProgressRecorded={handleProgressRecorded}
                   learnLanguage={learnLanguage}
                   userLanguage={userLanguage}
                   sheetVersion={sheetVersion}

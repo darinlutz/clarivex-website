@@ -23,6 +23,10 @@ import {
   type TestHistory,
   type TestItem,
 } from '@/lib/languageTestClient';
+import { difficultyLevel, type ProgressMap } from '@/lib/languageTestClient';
+import type { RecordedActivity } from '@/lib/languageLevels';
+import { progressFor, useProgressRecorder, useWorkingLevelDefault } from '@/lib/useLanguageProgress';
+import ProgressUpdate from '@/components/ProgressUpdate';
 
 type SpeakStatus = 'idle' | 'loading' | 'error';
 
@@ -40,14 +44,29 @@ interface WritingTestProps {
   userLanguage: Language;
   // Bumped by the page whenever the vocabulary sheet changes
   sheetVersion?: number;
+  // The user's belt progress; null when signed out
+  progressByLanguage: ProgressMap | null;
+  onProgressRecorded: (result: RecordedActivity) => void;
 }
 
-export default function WritingTest({ learnLanguage, userLanguage, sheetVersion = 0 }: WritingTestProps) {
+export default function WritingTest({
+  learnLanguage,
+  userLanguage,
+  sheetVersion = 0,
+  progressByLanguage,
+  onProgressRecorded,
+}: WritingTestProps) {
   const [wordLanguage, setWordLanguage] = useState<Language>(learnLanguage);
   const [appliedWordLanguage, setAppliedWordLanguage] = useState(learnLanguage);
   const [answerLanguage, setAnswerLanguage] = useState<Language>(userLanguage);
   const [appliedAnswerLanguage, setAppliedAnswerLanguage] = useState(userLanguage);
   const [difficulty, setDifficulty] = useState<TestDifficulty>('words');
+  useWorkingLevelDefault(progressFor(progressByLanguage, wordLanguage), (level) =>
+    setDifficulty(String(level) as TestDifficulty)
+  );
+  const progressRecorder = useProgressRecorder(onProgressRecorded);
+  // The language and level of the test in progress, saved with its score
+  const testInfo = useRef({ language: wordLanguage, level: difficultyLevel(difficulty) });
   const [wordCategory, setWordCategory] = useState<WordCategory>('adjectives');
   const [item, setItem] = useState<TestItem | null>(null);
   const [userInput, setUserInput] = useState('');
@@ -185,12 +204,16 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
     const finished = score !== null;
 
     if (!finished && count >= TEST_LENGTH) {
-      setScore(Math.round((correctCount / TEST_LENGTH) * 100));
+      const finalScore = Math.round((correctCount / TEST_LENGTH) * 100);
+      setScore(finalScore);
+      progressRecorder.record({ ...testInfo.current, activity: 'writing', score: finalScore });
       return;
     }
 
     if (await loadItem()) {
       if (finished || count === 0) {
+        testInfo.current = { language: wordLanguage, level: difficultyLevel(difficulty) };
+        progressRecorder.clear();
         setScore(null);
         setCorrectCount(0);
         setCount(1);
@@ -400,6 +423,8 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
         idPrefix="writingTest"
         difficulty={difficulty}
         onDifficultyChange={setDifficulty}
+        // Fixed for the length of a test, since its score is saved for this level
+        disabled={testInProgress}
         wordCategory={wordCategory}
         onWordCategoryChange={setWordCategory}
         sheetVersion={sheetVersion}
@@ -407,6 +432,7 @@ export default function WritingTest({ learnLanguage, userLanguage, sheetVersion 
 
       {/* Score */}
       {score !== null && <TestScore score={score} />}
+      <ProgressUpdate outcome={progressRecorder.outcome} />
 
       {/* Start Test / Next Question / Finish Test Button */}
       <div className="pt-4 pb-2">

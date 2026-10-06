@@ -5,8 +5,10 @@
 import type { Language } from '@/lib/translate';
 import type { WordCategory } from '@/lib/language';
 import type { AlignedSegment } from '@/lib/wordAlignment';
+import type { LanguageActivity, LanguageProgress, RecordedActivity } from '@/lib/languageLevels';
+import { LANGUAGES } from '@/lib/languages';
 
-export const TEST_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+export const TEST_LANGUAGES: readonly Language[] = LANGUAGES;
 
 export const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
   { value: 'activities', label: 'Activities' },
@@ -231,9 +233,9 @@ export async function speakText(text: string, voice: string): Promise<void> {
   await audio.play();
 }
 
-// Questions per test, and the score (percent) needed to pass
+// Questions per test; the passing score is shared with the server
 export const TEST_LENGTH = 10;
-export const PASSING_SCORE = 80;
+export { PASSING_SCORE } from '@/lib/languageLevels';
 
 // The 1-10 sentence Difficulty scale shared by the test tabs
 export const DIFFICULTY_LEVELS = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -247,3 +249,46 @@ const DIFFICULTY_LABELS: Record<number, string> = {
 
 export const difficultyOptionLabel = (level: number) =>
   DIFFICULTY_LABELS[level] ? `${level} - ${DIFFICULTY_LABELS[level]}` : String(level);
+
+// The signed-in user's belt progress, by language
+export type ProgressMap = Partial<Record<Language, LanguageProgress>>;
+
+// Loads the user's progress; null when signed out (progress isn't tracked)
+export async function fetchLanguageProgress(): Promise<ProgressMap | null> {
+  const response = await fetch('/api/language/progress');
+  if (response.status === 401) return null;
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to load your progress');
+  }
+  return Object.fromEntries(
+    (data.progress as LanguageProgress[]).map((entry) => [entry.language, entry])
+  );
+}
+
+// The belt level a Difficulty corresponds to; null for Fast Phrases/Words
+export function difficultyLevel(difficulty: TestDifficulty | number): number | null {
+  const level = Number(difficulty);
+  return Number.isInteger(level) && level >= 1 ? level : null;
+}
+
+// Saves a completed Training or a test score. Resolves to 'signedOut' when
+// there's no account to save it to.
+export async function recordLanguageResult(input: {
+  language: Language;
+  level: number | null;
+  activity: LanguageActivity;
+  score?: number;
+}): Promise<RecordedActivity | 'signedOut'> {
+  const response = await fetch('/api/language/progress', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...input, score: input.score ?? null }),
+  });
+  if (response.status === 401) return 'signedOut';
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to save your progress');
+  }
+  return data as RecordedActivity;
+}

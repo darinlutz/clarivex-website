@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { Language } from '@/lib/translate';
 import { alignTranslation } from '@/lib/wordAlignment';
+import { LANGUAGES } from '@/lib/languages';
 
-const VALID_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+const VALID_LANGUAGES: readonly Language[] = LANGUAGES;
 
 // Pairs up the words of a sentence and its translation so matching words
 // can be shown in the same color.

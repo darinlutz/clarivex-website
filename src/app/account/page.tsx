@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import { getCurrentUser } from '@/lib/session';
-import { canSubscribe, getBeltColor } from '@/lib/users';
+import { canSubscribe } from '@/lib/users';
+import { getLanguageProgress } from '@/lib/languageProgress';
+import { beltName } from '@/lib/languageLevels';
 import BeltIcon from '@/components/BeltIcon';
 
 function formatDate(iso: string | null): string {
@@ -12,7 +14,7 @@ function formatDate(iso: string | null): string {
 export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  const beltColor = await getBeltColor(user.level);
+  const belts = await getLanguageProgress(user.id);
 
   return (
     <section className="py-12 px-4 bg-gradient-to-b from-slate-100 to-white flex justify-center">
@@ -43,17 +45,23 @@ export default async function AccountPage() {
               {formatDate(user.signupDate)}
             </dd>
           </div>
-          <div className="flex justify-between gap-4 px-4 py-3">
-            <dt className="text-sm font-medium text-slate-500">Level</dt>
-            <dd className="text-dark-blue font-medium text-right">{user.level}</dd>
-          </div>
-          <div className="flex justify-between items-center gap-4 px-4 py-3">
-            <dt className="text-sm font-medium text-slate-500">Current Belt</dt>
-            <dd className="flex items-center gap-3 text-dark-blue font-medium text-right">
-              {beltColor ?? '—'}
-              {beltColor && <BeltIcon color={beltColor} />}
-            </dd>
-          </div>
+          {/* One belt per language the user has started */}
+          {belts.length > 0 ? (
+            belts.map(({ language, beltColor }) => (
+              <div key={language} className="flex justify-between items-center gap-4 px-4 py-3">
+                <dt className="text-sm font-medium text-slate-500">{language}</dt>
+                <dd className="flex items-center gap-3 text-dark-blue font-medium text-right">
+                  {beltName(beltColor)}
+                  <BeltIcon color={beltColor} />
+                </dd>
+              </div>
+            ))
+          ) : (
+            <div className="flex justify-between gap-4 px-4 py-3">
+              <dt className="text-sm font-medium text-slate-500">Belts</dt>
+              <dd className="text-dark-blue font-medium text-right">None yet</dd>
+            </div>
+          )}
           {user.accountStatus === 'Active' && (
             <div className="flex justify-between gap-4 px-4 py-3">
               <dt className="text-sm font-medium text-slate-500">Subscription End Date</dt>

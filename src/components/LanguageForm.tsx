@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import type { Language } from '@/lib/translate';
 import type { WordCategory } from '@/lib/language';
+import { LANGUAGES } from '@/lib/languages';
 
-const READING_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+const READING_LANGUAGES: readonly Language[] = LANGUAGES;
 
 const WORD_CATEGORIES: { value: WordCategory; label: string }[] = [
   { value: 'activities', label: 'Activities' },

@@ -2,7 +2,9 @@ import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
 
-export type Language = 'Arabic' | 'English' | 'German' | 'Japanese' | 'Vietnamese';
+import type { Language } from './languages';
+
+export type { Language };
 
 const TranslationSchema = z.object({
   translation: z.string().describe('The translated text'),

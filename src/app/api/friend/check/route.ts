@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { checkGrammar } from '@/lib/grammarCheck';
-import type { Language } from '@/lib/translate';
+import { LANGUAGES, type Language } from '@/lib/languages';
 
-const VALID_LANGUAGES: Language[] = ['Arabic', 'English', 'German', 'Japanese', 'Vietnamese'];
+const VALID_LANGUAGES: readonly Language[] = LANGUAGES;
 
 export async function POST(request: Request) {
   try {
