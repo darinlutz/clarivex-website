@@ -40,6 +40,8 @@ const LANGUAGE_CODES: Record<Language, string> = {
   English: 'en',
   German: 'de',
   Japanese: 'ja',
+  Korean: 'ko',
+  Portuguese: 'pt',
   Spanish: 'es',
   Vietnamese: 'vi',
 };

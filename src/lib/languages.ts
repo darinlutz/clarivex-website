@@ -1,6 +1,15 @@
 // The languages the Language page and its APIs support. Dependency-free so
 // both client components and API routes can import it.
-export const LANGUAGES = ['Arabic', 'English', 'German', 'Japanese', 'Spanish', 'Vietnamese'] as const;
+export const LANGUAGES = [
+  'Arabic',
+  'English',
+  'German',
+  'Japanese',
+  'Korean',
+  'Portuguese',
+  'Spanish',
+  'Vietnamese',
+] as const;
 
 export type Language = (typeof LANGUAGES)[number];
 
