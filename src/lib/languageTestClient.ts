@@ -6,6 +6,7 @@ import type { Language } from '@/lib/translate';
 import type { WordCategory } from '@/lib/language';
 import type { AlignedSegment } from '@/lib/wordAlignment';
 import type { LanguageActivity, LanguageProgress, RecordedActivity } from '@/lib/languageLevels';
+import { isAdmin } from '@/lib/roles';
 import { LANGUAGES } from '@/lib/languages';
 
 export const TEST_LANGUAGES: readonly Language[] = LANGUAGES;
@@ -253,17 +254,21 @@ export const difficultyOptionLabel = (level: number) =>
 // The signed-in user's belt progress, by language
 export type ProgressMap = Partial<Record<Language, LanguageProgress>>;
 
-// Loads the user's progress; null when signed out (progress isn't tracked)
-export async function fetchLanguageProgress(): Promise<ProgressMap | null> {
+// Loads the user's progress and whether they're an Admin; null when signed
+// out (progress isn't tracked)
+export async function fetchLanguageProgress(): Promise<{ progressByLanguage: ProgressMap; isAdmin: boolean } | null> {
   const response = await fetch('/api/language/progress');
   if (response.status === 401) return null;
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || 'Failed to load your progress');
   }
-  return Object.fromEntries(
-    (data.progress as LanguageProgress[]).map((entry) => [entry.language, entry])
-  );
+  return {
+    progressByLanguage: Object.fromEntries(
+      (data.progress as LanguageProgress[]).map((entry) => [entry.language, entry])
+    ),
+    isAdmin: isAdmin(data.role),
+  };
 }
 
 // The belt level a Difficulty corresponds to; null for Fast Phrases/Words
@@ -291,4 +296,20 @@ export async function recordLanguageResult(input: {
     throw new Error(data.error || 'Failed to save your progress');
   }
   return data as RecordedActivity;
+}
+
+// Adds a language to the signed-in user's profile at Level 0 (no-op if
+// already started). Resolves to null when signed out.
+export async function startLanguageProgress(language: Language): Promise<LanguageProgress | null> {
+  const response = await fetch('/api/language/progress/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language }),
+  });
+  if (response.status === 401) return null;
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to add language');
+  }
+  return data.progress as LanguageProgress;
 }

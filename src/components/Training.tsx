@@ -40,6 +40,8 @@ interface TrainingProps {
   sheetVersion?: number;
   // The user's belt progress; null when signed out
   progressByLanguage: ProgressMap | null;
+  // Whether to show the Difficulty combobox (Admins only)
+  showDifficulty: boolean;
   onProgressRecorded: (result: RecordedActivity) => void;
 }
 
@@ -48,6 +50,7 @@ export default function Training({
   userLanguage,
   sheetVersion = 0,
   progressByLanguage,
+  showDifficulty,
   onProgressRecorded,
 }: TrainingProps) {
   const [difficulty, setDifficulty] = useState<TestDifficulty>('words');
@@ -211,16 +214,18 @@ export default function Training({
         <div className="p-4 rounded-lg bg-red-100 border border-red-300 text-red-800">{message}</div>
       )}
 
-      <TestDifficultySelector
-        idPrefix="training"
-        difficulty={difficulty}
-        onDifficultyChange={setDifficulty}
-        wordCategory={wordCategory}
-        onWordCategoryChange={setWordCategory}
-        sheetVersion={sheetVersion}
-        // Fixed once a session starts, since it's saved for this level
-        disabled={count > 0}
-      />
+      {showDifficulty && (
+        <TestDifficultySelector
+          idPrefix="training"
+          difficulty={difficulty}
+          onDifficultyChange={setDifficulty}
+          wordCategory={wordCategory}
+          onWordCategoryChange={setWordCategory}
+          sheetVersion={sheetVersion}
+          // Fixed once a session starts, since it's saved for this level
+          disabled={count > 0}
+        />
+      )}
 
       <ProgressUpdate outcome={progressRecorder.outcome} />
 

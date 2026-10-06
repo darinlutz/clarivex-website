@@ -46,6 +46,8 @@ interface WritingTestProps {
   sheetVersion?: number;
   // The user's belt progress; null when signed out
   progressByLanguage: ProgressMap | null;
+  // Whether to show the Difficulty combobox (Admins only)
+  showDifficulty: boolean;
   onProgressRecorded: (result: RecordedActivity) => void;
 }
 
@@ -54,6 +56,7 @@ export default function WritingTest({
   userLanguage,
   sheetVersion = 0,
   progressByLanguage,
+  showDifficulty,
   onProgressRecorded,
 }: WritingTestProps) {
   const [wordLanguage, setWordLanguage] = useState<Language>(learnLanguage);
@@ -419,16 +422,18 @@ export default function WritingTest({
       )}
 
       {/* Difficulty / Word Category Selectors */}
-      <TestDifficultySelector
-        idPrefix="writingTest"
-        difficulty={difficulty}
-        onDifficultyChange={setDifficulty}
-        // Fixed for the length of a test, since its score is saved for this level
-        disabled={testInProgress}
-        wordCategory={wordCategory}
-        onWordCategoryChange={setWordCategory}
-        sheetVersion={sheetVersion}
-      />
+      {showDifficulty && (
+        <TestDifficultySelector
+          idPrefix="writingTest"
+          difficulty={difficulty}
+          onDifficultyChange={setDifficulty}
+          // Fixed for the length of a test, since its score is saved for this level
+          disabled={testInProgress}
+          wordCategory={wordCategory}
+          onWordCategoryChange={setWordCategory}
+          sheetVersion={sheetVersion}
+        />
+      )}
 
       {/* Score */}
       {score !== null && <TestScore score={score} />}

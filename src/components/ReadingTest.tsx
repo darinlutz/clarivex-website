@@ -39,6 +39,8 @@ interface ReadingTestProps {
   userLanguage: Language;
   // The user's belt progress; null when signed out
   progressByLanguage: ProgressMap | null;
+  // Whether to show the Difficulty combobox (Admins only)
+  showDifficulty: boolean;
   onProgressRecorded: (result: RecordedActivity) => void;
 }
 
@@ -46,6 +48,7 @@ export default function ReadingTest({
   learnLanguage,
   userLanguage,
   progressByLanguage,
+  showDifficulty,
   onProgressRecorded,
 }: ReadingTestProps) {
   const [difficulty, setDifficulty] = useState(1);
@@ -290,26 +293,28 @@ export default function ReadingTest({
       )}
 
       {/* Difficulty Selector */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <label htmlFor="readingTestDifficulty" className="block text-sm font-medium text-dark-blue">
-          Difficulty
-        </label>
-        <select
-          id="readingTestDifficulty"
-          name="readingTestDifficulty"
-          value={difficulty}
-          onChange={(e) => setDifficulty(Number(e.target.value))}
-          // Fixed for the length of a test, since its score is saved for this level
-          disabled={testInProgress}
-          className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
-        >
-          {DIFFICULTY_LEVELS.map((level) => (
-            <option key={level} value={level}>
-              {difficultyOptionLabel(level)}
-            </option>
-          ))}
-        </select>
-      </div>
+      {showDifficulty && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <label htmlFor="readingTestDifficulty" className="block text-sm font-medium text-dark-blue">
+            Difficulty
+          </label>
+          <select
+            id="readingTestDifficulty"
+            name="readingTestDifficulty"
+            value={difficulty}
+            onChange={(e) => setDifficulty(Number(e.target.value))}
+            // Fixed for the length of a test, since its score is saved for this level
+            disabled={testInProgress}
+            className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
+          >
+            {DIFFICULTY_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {difficultyOptionLabel(level)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Score */}
       {score !== null && <TestScore score={score} />}

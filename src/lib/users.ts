@@ -1,6 +1,7 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { isUniqueViolation, query, transaction } from './db';
+import { ROLES } from './roles';
 
 const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
@@ -15,10 +16,12 @@ export type User = {
   signupDate: string | null;
   subscriptionEndDate: string | null;
   stripeSubscriptionId: string | null;
+  // One of ROLES
+  role: string;
 };
 
 const USER_COLUMNS =
-  'id, first_name, last_name, email_address, account_status, signup_date, subscription_end_date, stripe_subscription_id';
+  'id, first_name, last_name, email_address, account_status, signup_date, subscription_end_date, stripe_subscription_id, role';
 
 // Dates are stored as ISO 8601 UTC strings, so they compare correctly as text.
 // One month from `from`, clamped so Jan 31 becomes Feb 28/29 rather than Mar 3.
@@ -85,6 +88,24 @@ export function ensureUserSchema(): Promise<void> {
         signup_date TEXT,
         subscription_end_date TEXT
       )`);
+      // Added after launch: when the column is first created, existing users
+      // get the role matching their account status, and the site owner is
+      // made Admin. After that, roles are only changed by sign-up and Stripe
+      // purchases (or by hand in the database).
+      await client.query(`DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = current_schema() AND table_name = 'users' AND column_name = 'role'
+        ) THEN
+          ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT '${ROLES.unsubscribed}';
+          UPDATE users SET role = CASE account_status
+            WHEN 'Active' THEN '${ROLES.monthly}'
+            WHEN 'Paid' THEN '${ROLES.lifetime}'
+            ELSE '${ROLES.unsubscribed}' END;
+          UPDATE users SET role = '${ROLES.admin}' WHERE lower(email_address) = 'darinlutz@yahoo.com';
+        END IF;
+      END $$`);
       // The belt color for each level. Seeded once; existing rows are left
       // alone so colors can be edited in the database.
       await client.query(`CREATE TABLE IF NOT EXISTS belt_level_key (
@@ -193,6 +214,7 @@ function rowToUser(row: Record<string, unknown>): User {
     lastName: row.last_name as string,
     emailAddress: row.email_address as string,
     accountStatus: row.account_status as string,
+    role: row.role as string,
     signupDate: (row.signup_date as string | null) ?? null,
     subscriptionEndDate: (row.subscription_end_date as string | null) ?? null,
     stripeSubscriptionId: (row.stripe_subscription_id as string | null) ?? null,
@@ -209,10 +231,10 @@ export async function createUser(input: {
   const passwordHash = await hashPassword(input.password);
   try {
     const rows = await query(
-      `INSERT INTO users (first_name, last_name, email_address, password, account_status, signup_date)
-       VALUES ($1, $2, $3, $4, 'New', $5)
+      `INSERT INTO users (first_name, last_name, email_address, password, account_status, signup_date, role)
+       VALUES ($1, $2, $3, $4, 'New', $5, $6)
        RETURNING ${USER_COLUMNS}`,
-      [input.firstName, input.lastName, input.emailAddress, passwordHash, new Date().toISOString()]
+      [input.firstName, input.lastName, input.emailAddress, passwordHash, new Date().toISOString(), ROLES.unsubscribed]
     );
     return rowToUser(rows[0]);
   } catch (error) {
@@ -267,6 +289,9 @@ export async function getUserById(id: number): Promise<User | null> {
 }
 
 // Links a completed Checkout Session to the user who started it.
+// SQL for setting role to the given parameter, except that Admins stay Admin
+const KEEP_ADMIN_ELSE = (param: string) => `CASE WHEN role = '${ROLES.admin}' THEN role ELSE ${param} END`;
+
 export async function startSubscription(
   userId: number,
   stripeCustomerId: string,
@@ -275,9 +300,9 @@ export async function startSubscription(
   await ensureUserSchema();
   await query(
     `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, account_status = 'Active',
-       subscription_end_date = $3
+       subscription_end_date = $3, role = ${KEEP_ADMIN_ELSE('$5')}
      WHERE id = $4`,
-    [stripeCustomerId, stripeSubscriptionId, oneMonthFrom(), userId]
+    [stripeCustomerId, stripeSubscriptionId, oneMonthFrom(), userId, ROLES.monthly]
   );
 }
 
@@ -290,9 +315,10 @@ export async function grantLifetimeAccess(
   await ensureUserSchema();
   await query(
     `UPDATE users SET account_status = 'Paid', subscription_end_date = NULL,
-       stripe_subscription_id = NULL, stripe_customer_id = COALESCE($1, stripe_customer_id)
+       stripe_subscription_id = NULL, stripe_customer_id = COALESCE($1, stripe_customer_id),
+       role = ${KEEP_ADMIN_ELSE('$3')}
      WHERE id = $2`,
-    [stripeCustomerId, userId]
+    [stripeCustomerId, userId, ROLES.lifetime]
   );
 }
 

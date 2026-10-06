@@ -6,14 +6,15 @@ import { MAX_BELT_LEVEL, type LanguageActivity } from '@/lib/languageLevels';
 
 const ACTIVITIES: LanguageActivity[] = ['training', 'reading', 'writing'];
 
-// The signed-in user's belt and next step for each language they've started
+// The signed-in user's belt and next step for each language they've
+// started, and their role (Admins can pick any Difficulty)
 export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
     }
-    return NextResponse.json({ progress: await getLanguageProgress(user.id) });
+    return NextResponse.json({ progress: await getLanguageProgress(user.id), role: user.role });
   } catch (error) {
     console.error('Language progress lookup error:', error);
     return NextResponse.json({ error: 'Failed to look up progress' }, { status: 500 });

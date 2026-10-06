@@ -107,3 +107,29 @@ export async function recordLanguageActivity(
     };
   });
 }
+
+// Adds a language to the user's profile at Level 0 (No Belt, next step
+// Level 1 Training). Does nothing if they've already started it.
+export async function startLanguage(userId: number, language: Language): Promise<LanguageProgress> {
+  await ensureUserSchema();
+  await query(
+    `INSERT INTO user_language_progress (user_id, language) VALUES ($1, $2)
+     ON CONFLICT (user_id, language) DO NOTHING`,
+    [userId, language]
+  );
+  const [row] = await query(`${PROGRESS_SELECT} WHERE p.user_id = $1 AND p.language = $2`, [userId, language]);
+  return rowToProgress(row);
+}
+
+// Removes a language from the user's profile, but only while it's still at
+// Level 0 (no belt earned). Its test score history is kept. Returns whether
+// it was removed.
+export async function removeLanguage(userId: number, language: Language): Promise<boolean> {
+  await ensureUserSchema();
+  const rows = await query(
+    `DELETE FROM user_language_progress WHERE user_id = $1 AND language = $2 AND belt_level = 0
+     RETURNING language`,
+    [userId, language]
+  );
+  return rows.length > 0;
+}

@@ -13,7 +13,7 @@ import type { GrammarToken } from '@/lib/grammarCheck';
 import type { WordCategory } from '@/lib/language';
 import { isLanguage, LANGUAGES } from '@/lib/languages';
 import { startingProgress, type RecordedActivity } from '@/lib/languageLevels';
-import { fetchLanguageProgress, type ProgressMap } from '@/lib/languageTestClient';
+import { fetchLanguageProgress, startLanguageProgress, type ProgressMap } from '@/lib/languageTestClient';
 
 const TRANSLATOR_LANGUAGES: readonly Language[] = LANGUAGES;
 
@@ -119,6 +119,9 @@ function Language() {
   // The user's belt and next step per language: undefined while loading,
   // null when signed out (progress isn't saved)
   const [progressByLanguage, setProgressByLanguage] = useState<ProgressMap | null | undefined>(undefined);
+  // Only Admins see the Difficulty combobox on Training/Reading Test/Writing
+  // Test; everyone else practices at the level they're working on
+  const [isAdmin, setIsAdmin] = useState(false);
   const [vietnameseText, setVietnameseText] = useState('');
   const [userInput, setUserInput] = useState('');
   const [showVietnamese, setShowVietnamese] = useState(true);
@@ -216,7 +219,9 @@ function Language() {
     let isCurrent = true;
     fetchLanguageProgress()
       .then((progress) => {
-        if (isCurrent) setProgressByLanguage(progress);
+        if (!isCurrent) return;
+        setProgressByLanguage(progress?.progressByLanguage ?? null);
+        setIsAdmin(progress?.isAdmin ?? false);
       })
       // Progress is a nice-to-have here; the tabs still work without it
       .catch(() => {
@@ -227,6 +232,23 @@ function Language() {
       isCurrent = false;
     };
   }, []);
+
+  // Picking a language to learn adds it to the signed-in user's profile at
+  // Level 0 (the Account page lists it, with a Delete button until a belt
+  // is earned)
+  const handleLearnLanguageChange = (language: Language) => {
+    setLearnLanguage(language);
+    if (!progressByLanguage || progressByLanguage[language]) return;
+
+    startLanguageProgress(language)
+      .then((progress) => {
+        if (progress) {
+          setProgressByLanguage((prev) => (prev ? { ...prev, [language]: progress } : prev));
+        }
+      })
+      // Not saving it only means it's added later, with the first result
+      .catch(() => {});
+  };
 
   // A tab saved a Training/test result; keep the banner and tabs current
   const handleProgressRecorded = (result: RecordedActivity) => {
@@ -1077,7 +1099,7 @@ function Language() {
               id="learnLanguage"
               name="learnLanguage"
               value={learnLanguage}
-              onChange={(e) => setLearnLanguage(e.target.value as Language)}
+              onChange={(e) => handleLearnLanguageChange(e.target.value as Language)}
               className="px-2 py-1 text-sm bg-white border border-slate-300 rounded-lg text-dark-blue focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
             >
               {TRANSLATOR_LANGUAGES.map((lang) => (
@@ -1225,6 +1247,7 @@ function Language() {
                   userLanguage={userLanguage}
                   sheetVersion={sheetVersion}
                   progressByLanguage={progressByLanguage ?? null}
+                  showDifficulty={isAdmin}
                   onProgressRecorded={handleProgressRecorded}
                 />
               </div>
@@ -1241,6 +1264,7 @@ function Language() {
                   learnLanguage={learnLanguage}
                   userLanguage={userLanguage}
                   progressByLanguage={progressByLanguage ?? null}
+                  showDifficulty={isAdmin}
                   onProgressRecorded={handleProgressRecorded}
                 />
               </div>
@@ -1255,6 +1279,7 @@ function Language() {
                 </p>
                 <WritingTest
                   progressByLanguage={progressByLanguage ?? null}
+                  showDifficulty={isAdmin}
                   onProgressRecorded={handleProgressRecorded}
                   learnLanguage={learnLanguage}
                   userLanguage={userLanguage}

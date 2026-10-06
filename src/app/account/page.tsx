@@ -6,6 +6,7 @@ import { getLanguageProgress } from '@/lib/languageProgress';
 import Link from 'next/link';
 import { beltName, continueTrainingHref, describeNextStep } from '@/lib/languageLevels';
 import BeltIcon from '@/components/BeltIcon';
+import DeleteLanguageButton from '@/components/DeleteLanguageButton';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -65,6 +66,8 @@ export default async function AccountPage() {
                         Continue training
                       </Link>
                     )}
+                    {/* Only a language with no belt earned yet can be removed */}
+                    {progress.beltLevel === 0 && <DeleteLanguageButton language={progress.language} />}
                   </dd>
                 </div>
               );
