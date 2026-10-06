@@ -46,6 +46,12 @@ const STEP_TABS: Record<LanguageActivity, string> = {
   writing: 'writingTest',
 };
 
+// The Language page tab for the user's next step, or null once every belt
+// is earned
+export function nextStepTab(progress: LanguageProgress): string | null {
+  return progress.nextStep === 'complete' ? null : STEP_TABS[progress.nextStep];
+}
+
 // Link to the Language page tab for the user's next step in a language
 // (its Difficulty defaults to the level being worked on), or null once
 // every belt is earned.

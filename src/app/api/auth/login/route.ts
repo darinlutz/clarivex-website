@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     await createSession(user.id);
-    return NextResponse.json({ user: { firstName: user.firstName } });
+    return NextResponse.json({ user: { userName: user.userName } });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Failed to log in' }, { status: 500 });

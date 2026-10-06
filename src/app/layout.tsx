@@ -34,7 +34,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
     >
       <body className="min-h-screen bg-white text-dark-blue flex flex-col">
-        <Navigation user={user ? { firstName: user.firstName } : null} />
+        <Navigation user={user ? { userName: user.userName } : null} />
         <main className="flex-1 pt-16">
           {children}
         </main>

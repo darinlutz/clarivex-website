@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 type NavigationProps = {
-  user: { firstName: string } | null;
+  user: { userName: string } | null;
 };
 
 export default function Navigation({ user }: NavigationProps) {
@@ -114,7 +114,7 @@ export default function Navigation({ user }: NavigationProps) {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <span className="text-dark-blue font-medium whitespace-nowrap">Welcome, {user.firstName}</span>
+                <span className="text-dark-blue font-medium whitespace-nowrap">Welcome, {user.userName}</span>
                 <Link
                   href="/account"
                   className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium whitespace-nowrap"
@@ -241,7 +241,7 @@ export default function Navigation({ user }: NavigationProps) {
                     Account
                   </Link>
                   <div className="flex items-center justify-between px-3 py-2">
-                    <span className="text-base font-medium text-dark-blue">Welcome, {user.firstName}</span>
+                    <span className="text-base font-medium text-dark-blue">Welcome, {user.userName}</span>
                     <button
                       onClick={handleLogout}
                       disabled={loggingOut}

@@ -49,7 +49,7 @@ export default async function AccountPage() {
           <div className="flex justify-between gap-4 px-4 py-3">
             <dt className="text-sm font-medium text-slate-500">Name</dt>
             <dd className="text-dark-blue font-medium text-right">
-              {user.firstName} {user.lastName}
+              {user.userName}
             </dd>
           </div>
           <div className="flex justify-between items-center gap-4 px-4 py-3">

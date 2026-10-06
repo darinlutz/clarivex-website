@@ -12,7 +12,7 @@ import type { Language } from '@/lib/translate';
 import type { GrammarToken } from '@/lib/grammarCheck';
 import type { WordCategory } from '@/lib/language';
 import { isLanguage, LANGUAGES } from '@/lib/languages';
-import { startingProgress, type RecordedActivity } from '@/lib/languageLevels';
+import { nextStepTab, startingProgress, type RecordedActivity } from '@/lib/languageLevels';
 import {
   fetchLanguageProgress,
   saveLanguagePreferences,
@@ -249,6 +249,25 @@ function Language() {
       isCurrent = false;
     };
   }, []);
+
+  // Bumped by the banner's "Next step" link to remount the tab content, so
+  // its Difficulty resets to the level being worked on
+  const [tabContentKey, setTabContentKey] = useState(0);
+  const tabsSectionRef = useRef<HTMLElement>(null);
+
+  // The banner's "Next step" link: opens that step's tab (Training, Reading
+  // Test or Writing Test) for the language being learned, like the Account
+  // page's "Continue training" link
+  const handleNextStepClick = () => {
+    const progress = progressByLanguage?.[learnLanguage] ?? startingProgress(learnLanguage);
+    const tab = TABS.find((t) => t === nextStepTab(progress));
+    if (!tab) return;
+    setActiveTab(tab);
+    setShowTabs(true);
+    setTabContentKey((key) => key + 1);
+    // Wait for the tabs to render (they may have been hidden) before scrolling
+    requestAnimationFrame(() => tabsSectionRef.current?.scrollIntoView({ behavior: 'smooth' }));
+  };
 
   // Remembers the user's "I speak" pick for next time
   const handleUserLanguageChange = (language: Language) => {
@@ -1142,6 +1161,7 @@ function Language() {
                   progressByLanguage &&
                   (progressByLanguage[learnLanguage] ?? startingProgress(learnLanguage))
                 }
+                onNextStepClick={handleNextStepClick}
               />
             </div>
           )}
@@ -1173,7 +1193,10 @@ function Language() {
 
       {/* Language Practice Content */}
       {showTabs && (
-      <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
+      <section
+        ref={tabsSectionRef}
+        className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center scroll-mt-4"
+      >
         <div className="w-full max-w-5xl">
           {/* Tab Navigation */}
           <div className="flex gap-4 mb-6 border-b border-slate-200 overflow-x-auto">
@@ -1259,8 +1282,9 @@ function Language() {
             </button>
           </div>
 
-          {/* Tab Content */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
+          {/* Tab Content (re-keyed by "Next step" so the tab starts fresh at
+              the user's working level) */}
+          <div key={tabContentKey} className="bg-slate-50 rounded-xl border border-slate-200 p-8">
             {/* Training Tab */}
             {activeTab === 'training' && (
               <div>

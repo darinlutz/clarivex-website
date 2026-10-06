@@ -11,8 +11,7 @@ const inputClass =
 export default function SignupForm() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    userName: '',
     emailAddress: '',
     password: '',
   });
@@ -53,37 +52,20 @@ export default function SignupForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-dark-blue mb-2">
-            First Name *
-          </label>
-          <input
-            type="text"
-            id="firstName"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-            autoComplete="given-name"
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-dark-blue mb-2">
-            Last Name *
-          </label>
-          <input
-            type="text"
-            id="lastName"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-            autoComplete="family-name"
-            className={inputClass}
-          />
-        </div>
+      <div>
+        <label htmlFor="userName" className="block text-sm font-medium text-dark-blue mb-2">
+          Name *
+        </label>
+        <input
+          type="text"
+          id="userName"
+          name="userName"
+          value={formData.userName}
+          onChange={handleChange}
+          required
+          autoComplete="name"
+          className={inputClass}
+        />
       </div>
 
       <div>
