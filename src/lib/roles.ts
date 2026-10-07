@@ -1,4 +1,4 @@
-// Values of "ClarivexUsers".role. Dependency-free so client components can use it.
+// Values of clarivexwebsite."ClarivexUsers".role. Dependency-free so client components can use it.
 export const ROLES = {
   admin: 'Admin',
   // Signed up but hasn't bought a subscription (account status "Unsubscribed")
