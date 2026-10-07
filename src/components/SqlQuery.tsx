@@ -30,8 +30,15 @@ function formatResult(result: QueryResult): string {
   return lines.join('\n');
 }
 
+// The SQL box starts with this query, which lists every table that can be queried
+const STARTER_QUERY =
+  'SELECT table_schema, table_name\n' +
+  'FROM information_schema.tables\n' +
+  "WHERE table_schema NOT IN ('pg_catalog', 'information_schema')\n" +
+  'ORDER BY 1, 2;';
+
 export default function SqlQuery() {
-  const [sql, setSql] = useState('');
+  const [sql, setSql] = useState(STARTER_QUERY);
   const [status, setStatus] = useState<'idle' | 'loading'>('idle');
   const [output, setOutput] = useState('');
   const [failed, setFailed] = useState(false);
@@ -80,7 +87,6 @@ export default function SqlQuery() {
           }}
           rows={6}
           spellCheck={false}
-          placeholder={'SELECT id, user_name, email_address, role FROM clarivex."Users";'}
           className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue font-mono text-sm placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
         />
       </div>
