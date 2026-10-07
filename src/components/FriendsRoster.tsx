@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { COUNTRIES } from '@/lib/countries';
 
 type Friend = {
@@ -15,13 +16,32 @@ export default function FriendsRoster() {
   const [country, setCountry] = useState<string>('Brazil');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  // Each user has their own list, so visitors who aren't logged in get a prompt instead
+  const [signedOut, setSignedOut] = useState(false);
 
   useEffect(() => {
     fetch('/api/friends-roster')
-      .then((response) => response.json())
+      .then((response) => {
+        if (response.status === 401) {
+          setSignedOut(true);
+          return { friends: [] };
+        }
+        return response.json();
+      })
       .then((data) => setFriends(data.friends ?? []))
       .catch(() => setMessage('Failed to load friends'));
   }, []);
+
+  if (signedOut) {
+    return (
+      <div className="bg-slate-50 rounded-xl border border-slate-200 p-8 text-slate-600">
+        <Link href="/login" className="font-semibold text-powder-600 hover:underline">
+          Log in
+        </Link>{' '}
+        to see and add your friends.
+      </div>
+    );
+  }
 
   const handleAddFriend = async () => {
     const trimmedName = name.trim();

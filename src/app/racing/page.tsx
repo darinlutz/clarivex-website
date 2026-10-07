@@ -137,7 +137,7 @@ export default function RacingPage() {
               <div>
                 <h2 className="text-2xl font-bold text-dark-blue mb-2">Friends</h2>
                 <p className="text-slate-600 mb-6">
-                  Keep track of your friends. This list is shared across everyone who visits.
+                  Keep track of your friends. Each account has its own list.
                 </p>
                 <FriendsRoster />
               </div>

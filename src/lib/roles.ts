@@ -1,10 +1,8 @@
-// Values of clarivexwebsite."ClarivexUsers".role. Dependency-free so client components can use it.
+// Values of clarivex."Users".role. Dependency-free so client components can use it.
+// Subscriptions are tracked by account_status, not by role.
 export const ROLES = {
   admin: 'Admin',
-  // Signed up but hasn't bought a subscription (account status "Unsubscribed")
-  unsubscribed: 'Unsubscribed',
-  monthly: 'Monthly Subscriber',
-  lifetime: 'Lifetime Subscription',
+  user: 'User',
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];

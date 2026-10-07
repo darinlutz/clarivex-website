@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { query } from './db';
+import { ensureUserSchema } from './users';
 
 export type Friend = {
   id: string;
@@ -7,31 +8,14 @@ export type Friend = {
   country: string;
 };
 
-let schemaReady: Promise<void> | null = null;
+// Each user has their own friends in clarivex."Friends" (created alongside
+// clarivex."Users" by ensureUserSchema).
 
-function ensureSchema(): Promise<void> {
-  if (!schemaReady) {
-    // Postgres has no rowid, so `seq` records insertion order for listing.
-    schemaReady = query(
-      `CREATE TABLE IF NOT EXISTS friends (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        country TEXT NOT NULL,
-        seq BIGINT GENERATED ALWAYS AS IDENTITY
-      )`
-    )
-      .then(() => undefined)
-      .catch((error) => {
-        schemaReady = null;
-        throw error;
-      });
-  }
-  return schemaReady;
-}
-
-export async function readFriends(): Promise<Friend[]> {
-  await ensureSchema();
-  const rows = await query('SELECT id, name, country FROM friends ORDER BY seq');
+export async function readFriends(userId: number): Promise<Friend[]> {
+  await ensureUserSchema();
+  const rows = await query('SELECT id, name, country FROM clarivex."Friends" WHERE user_id = $1 ORDER BY seq', [
+    userId,
+  ]);
   return rows.map((row) => ({
     id: row.id as string,
     name: row.name as string,
@@ -39,14 +23,20 @@ export async function readFriends(): Promise<Friend[]> {
   }));
 }
 
-export async function addFriend(name: string, country: string): Promise<Friend> {
-  await ensureSchema();
+export async function addFriend(userId: number, name: string, country: string): Promise<Friend> {
+  await ensureUserSchema();
   const friend: Friend = { id: randomUUID(), name, country };
-  await query('INSERT INTO friends (id, name, country) VALUES ($1, $2, $3)', [friend.id, friend.name, friend.country]);
+  await query('INSERT INTO clarivex."Friends" (id, user_id, name, country) VALUES ($1, $2, $3, $4)', [
+    friend.id,
+    userId,
+    friend.name,
+    friend.country,
+  ]);
   return friend;
 }
 
-export async function deleteFriend(id: string): Promise<void> {
-  await ensureSchema();
-  await query('DELETE FROM friends WHERE id = $1', [id]);
+// Only removes the friend if it belongs to this user.
+export async function deleteFriend(userId: number, id: string): Promise<void> {
+  await ensureUserSchema();
+  await query('DELETE FROM clarivex."Friends" WHERE id = $1 AND user_id = $2', [id, userId]);
 }
