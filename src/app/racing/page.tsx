@@ -9,12 +9,13 @@ import MultiLapAnalysis from '@/components/MultiLapAnalysis';
 import StintAnalysis from '@/components/StintAnalysis';
 import LapCompare from '@/components/LapCompare';
 import DebriefCoach from '@/components/DebriefCoach';
+import ReferencePoints from '@/components/ReferencePoints';
 
 // Space Fact Query tab is hidden for now; set to true to show it again
 const SHOW_SPACE_FACTS_TAB = false;
 
 export default function RacingPage() {
-  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'multiLap' | 'stint' | 'lapCompare' | 'debrief'>(
+  const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'multiLap' | 'stint' | 'lapCompare' | 'debrief' | 'referencePoints'>(
     'friends'
   );
 
@@ -117,6 +118,16 @@ export default function RacingPage() {
             >
               Debrief Coach
             </button>
+            <button
+              onClick={() => setActiveTab('referencePoints')}
+              className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
+                activeTab === 'referencePoints'
+                  ? 'text-powder-600 border-powder-600'
+                  : 'text-slate-600 border-transparent hover:text-dark-blue'
+              }`}
+            >
+              Get Reference Points
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -213,6 +224,17 @@ export default function RacingPage() {
                   An AI coach reviews every lap of your session and tells you what to fix next time.
                 </p>
                 <DebriefCoach />
+              </div>
+            )}
+
+            {/* Get Reference Points Tab */}
+            {activeTab === 'referencePoints' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Get Reference Points</h2>
+                <p className="text-slate-600 mb-6">
+                  Upload your laps and get the brake point, max brake pressure and on-throttle point for each focus area.
+                </p>
+                <ReferencePoints />
               </div>
             )}
           </div>

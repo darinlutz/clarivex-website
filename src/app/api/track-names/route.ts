@@ -5,8 +5,15 @@ import { NextResponse } from 'next/server';
 const TRACK_FILE_PATH = path.join(process.cwd(), 'data', 'Track_Area_Information.txt');
 
 // start/end are fractions of a lap (LapDistPct), e.g. 0.02 = 2%;
-// brakepointTarget is in feet from the start/finish line; maxBrakeTarget is a percent
-type Area = { name: string; start: number; end: number; brakepointTarget: number; maxBrakeTarget: number };
+// brakepointTarget and throttlePickupTarget are in feet from the start/finish line; maxBrakeTarget is a percent
+type Area = {
+  name: string;
+  start: number;
+  end: number;
+  brakepointTarget: number;
+  maxBrakeTarget: number;
+  throttlePickupTarget: number;
+};
 type Track = { name: string; fileName: string; lengthFeet: number | null; areas: Area[] };
 
 // Returns the top-level keys of the TrackConfig object (the track names), each
@@ -83,10 +90,24 @@ function parseTracks(contents: string): Track[] {
       }
     }
 
+    // The numeric ThrottlePickupTarget property of an area object
+    if (depth === 4 && ch === 'T' && !/\w/.test(contents[i - 1] ?? '')) {
+      const match = /^ThrottlePickupTarget\s*:\s*(-?\d*\.?\d+)/.exec(contents.slice(i, i + 40));
+      const area = currentArea();
+      if (match && area) {
+        area.throttlePickupTarget = Number(match[1]);
+        i += match[0].length - 1;
+        continue;
+      }
+    }
+
     if (ch === '{' || ch === '[') {
       // An object opening inside an areas array starts a new area
       if (ch === '{' && depth === 3 && tracks.length > 0) {
-        tracks[tracks.length - 1].areas.push({ name: '', start: NaN, end: NaN, brakepointTarget: NaN, maxBrakeTarget: NaN });
+        tracks[tracks.length - 1].areas.push({ name: '', start: NaN, end: NaN, brakepointTarget: NaN,
+          maxBrakeTarget: NaN,
+          throttlePickupTarget: NaN,
+        });
       }
       depth++;
     } else if (ch === '}' || ch === ']') {

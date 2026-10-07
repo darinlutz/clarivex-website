@@ -1,14 +1,15 @@
 // Shared helpers for reading Garage 61 lap CSVs and measuring focus areas
 // (used by the Multi-Lap Analysis and Lap Compare tabs).
 
-// start/end are fractions of a lap (LapDistPct); brakepointTarget is in feet;
-// maxBrakeTarget is a percent. Each is null if missing in the config
+// start/end are fractions of a lap (LapDistPct); brakepointTarget and throttlePickupTarget are in
+// feet; maxBrakeTarget is a percent. Each is null if missing in the config
 export type Area = {
   name: string;
   start: number | null;
   end: number | null;
   brakepointTarget: number | null;
   maxBrakeTarget: number | null;
+  throttlePickupTarget: number | null;
 };
 export type Track = { name: string; fileName: string; lengthFeet: number | null; areas: Area[] };
 
@@ -53,12 +54,15 @@ export function formatLapTime(lapTime: string) {
 // speeds are in m/s, as exported by Garage 61
 export const MPH_PER_METER_PER_SECOND = 2.23694;
 
-export type LapSamples = { pcts: number[]; brakes: number[]; speeds: number[] };
+export type LapSamples = { pcts: number[]; brakes: number[]; speeds: number[]; throttles: number[] };
 
 // Brake (0-1) above this counts as the driver being on the brakes
 const BRAKE_THRESHOLD = 0;
 
-// Reads the LapDistPct, Brake and Speed columns. LapDistPct is unwrapped so it keeps
+// Throttle (0-1) at or above this counts as the driver being back on the power
+const THROTTLE_THRESHOLD = 0.1;
+
+// Reads the LapDistPct, Brake, Throttle and Speed columns. LapDistPct is unwrapped so it keeps
 // increasing past the start/finish line (e.g. 0.999 -> 1.001 instead of 0.001).
 export async function readLapSamples(file: File): Promise<LapSamples> {
   const lines = (await file.text()).split(/\r?\n/);
@@ -66,9 +70,11 @@ export async function readLapSamples(file: File): Promise<LapSamples> {
   const pctColumn = header.indexOf('LapDistPct');
   const brakeColumn = header.indexOf('Brake');
   const speedColumn = header.indexOf('Speed');
+  const throttleColumn = header.indexOf('Throttle');
   const pcts: number[] = [];
   const brakes: number[] = [];
   const speeds: number[] = [];
+  const throttles: number[] = [];
   let offset = 0;
 
   for (let i = 1; i < lines.length; i++) {
@@ -80,8 +86,9 @@ export async function readLapSamples(file: File): Promise<LapSamples> {
     pcts.push(value + offset);
     brakes.push(parseFloat(cells[brakeColumn]) || 0);
     speeds.push(parseFloat(cells[speedColumn]) || 0);
+    throttles.push(parseFloat(cells[throttleColumn]) || 0);
   }
-  return { pcts, brakes, speeds };
+  return { pcts, brakes, speeds, throttles };
 }
 
 // Fractional sample index where the lap first reaches `target`, at or after `from`
@@ -97,7 +104,7 @@ function crossingIndex(pcts: number[], target: number, from: number) {
 // Seconds spent between start and end, the highest Brake value (0-1) in that
 // stretch, the lowest speed (m/s) in it, and the speed (m/s) at the end of it. Samples are evenly spaced (60 Hz), so each one is
 // lapSeconds / sampleCount long.
-export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: number, start: number, end: number) {
+export function areaStats({ pcts, brakes, speeds, throttles }: LapSamples, lapSeconds: number, start: number, end: number) {
   const startIndex = crossingIndex(pcts, start, 0);
   if (startIndex === null) return null;
   // An area that crosses the start/finish line ends on the next lap
@@ -106,8 +113,12 @@ export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: numb
 
   let maxBrake = 0;
   let brakePct: number | null = null; // Lap position where Brake first goes over 0%
+  let throttlePct: number | null = null; // Lap position where the throttle comes back after that first braking zone
+  let released = false; // Brake has dropped back to 0% after the first braking zone
   for (let i = Math.floor(startIndex); i <= Math.ceil(endIndex) && i < brakes.length; i++) {
     maxBrake = Math.max(maxBrake, brakes[i]);
+    if (brakePct !== null && !released && brakes[i] <= BRAKE_THRESHOLD) released = true;
+    if (released && throttlePct === null && throttles[i] >= THROTTLE_THRESHOLD) throttlePct = pcts[i];
     if (brakePct === null && brakes[i] > BRAKE_THRESHOLD) {
       const prev = i - 1;
       brakePct =
@@ -129,12 +140,12 @@ export function areaStats({ pcts, brakes, speeds }: LapSamples, lapSeconds: numb
   let minSpeed = exitSpeed;
   for (let i = Math.ceil(startIndex); i <= before; i++) minSpeed = Math.min(minSpeed, speeds[i]);
 
-  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct, entrySpeed, minSpeed, exitSpeed };
+  return { seconds: ((endIndex - startIndex) * lapSeconds) / pcts.length, maxBrake, brakePct, throttlePct, entrySpeed, minSpeed, exitSpeed };
 }
 
 export type AreaStats = NonNullable<ReturnType<typeof areaStats>>;
 
-// Unwrapped LapDistPct -> feet from the start/finish line
+// Unwrapped LapDistPct -> feet from the start/finish line (used for brake and throttle points)
 export function brakeFeet(brakePct: number, lengthFeet: number) {
   const lapFraction = ((brakePct % 1) + 1) % 1; // Back to 0-1 after unwrapping
   return Math.round(lapFraction * lengthFeet);
