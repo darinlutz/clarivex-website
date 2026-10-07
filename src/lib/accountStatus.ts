@@ -1,4 +1,4 @@
-// Values of users.account_status, and which Stripe plans each can buy.
+// Values of "ClarivexUsers".account_status, and which Stripe plans each can buy.
 // Dependency-free so pages and API routes can share it.
 export const ACCOUNT_STATUS = {
   // Signed up, never subscribed
