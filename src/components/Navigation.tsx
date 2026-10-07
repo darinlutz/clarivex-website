@@ -89,13 +89,6 @@ export default function Navigation({ user }: NavigationProps) {
             </Link>
             <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
             <Link
-              href="/language"
-              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
-            >
-              Language
-            </Link>
-            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
-            <Link
               href="/trends"
               className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
             >
@@ -208,13 +201,6 @@ export default function Navigation({ user }: NavigationProps) {
               onClick={closeMenu}
             >
               Trip Planner
-            </Link>
-            <Link
-              href="/language"
-              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
-              onClick={closeMenu}
-            >
-              Language
             </Link>
             <Link
               href="/trends"
