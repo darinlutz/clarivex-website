@@ -71,6 +71,9 @@ export function ensureUserSchema(): Promise<void> {
         subscription_end_date TEXT,
         role TEXT NOT NULL DEFAULT '${ROLES.user}'
       )`);
+      // New users are a User unless sign-up says otherwise (initialRole). Set
+      // here too because the table was once created with a bad default.
+      await client.query(`ALTER TABLE clarivex."Users" ALTER COLUMN role SET DEFAULT '${ROLES.user}'`);
       // Email addresses are unique regardless of case
       await client.query(
         'CREATE UNIQUE INDEX IF NOT EXISTS users_email_address_key ON clarivex."Users" (lower(email_address))'
