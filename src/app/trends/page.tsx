@@ -1,6 +1,11 @@
-import TrendsForm from '@/components/TrendsForm';
+import TrendsTabs from '@/components/TrendsTabs';
+import { isAdmin } from '@/lib/roles';
+import { getCurrentUser } from '@/lib/session';
 
-export default function Trends() {
+export default async function Trends() {
+  // The SQL Query tab is for admins only
+  const user = await getCurrentUser();
+
   return (
     <div className="w-full">
       {/* Header Section */}
@@ -18,13 +23,7 @@ export default function Trends() {
       {/* Trends Content */}
       <section className="py-16 px-6 sm:px-10 lg:px-16 bg-white flex flex-col items-center">
         <div className="w-full max-w-4xl">
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
-            <h2 className="text-2xl font-bold text-dark-blue mb-2">Top Trends</h2>
-            <p className="text-slate-600 mb-8">
-              Optionally enter a region or topic to focus on, then press Submit.
-            </p>
-            <TrendsForm />
-          </div>
+          <TrendsTabs signedIn={!!user} canQuery={isAdmin(user?.role)} />
         </div>
       </section>
     </div>
