@@ -33,8 +33,16 @@ async function get<T>(path: string, params: URLSearchParams, adminKey: string): 
     cache: 'no-store',
   });
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-    throw new Error(body?.error?.message || `OpenAI returned ${res.status} for ${path}`);
+    // Show OpenAI's own explanation (JSON error message, or the raw body) so a 401/403 can be diagnosed
+    const text = await res.text().catch(() => '');
+    let detail = text.trim().slice(0, 300);
+    try {
+      const body = JSON.parse(text) as { error?: { message?: string } | string; message?: string };
+      detail = (typeof body.error === 'string' ? body.error : body.error?.message) || body.message || detail;
+    } catch {
+      // Not JSON; keep the raw text
+    }
+    throw new Error(`OpenAI returned ${res.status} for ${path}${detail ? `: ${detail}` : ' (empty response)'}`);
   }
   return (await res.json()) as T;
 }
