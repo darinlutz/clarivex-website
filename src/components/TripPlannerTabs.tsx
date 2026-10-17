@@ -7,7 +7,7 @@ import PdfAnalyzer from '@/components/PdfAnalyzer';
 import ChatbotQA from '@/components/ChatbotQA';
 import AgentRunner from '@/components/AgentRunner';
 
-export default function TripPlanner() {
+export default function TripPlannerTabs() {
   const [activeTab, setActiveTab] = useState<'city' | 'ollama' | 'pdf' | 'qa' | 'agents'>('city');
 
   return (

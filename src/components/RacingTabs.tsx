@@ -14,7 +14,7 @@ import ReferencePoints from '@/components/ReferencePoints';
 // Space Fact Query tab is hidden for now; set to true to show it again
 const SHOW_SPACE_FACTS_TAB = false;
 
-export default function RacingPage() {
+export default function RacingTabs() {
   const [activeTab, setActiveTab] = useState<'friends' | 'chatbot' | 'spaceFacts' | 'racecar' | 'multiLap' | 'stint' | 'lapCompare' | 'debrief' | 'referencePoints'>(
     'friends'
   );

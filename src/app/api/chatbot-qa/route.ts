@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runPythonJson } from '@/lib/ragRoute';
+import { requireOwner } from '@/lib/ownerAccess';
 
 // The first question after a fresh install scrapes and embeds the source
 // pages (several minutes); later questions reuse the saved vector store.
@@ -12,6 +13,9 @@ interface QaResult {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const body = await request.json().catch(() => ({}));
   const message = typeof body.message === 'string' ? body.message.trim() : '';
 

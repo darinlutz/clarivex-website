@@ -8,6 +8,7 @@ import {
   ollamaAvailabilityResponse,
   runPythonJson,
 } from '@/lib/ragRoute';
+import { requireOwner } from '@/lib/ownerAccess';
 
 const SCRIPT_FILE = 'rag_pdf_simple.py';
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
@@ -33,11 +34,17 @@ interface QueryResult {
 }
 
 export async function GET() {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   return ollamaAvailabilityResponse();
 }
 
 // Multipart form data = upload a PDF to be processed; JSON = ask a question.
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const isUpload = (request.headers.get('content-type') ?? '').includes('multipart/form-data');
 
   try {

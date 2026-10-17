@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { ISSUE_KEY_PATTERN, logWork } from '@/lib/jira';
+import { requireOwner } from '@/lib/ownerAccess';
 
 // Jira's worklog start format, e.g. 2026-09-30T09:00:00.000-0400
 const STARTED_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{4}$/;
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     const issueKey = typeof body.issueKey === 'string' ? body.issueKey.trim() : '';

@@ -1,10 +1,14 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
+import { requireOwner } from '@/lib/ownerAccess';
 
 const SCRIPT_PATH = path.join(process.cwd(), 'src', 'OllamaSearch.py');
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   const body = await request.json().catch(() => ({}));
   const query = typeof body.query === 'string' ? body.query.trim() : '';
 

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { fetchMyIssues } from '@/lib/jira';
+import { requireOwner } from '@/lib/ownerAccess';
 
 export async function GET(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     if (!process.env.ATLASSIAN_API_KEY) {
       console.error('ATLASSIAN_API_KEY is not configured');

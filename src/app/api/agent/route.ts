@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { runAgent } from '@/lib/agent';
+import { requireOwner } from '@/lib/ownerAccess';
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     const instructions = typeof body.instructions === 'string' ? body.instructions.trim() : '';
