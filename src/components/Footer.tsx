@@ -67,7 +67,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="text-center text-slate-500">
           <p>
-            &copy; {currentYear} Clarivex. All rights reserved. | Tackling complex problems with clear solutions.
+            &copy; {currentYear} Clarivex, LLC. All rights reserved. | Tackling complex problems with clear solutions.
           </p>
         </div>
       </div>
