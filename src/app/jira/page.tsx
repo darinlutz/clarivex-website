@@ -1,4 +1,4 @@
-import JiraIssues from '@/components/JiraIssues';
+import JiraTabs from '@/components/JiraTabs';
 
 export default function Jira() {
   return (
@@ -9,17 +9,14 @@ export default function Jira() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4 pb-2 bg-gradient-to-r from-powder-600 via-powder-500 to-powder-600 bg-clip-text text-transparent">
             Jira
           </h1>
-          <p className="text-lg text-slate-600">Your assigned issues from gordon-darby.atlassian.net.</p>
+          <p className="text-lg text-slate-600">Your assigned issues and logged hours from gordon-darby.atlassian.net.</p>
         </div>
       </section>
 
       {/* Jira Content */}
       <section className="py-8 px-3 sm:px-5 lg:px-8 bg-white flex flex-col items-center">
         <div className="w-full max-w-6xl">
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 sm:p-6">
-            <h2 className="text-2xl font-bold text-dark-blue mb-4">Assigned to Me</h2>
-            <JiraIssues />
-          </div>
+          <JiraTabs />
         </div>
       </section>
     </div>

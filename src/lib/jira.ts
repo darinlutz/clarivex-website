@@ -107,3 +107,101 @@ export async function logWork(issueKey: string, hours: number, started: string) 
     throw new Error(messages.join('; ') || `Jira rejected the worklog (${response.status})`);
   }
 }
+
+export interface IssueHours {
+  key: string;
+  url: string;
+  summary: string;
+  hours: number;
+}
+
+export interface ProjectHours {
+  project: string;
+  hours: number;
+  issues: IssueHours[]; // most hours first
+}
+
+interface WorklogResponse {
+  worklogs?: Array<{ author?: { accountId: string }; timeSpentSeconds: number }>;
+  startAt: number;
+  maxResults: number;
+  total: number;
+  errorMessages?: string[];
+}
+
+async function jiraGet<T extends { errorMessages?: string[] }>(path: string): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    headers: { Authorization: authHeader(), Accept: 'application/json' },
+    cache: 'no-store',
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.errorMessages?.join('; ') || `Jira request failed (${response.status})`);
+  }
+  return data;
+}
+
+// Epoch ms -> "2026-10-01" in UTC, for JQL worklogDate bounds
+const jqlDate = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+// Hours the signed-in user logged between start (inclusive) and end (exclusive), both epoch ms,
+// grouped by project, most hours first
+export async function fetchMyHoursByProject(start: number, end: number): Promise<ProjectHours[]> {
+  const { accountId } = await jiraGet<{ accountId: string; errorMessages?: string[] }>('/rest/api/3/myself');
+
+  // worklogDate is matched in the Jira profile's time zone, so widen it by a day on each side
+  // and filter exactly on each worklog's start time below
+  const day = 24 * 60 * 60 * 1000;
+  const jql =
+    `worklogAuthor = currentUser() AND worklogDate >= "${jqlDate(start - day)}" ` +
+    `AND worklogDate <= "${jqlDate(end + day)}"`;
+  const issues: Array<{ key: string; project: string; summary: string }> = [];
+  let nextPageToken: string | undefined;
+
+  do {
+    const params = new URLSearchParams({ jql, fields: 'project,summary', maxResults: String(PAGE_SIZE) });
+    if (nextPageToken) params.set('nextPageToken', nextPageToken);
+    const data = await jiraGet<SearchResponse>(`/rest/api/3/search/jql?${params}`);
+    for (const issue of data.issues ?? []) {
+      issues.push({ key: issue.key, project: issue.fields.project.name, summary: issue.fields.summary });
+    }
+    nextPageToken = data.isLast ? undefined : data.nextPageToken;
+  } while (nextPageToken);
+
+  const byProject = new Map<string, IssueHours[]>();
+  await Promise.all(
+    issues.map(async ({ key, project, summary }) => {
+      let seconds = 0;
+      let startAt = 0;
+      let total = 0;
+      do {
+        const params = new URLSearchParams({
+          startedAfter: String(start),
+          startedBefore: String(end - 1),
+          startAt: String(startAt),
+        });
+        const data = await jiraGet<WorklogResponse>(
+          `/rest/api/3/issue/${encodeURIComponent(key)}/worklog?${params}`
+        );
+        const worklogs = data.worklogs ?? [];
+        for (const worklog of worklogs) {
+          if (worklog.author?.accountId === accountId) seconds += worklog.timeSpentSeconds;
+        }
+        startAt += worklogs.length;
+        total = data.total;
+        if (worklogs.length === 0) break;
+      } while (startAt < total);
+      if (seconds === 0) return;
+      const issueHours = { key, url: `${BASE_URL}/browse/${key}`, summary, hours: seconds / 3600 };
+      byProject.set(project, [...(byProject.get(project) ?? []), issueHours]);
+    })
+  );
+
+  return [...byProject]
+    .map(([project, projectIssues]) => ({
+      project,
+      hours: projectIssues.reduce((sum, issue) => sum + issue.hours, 0),
+      issues: projectIssues.sort((a, b) => b.hours - a.hours || a.key.localeCompare(b.key)),
+    }))
+    .sort((a, b) => b.hours - a.hours || a.project.localeCompare(b.project));
+}
