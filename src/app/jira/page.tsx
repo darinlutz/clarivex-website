@@ -1,6 +1,10 @@
 import JiraTabs from '@/components/JiraTabs';
+import { requireOwnerPage } from '@/lib/ownerAccess';
 
-export default function Jira() {
+export default async function Jira() {
+  // The Jira page is for the site owner only
+  await requireOwnerPage();
+
   return (
     <div className="w-full">
       {/* Header Section */}

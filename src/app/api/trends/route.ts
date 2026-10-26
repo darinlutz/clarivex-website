@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getTopTrends } from '@/lib/trends';
+import { requireOwner } from '@/lib/ownerAccess';
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     // Optional region/topic to narrow the trends, e.g. "Germany" or "sports"

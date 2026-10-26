@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { referenceSessionSchema, runReferencePoints } from '@/lib/referencePoints';
+import { requireOwner } from '@/lib/ownerAccess';
 
 // The agent makes several model calls (one per tool round), so give it more than the default
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     const parsed = referenceSessionSchema.safeParse(body.session);

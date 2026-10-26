@@ -51,8 +51,8 @@ export default function Footer() {
             <h3 className="text-lg font-bold text-powder-600 mb-4">Contact</h3>
             <p className="text-slate-600 mb-2">
               Email:{' '}
-              <a href="mailto:client12ramsey@gmail.com" className="text-powder-600 hover:text-powder-700">
-                client12ramsey@gmail.com
+              <a href="mailto:darinlutz@yahoo.com" className="text-powder-600 hover:text-powder-700">
+                darinlutz@yahoo.com
               </a>
             </p>
             <p className="text-slate-600">
@@ -67,7 +67,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="text-center text-slate-500">
           <p>
-            &copy; {currentYear} Clarivex. All rights reserved. | Tackling complex problems with clear solutions.
+            &copy; {currentYear} Clarivex, LLC. All rights reserved. | Tackling complex problems with clear solutions.
           </p>
         </div>
       </div>

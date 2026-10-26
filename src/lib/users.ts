@@ -26,6 +26,10 @@ const USER_COLUMNS =
 // The site owner is made Admin on sign-up; everyone else is a User
 const OWNER_EMAIL = 'darinlutz@yahoo.com';
 
+// The site owner's account; used to decide who sees the owner-only nav links
+export const isOwnerEmail = (emailAddress: string | null | undefined) =>
+  emailAddress?.trim().toLowerCase() === OWNER_EMAIL;
+
 // Dates are stored as ISO 8601 UTC strings, so they compare correctly as text.
 // One month from `from`, clamped so Jan 31 becomes Feb 28/29 rather than Mar 3.
 export function oneMonthFrom(from: Date = new Date()): string {

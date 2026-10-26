@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { fetchMyHoursByProject } from '@/lib/jira';
+import { requireOwner } from '@/lib/ownerAccess';
 
 // start and end are epoch milliseconds (the browser's month boundaries, in its own time zone)
 export async function GET(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const searchParams = new URL(request.url).searchParams;
     const start = Number(searchParams.get('start'));

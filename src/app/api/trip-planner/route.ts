@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { planTrip } from '@/lib/tripPlanner';
+import { requireOwner } from '@/lib/ownerAccess';
 
 interface TripPlannerRequest {
   destination: string;
@@ -7,6 +8,9 @@ interface TripPlannerRequest {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const body: TripPlannerRequest = await request.json();
 

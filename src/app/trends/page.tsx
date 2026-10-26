@@ -1,8 +1,12 @@
 import TrendsTabs from '@/components/TrendsTabs';
+import { requireOwnerPage } from '@/lib/ownerAccess';
 import { isAdmin } from '@/lib/roles';
 import { getCurrentUser } from '@/lib/session';
 
 export default async function Trends() {
+  // The Trends page is for the site owner only
+  await requireOwnerPage();
+
   // The SQL Query tab is for admins only
   const user = await getCurrentUser();
 

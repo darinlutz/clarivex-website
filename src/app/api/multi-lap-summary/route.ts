@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { summarizeMultiLap } from '@/lib/lapSummary';
+import { requireOwner } from '@/lib/ownerAccess';
 
 // Multi-lap statistics for one track are a few KB; anything much bigger isn't a multi-lap analysis
 const MAX_STATS_CHARS = 20000;
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     const stats = body.stats;

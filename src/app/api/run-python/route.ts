@@ -1,10 +1,14 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
+import { requireOwner } from '@/lib/ownerAccess';
 
 const APP_SCRIPT_PATH = path.join(process.cwd(), 'src', 'prompts.py');
 
 export async function POST() {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   return new Promise<NextResponse>((resolve) => {
     execFile(
       'python',

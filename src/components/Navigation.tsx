@@ -7,9 +7,11 @@ import { useState } from 'react';
 
 type NavigationProps = {
   user: { userName: string } | null;
+  // Jira, Trip Planner, Trends and Racing are only shown to the site owner
+  showOwnerLinks: boolean;
 };
 
-export default function Navigation({ user }: NavigationProps) {
+export default function Navigation({ user, showOwnerLinks }: NavigationProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -73,69 +75,73 @@ export default function Navigation({ user }: NavigationProps) {
             >
               Contact
             </Link>
-            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
-            <Link
-              href="/jira"
-              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
-            >
-              Jira
-            </Link>
-            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
-            <Link
-              href="/trip-planner"
-              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
-            >
-              Trip Planner
-            </Link>
-            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
-            <Link
-              href="/trends"
-              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
-            >
-              Trends
-            </Link>
-            <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
-            <Link
-              href="/racing"
-              className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
-            >
-              Racing
-            </Link>
+            {showOwnerLinks && (
+              <>
+                <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+                <Link
+                  href="/jira"
+                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+                >
+                  Jira
+                </Link>
+                <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+                <Link
+                  href="/trip-planner"
+                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+                >
+                  Trip Planner
+                </Link>
+                <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+                <Link
+                  href="/trends"
+                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+                >
+                  Trends
+                </Link>
+                <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+                <Link
+                  href="/racing"
+                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
+                >
+                  Racing
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Desktop Account */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <span className="text-dark-blue font-medium whitespace-nowrap">Welcome, {user.userName}</span>
-                <Link
-                  href="/account"
-                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium whitespace-nowrap"
-                >
-                  Account
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  className="px-4 py-2 rounded-lg border border-powder-600 text-powder-600 font-medium hover:bg-powder-600 hover:text-white transition-colors disabled:opacity-60"
-                >
-                  Logout
-                </button>
+                  <span className="text-dark-blue font-medium whitespace-nowrap">Welcome, {user.userName}</span>
+                  <Link
+                    href="/account"
+                    className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium whitespace-nowrap"
+                  >
+                    Account
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="px-4 py-2 rounded-lg border border-powder-600 text-powder-600 font-medium hover:bg-powder-600 hover:text-white transition-colors disabled:opacity-60"
+                  >
+                    Logout
+                  </button>
               </>
             ) : (
               <>
-                <Link
-                  href="/login"
-                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium whitespace-nowrap"
-                >
-                  Log In
-                </Link>
-                <Link
-                  href="/signup"
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-powder-500 to-powder-600 text-white font-medium hover:shadow-lg transition-all whitespace-nowrap"
-                >
-                  Get Started
-                </Link>
+                  <Link
+                    href="/login"
+                    className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium whitespace-nowrap"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-powder-500 to-powder-600 text-white font-medium hover:shadow-lg transition-all whitespace-nowrap"
+                  >
+                    Get Started
+                  </Link>
               </>
             )}
           </div>
@@ -188,34 +194,38 @@ export default function Navigation({ user }: NavigationProps) {
             >
               Contact
             </Link>
-            <Link
-              href="/jira"
-              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
-              onClick={closeMenu}
-            >
-              Jira
-            </Link>
-            <Link
-              href="/trip-planner"
-              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
-              onClick={closeMenu}
-            >
-              Trip Planner
-            </Link>
-            <Link
-              href="/trends"
-              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
-              onClick={closeMenu}
-            >
-              Trends
-            </Link>
-            <Link
-              href="/racing"
-              className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
-              onClick={closeMenu}
-            >
-              Racing
-            </Link>
+            {showOwnerLinks && (
+              <>
+                <Link
+                  href="/jira"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+                  onClick={closeMenu}
+                >
+                  Jira
+                </Link>
+                <Link
+                  href="/trip-planner"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+                  onClick={closeMenu}
+                >
+                  Trip Planner
+                </Link>
+                <Link
+                  href="/trends"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+                  onClick={closeMenu}
+                >
+                  Trends
+                </Link>
+                <Link
+                  href="/racing"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
+                  onClick={closeMenu}
+                >
+                  Racing
+                </Link>
+              </>
+            )}
             <div className="border-t border-slate-200 pt-2 mt-2">
               {user ? (
                 <>

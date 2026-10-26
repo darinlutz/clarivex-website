@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { summarizeStint } from '@/lib/lapSummary';
+import { requireOwner } from '@/lib/ownerAccess';
 
 // A stint report is a few KB; anything much bigger isn't a stint report
 const MAX_REPORT_CHARS = 20000;
 
 export async function POST(request: Request) {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const body = await request.json().catch(() => ({}));
     const report = body.report;

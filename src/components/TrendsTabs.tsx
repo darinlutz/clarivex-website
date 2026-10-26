@@ -4,12 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import TrendsForm from '@/components/TrendsForm';
 import SqlQuery from '@/components/SqlQuery';
+import AiUsageLimits from '@/components/AiUsageLimits';
 
-type Tab = 'googleTrends' | 'sqlQuery';
+type Tab = 'googleTrends' | 'sqlQuery' | 'aiUsage';
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'googleTrends', label: 'Google Trends' },
   { value: 'sqlQuery', label: 'SQL Query' },
+  { value: 'aiUsage', label: 'AI Usage Limits' },
 ];
 
 export default function TrendsTabs({ signedIn, canQuery }: { signedIn: boolean; canQuery: boolean }) {
@@ -64,6 +66,27 @@ export default function TrendsTabs({ signedIn, canQuery }: { signedIn: boolean; 
                   Log in
                 </Link>{' '}
                 with an admin account to run SQL queries.
+              </p>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'aiUsage' && (
+          <div>
+            <h2 className="text-2xl font-bold text-dark-blue mb-2">AI Usage Limits</h2>
+            {canQuery ? (
+              <>
+                <p className="text-slate-600 mb-8">Your OpenAI API keys and what they have spent this month.</p>
+                <AiUsageLimits />
+              </>
+            ) : signedIn ? (
+              <p className="text-slate-600">Only admins can see AI usage.</p>
+            ) : (
+              <p className="text-slate-600">
+                <Link href="/login" className="font-semibold text-powder-600 hover:underline">
+                  Log in
+                </Link>{' '}
+                with an admin account to see AI usage.
               </p>
             )}
           </div>

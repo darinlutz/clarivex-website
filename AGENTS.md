@@ -1,14 +1,13 @@
 # Clarivex Website Developer Guidelines
 
 <!-- BEGIN:nextjs-agent-rules -->
-## ⚠️ Next.js 16.2.6 Breaking Changes
 
-This project uses **Next.js 16.2.6** with breaking changes — APIs, conventions, and file structure may differ from older versions. **Always** read the relevant guide in `node_modules/next/dist/docs/` before writing code. Heed deprecation notices.
+# This is NOT the Next.js you know
 
-Key differences:
-- React 19.2.4 (with new features and changes from v18)
-- Updated App Router patterns
-- Tailwind CSS 4 changes
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 ## Project Overview
@@ -36,6 +35,7 @@ npm run lint         # Run ESLint
 - `RESEND_FROM_EMAIL` - Sender for password reset emails, on a domain verified in Resend (e.g. `Clarivex <no-reply@clarivex.app>`). Defaults to `onboarding@resend.dev`, which only delivers to the Resend account owner
 - `SITE_URL` - Public site URL used in password reset links (e.g. `https://clarivex.app`). Set in production; locally it falls back to the request's host
 - `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: trip planner, financial analysis; web search for the Trends page)
+- `OPENAI_ADMIN_KEY` - OpenAI Admin API key (`sk-admin-...`, created under Organization settings → Admin keys with read access to Usage). Used only by the Trends page's AI Usage Limits tab (admins only) to list API keys and this month's spend per project; the regular `OPENAI_API_KEY` can't do this
 - `TAVILY_API_KEY` - Tavily web search API key (Financial Analysis web search agent)
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
 - `DATABASE_URL` - PostgreSQL connection string, e.g. `postgres://user:pass@host:5432/clarivex`. Passed to `pg` as-is. Required; tables are created on first use (`ensureUserSchema()` in `src/lib/users.ts`). Everything lives in the `clarivex` schema: `"Users"` (role `Admin` for the site owner, `User` for everyone else), `"Friends"` (each user's own Racing friends list, linked by `user_id`), `"Sessions"` and `"PasswordResets"`

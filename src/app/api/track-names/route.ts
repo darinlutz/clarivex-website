@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
+import { requireOwner } from '@/lib/ownerAccess';
 
 const TRACK_FILE_PATH = path.join(process.cwd(), 'data', 'Track_Area_Information.txt');
 
@@ -119,6 +120,9 @@ function parseTracks(contents: string): Track[] {
 }
 
 export async function GET() {
+  const denied = await requireOwner();
+  if (denied) return denied;
+
   try {
     const contents = await readFile(TRACK_FILE_PATH, 'utf-8');
     return NextResponse.json({ tracks: parseTracks(contents) });
