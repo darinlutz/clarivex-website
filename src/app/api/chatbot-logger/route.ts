@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
-import { requireOwner } from '@/lib/ownerAccess';
+import { requireAi } from '@/lib/adminAccess';
 
 const SCRIPT_PATH = path.join(process.cwd(), 'src', 'chatbot_logging.py');
 
@@ -11,7 +11,7 @@ interface ChatMessage {
 }
 
 export async function POST(request: Request) {
-  const denied = await requireOwner();
+  const denied = await requireAi();
   if (denied) return denied;
 
   const body = await request.json().catch(() => ({}));

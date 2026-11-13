@@ -12,3 +12,10 @@ export function getSiteOrigin(request: Request): string {
     fallback.protocol.replace(':', '');
   return `${proto}://${host}`;
 }
+
+// The origin to put in emailed links. SITE_URL pins it to the real domain so a
+// forged Host header can't send a token somewhere else; locally it falls back
+// to the request.
+export function getPublicSiteUrl(request: Request): string {
+  return (process.env.SITE_URL || getSiteOrigin(request)).replace(/\/+$/, '');
+}

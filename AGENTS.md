@@ -17,7 +17,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 **Tech Stack:**
 - Frontend: Next.js 16.2.6 (App Router), React 19.2.4, TypeScript 5, Tailwind CSS 4
 - Backend: Node.js API routes, Python automation scripts
-- Integrations: Clockify (time tracking), Resend (email), Bitcoin data fetching
+- Integrations: Clockify (time tracking), Resend (email), OpenAI/Tavily/Alpha Vantage (Sandbox AI features), Bitcoin data fetching
 - Styling: Tailwind CSS 4 with custom color palette (`powder-*`, `dark-blue`)
 
 ## Quick Start
@@ -32,18 +32,26 @@ npm run lint         # Run ESLint
 **Environment Variables** (`.env.local`):
 - `CLOCKIFY_API_KEY` - Clockify workspace API key (used by `clockify_entry.py`)
 - `RESEND_API_KEY` - Resend email service API key
-- `RESEND_FROM_EMAIL` - Sender for password reset emails, on a domain verified in Resend (e.g. `Clarivex <no-reply@clarivex.app>`). Defaults to `onboarding@resend.dev`, which only delivers to the Resend account owner
-- `SITE_URL` - Public site URL used in password reset links (e.g. `https://clarivex.app`). Set in production; locally it falls back to the request's host
-- `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: trip planner, financial analysis; web search for the Trends page)
-- `OPENAI_ADMIN_KEY` - OpenAI Admin API key (`sk-admin-...`, created under Organization settings → Admin keys with read access to Usage). Used only by the Trends page's AI Usage Limits tab (admins only) to list API keys and this month's spend per project; the regular `OPENAI_API_KEY` can't do this
+- `RESEND_FROM_EMAIL` - Sender for the email verification and password reset emails, on a domain verified in Resend (e.g. `Clarivex <no-reply@clarivex.app>`). Defaults to `onboarding@resend.dev`, which only delivers to the Resend account owner
+- `SITE_URL` - Public site URL used in email verification and password reset links (e.g. `https://clarivex.app`). Set in production; locally it falls back to the request's host
+- `OPENAI_API_KEY` - OpenAI API key (LangChain/LangGraph agents: trip planner, financial analysis; web search for the Sandbox page's Google Trends tab)
+- `OPENAI_ADMIN_KEY` - OpenAI Admin API key (`sk-admin-...`, created under Organization settings → Admin keys with read access to Usage). Used only by the Sandbox page's AI Usage Limits tab (admins only) to list API keys and this month's spend per project; the regular `OPENAI_API_KEY` can't do this
 - `TAVILY_API_KEY` - Tavily web search API key (Financial Analysis web search agent)
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key (Financial Analysis stock data agent)
-- `DATABASE_URL` - PostgreSQL connection string, e.g. `postgres://user:pass@host:5432/clarivex`. Passed to `pg` as-is. Required; tables are created on first use (`ensureUserSchema()` in `src/lib/users.ts`). Everything lives in the `clarivex` schema: `"Users"` (role `Admin` for the site owner, `User` for everyone else), `"Friends"` (each user's own Racing friends list, linked by `user_id`), `"Sessions"` and `"PasswordResets"`
-- `STRIPE_SECRET_KEY` - Stripe secret key (Checkout Session creation, success page lookup)
-- `STRIPE_MONTHLY_PRODUCT_ID` - Stripe Product ID for the Account page's Monthly Subscription button; its default Price must be recurring
-- `STRIPE_LIFETIME_PRODUCT_ID` - Stripe Product ID for the Lifetime Subscription button; its default Price must be one-time. A paid purchase sets the account status to `Lifetime Subscription` with no end date, and cancels any monthly subscription the user had
-- `STRIPE_WEBHOOK_SECRET` - Signing secret for `/api/stripe-webhook` (syncs `clarivex."Users".account_status` with the subscription: `Unsubscribed`, `Monthly Subscription`, `Lifetime Subscription`, `Canceled`, `Expired`; see `src/lib/accountStatus.ts`). Must receive `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `invoice.paid` and `customer.subscription.deleted`
-- `ATLASSIAN_API_KEY` - Atlassian API token for Jira Cloud (gordon-darby.atlassian.net, used by the Jira page)
+- `DATABASE_URL` - PostgreSQL connection string, e.g. `postgres://user:pass@host:5432/clarivex`. Passed to `pg` as-is. Required; tables are created on first use (`ensureUserSchema()` in `src/lib/users.ts`). Everything lives in the `clarivex` schema: `"Users"` (role `Admin` for the site owner, `User` for everyone else; `email_verified`), `"Friends"`, `"Sessions"`, `"PasswordResets"`, `"EmailVerifications"` and `"SiteSettings"` (the AI lockdown)
+- `WEIGHT_WEBHOOK_SECRET` - Shared secret for `POST /api/weight`
+
+## Accounts, Roles & Access
+
+- **Roles** (`src/lib/roles.ts`): `Admin` and `User`. Sign-up always assigns `User`; only the site owner's address (`OWNER_EMAIL` in `src/lib/users.ts`) is `Admin`. The Account page shows the role under Account Status.
+- **Email verification** (`src/lib/emailVerification.ts`): sign-up emails a link and does not sign the user in; log-in is refused until the link has been opened. Using a password reset link also verifies the address.
+- **Password reset** (`src/lib/passwordReset.ts`): "Forgot password?" on the Log In and Sign Up forms emails a one-hour, single-use link to `/reset-password`.
+- **Emails** (`src/lib/email.ts`): both emails share one branded layout (`renderEmail`) and are sent with `sendEmail` (Resend).
+- **Admin-only pages**: `/sandbox` (all the AI experiments plus SQL Query and AI Usage Limits) and `/admin`. Start each such page with `requireAdminPage()` from `src/lib/adminAccess.ts`; the nav links are hidden for everyone else, but the page check is what protects them.
+- **AI routes**: every API route that runs a model (or a script that does) must start with `requireAi()` from `src/lib/adminAccess.ts`: Admin session required, and nobody while the lockdown is on. Other Admin-only routes use `requireAdmin()`.
+- **AI lockdown** (`src/lib/aiLockdown.ts`): the emergency switch on the Admin page (`/api/admin/ai-lockdown`), stored in `clarivex."SiteSettings"`.
+- **Rate limits** (`src/lib/rateLimit.ts`): in-memory limits on log-in, sign-up and the email forms.
+- The Racing page was removed; its API routes (`lap-summary`, `debrief-coach`, `friends-roster`, ...) remain, Admin-only, with no UI.
 
 ## Project Structure
 
@@ -51,19 +59,22 @@ npm run lint         # Run ESLint
 src/
 ├── app/              # App Router root
 │   ├── layout.tsx    # Root layout with Navigation & Footer
-│   ├── page.tsx      # Home page (Bitcoin ticker, hero, CTA)
+│   ├── page.tsx      # Home page (tickers, hero, CTA)
 │   ├── globals.css   # Global Tailwind styles
 │   ├── api/
-│   │   ├── bitcoin/      # Bitcoin price ticker data
+│   │   ├── auth/         # signup, login, logout, verify-email, forgot-password, reset-password
+│   │   ├── admin/        # ai-lockdown (Admin page switch)
+│   │   ├── bitcoin/ ...  # Public price tickers
 │   │   ├── contact/      # Contact form submissions (Resend)
-│   │   └── inquiry/      # Business inquiry handling
+│   │   └── ...           # AI routes (trip-planner, agent, trends, pdf-analyzer, ...), all behind requireAi()
+│   ├── account/      # Account page (status, role)
+│   ├── admin/        # Admin page (Admins only): emergency AI lockdown
+│   ├── sandbox/      # Sandbox page (Admins only): AI experiments and admin tools
+│   ├── login/, signup/, reset-password/
 │   ├── contact/      # Contact page
-│   ├── solutions/    # Solutions showcase page
-└── components/       # Reusable React components
-    ├── Navigation.tsx
-    ├── Footer.tsx
-    ├── BitcoinTicker.tsx
-    ├── ContactForm.tsx
+│   └── solutions/    # Solutions showcase page
+├── components/       # Reusable React components
+└── lib/              # Server and shared logic (users, session, adminAccess, email, ...)
 ```
 
 **Python Components** (backend automation):

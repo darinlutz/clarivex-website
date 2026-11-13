@@ -50,7 +50,7 @@ export type ReadOnlyResult = {
   truncated: boolean;
 };
 
-// Runs one SQL statement typed by an admin (Trends page's SQL Query tab) in a
+// Runs one SQL statement typed by an admin (Sandbox page's SQL Query tab) in a
 // read-only transaction that is always rolled back. The extended protocol
 // rejects multiple statements, so "COMMIT; DROP ..." can't escape it, and the
 // connection is discarded afterwards so no session setting leaks back into

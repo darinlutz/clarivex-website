@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
-import CancelSubscriptionButton from '@/components/CancelSubscriptionButton';
 import { getCurrentUser } from '@/lib/session';
-import { canBuy } from '@/lib/users';
 import { ACCOUNT_STATUS } from '@/lib/accountStatus';
+import { isAdmin } from '@/lib/roles';
 
 // Green for a current subscription, red once it's canceled or expired,
 // blue (the site color) otherwise
@@ -28,8 +27,6 @@ export default async function AccountPage() {
   const user = await getCurrentUser();
   if (!user) redirect('/login');
   const isMonthly = user.accountStatus === ACCOUNT_STATUS.monthly;
-  const canBuyMonthly = canBuy(user, 'monthly');
-  const canBuyLifetime = canBuy(user, 'lifetime');
 
   return (
     <section className="py-12 px-4 bg-gradient-to-b from-slate-100 to-white flex justify-center">
@@ -56,6 +53,18 @@ export default async function AccountPage() {
               </span>
             </dd>
           </div>
+          <div className="flex justify-between items-center gap-4 px-4 py-3">
+            <dt className="text-sm font-medium text-slate-500">User Role</dt>
+            <dd>
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                  isAdmin(user.role) ? 'bg-dark-blue text-white' : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {user.role}
+              </span>
+            </dd>
+          </div>
           <div className="flex justify-between gap-4 px-4 py-3">
             <dt className="text-sm font-medium text-slate-500">Signup Date</dt>
             <dd className="text-dark-blue font-medium text-right">
@@ -71,33 +80,6 @@ export default async function AccountPage() {
             </div>
           )}
         </dl>
-
-        {(canBuyMonthly || canBuyLifetime) && (
-          <form action="/api/create-checkout-session" method="POST" className="mt-8 space-y-3">
-            {canBuyMonthly && (
-              <button
-                type="submit"
-                name="plan"
-                value="monthly"
-                className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
-              >
-                Monthly Subscription
-              </button>
-            )}
-            {canBuyLifetime && (
-              <button
-                type="submit"
-                name="plan"
-                value="lifetime"
-                className="w-full px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-powder-500 to-powder-600 hover:from-powder-600 hover:to-powder-500 transition-colors"
-              >
-                Lifetime Subscription
-              </button>
-            )}
-          </form>
-        )}
-
-        {isMonthly && <CancelSubscriptionButton />}
       </div>
     </section>
   );

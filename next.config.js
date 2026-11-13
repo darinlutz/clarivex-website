@@ -9,9 +9,13 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
-  // The Financial Analysis page was replaced by Trends
+  // The Trip Planner, Trends and Financial Analysis pages were merged into Sandbox
   async redirects() {
-    return [{ source: '/financial-analysis', destination: '/trends', permanent: true }];
+    return ['/trip-planner', '/trends', '/financial-analysis'].map((source) => ({
+      source,
+      destination: '/sandbox',
+      permanent: true,
+    }));
   },
 };
 

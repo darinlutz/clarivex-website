@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
-import { requireOwner } from './ownerAccess';
+import { requireAi } from './adminAccess';
 
 const LLM_TYPES = ['openai', 'ollama'];
 const EMBEDDING_TYPES = ['openai', 'chroma', 'nomic'];
@@ -81,13 +81,13 @@ export function runPythonJson<T extends { error?: string }>(
 // src/ that accepts a JSON payload argument and prints a JSON result.
 export function createRagRoute(scriptFile: string, timeoutMs = 60000) {
   async function GET() {
-    const denied = await requireOwner();
+    const denied = await requireAi();
     if (denied) return denied;
     return ollamaAvailabilityResponse();
   }
 
   async function POST(request: Request) {
-    const denied = await requireOwner();
+    const denied = await requireAi();
     if (denied) return denied;
 
     const body = await request.json().catch(() => ({}));

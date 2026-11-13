@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { getCurrentUser } from "@/lib/session";
-import { isOwnerEmail } from "@/lib/users";
+import { isAdmin } from "@/lib/roles";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,7 +37,7 @@ export default async function RootLayout({
       <body className="min-h-screen bg-white text-dark-blue flex flex-col">
         <Navigation
           user={user ? { userName: user.userName } : null}
-          showOwnerLinks={isOwnerEmail(user?.emailAddress)}
+          isAdmin={isAdmin(user?.role)}
         />
         <main className="flex-1 pt-16">
           {children}

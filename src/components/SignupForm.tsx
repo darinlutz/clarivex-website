@@ -1,15 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import ForgotPasswordForm from './ForgotPasswordForm';
+import ResendVerificationButton from './ResendVerificationButton';
 
 const inputClass =
   'w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors';
 
 export default function SignupForm() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     userName: '',
     emailAddress: '',
@@ -18,6 +17,8 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [forgotPassword, setForgotPassword] = useState(false);
+  // Set once the account is created: null until then, then whether the verification email went out
+  const [emailSent, setEmailSent] = useState<boolean | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -38,13 +39,44 @@ export default function SignupForm() {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create account');
       }
-      router.push('/');
-      router.refresh();
+      setEmailSent(data.emailSent !== false);
+      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
       setLoading(false);
     }
   };
+
+  if (emailSent !== null) {
+    return (
+      <div className="space-y-6">
+        {emailSent ? (
+          <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+            <p className="font-semibold mb-1">Check your email</p>
+            <p className="text-sm">
+              We sent a verification link to <strong>{formData.emailAddress}</strong>. Click it to verify your email
+              address, then log in. The link expires in 3 days.
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
+            <p className="font-semibold mb-1">Your account was created</p>
+            <p className="text-sm">
+              We couldn&apos;t send the verification email to <strong>{formData.emailAddress}</strong> just now. Use the
+              button below to try again.
+            </p>
+          </div>
+        )}
+        <ResendVerificationButton emailAddress={formData.emailAddress} />
+        <p className="text-center text-sm text-slate-600">
+          Already verified?{' '}
+          <Link href="/login" className="text-powder-600 hover:underline font-medium">
+            Log in
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   if (forgotPassword) {
     return <ForgotPasswordForm onBack={() => setForgotPassword(false)} />;

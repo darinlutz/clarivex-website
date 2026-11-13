@@ -7,11 +7,11 @@ import { useState } from 'react';
 
 type NavigationProps = {
   user: { userName: string } | null;
-  // Jira, Trip Planner, Trends and Racing are only shown to the site owner
-  showOwnerLinks: boolean;
+  // Sandbox and Admin are only shown to Admins (the pages check the role too)
+  isAdmin: boolean;
 };
 
-export default function Navigation({ user, showOwnerLinks }: NavigationProps) {
+export default function Navigation({ user, isAdmin }: NavigationProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -75,35 +75,21 @@ export default function Navigation({ user, showOwnerLinks }: NavigationProps) {
             >
               Contact
             </Link>
-            {showOwnerLinks && (
+            {isAdmin && (
               <>
                 <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
                 <Link
-                  href="/jira"
+                  href="/sandbox"
                   className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
                 >
-                  Jira
+                  Sandbox
                 </Link>
                 <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
                 <Link
-                  href="/trip-planner"
+                  href="/admin"
                   className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
                 >
-                  Trip Planner
-                </Link>
-                <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
-                <Link
-                  href="/trends"
-                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
-                >
-                  Trends
-                </Link>
-                <p>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
-                <Link
-                  href="/racing"
-                  className="px-3 py-2 text-dark-blue hover:text-powder-600 transition-colors font-medium"
-                >
-                  Racing
+                  Admin
                 </Link>
               </>
             )}
@@ -194,35 +180,21 @@ export default function Navigation({ user, showOwnerLinks }: NavigationProps) {
             >
               Contact
             </Link>
-            {showOwnerLinks && (
+            {isAdmin && (
               <>
                 <Link
-                  href="/jira"
+                  href="/sandbox"
                   className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
                   onClick={closeMenu}
                 >
-                  Jira
+                  Sandbox
                 </Link>
                 <Link
-                  href="/trip-planner"
+                  href="/admin"
                   className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
                   onClick={closeMenu}
                 >
-                  Trip Planner
-                </Link>
-                <Link
-                  href="/trends"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
-                  onClick={closeMenu}
-                >
-                  Trends
-                </Link>
-                <Link
-                  href="/racing"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-dark-blue hover:text-powder-600 hover:bg-slate-100 transition-colors"
-                  onClick={closeMenu}
-                >
-                  Racing
+                  Admin
                 </Link>
               </>
             )}

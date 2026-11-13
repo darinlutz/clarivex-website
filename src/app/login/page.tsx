@@ -2,8 +2,13 @@ import { redirect } from 'next/navigation';
 import LoginForm from '@/components/LoginForm';
 import { getCurrentUser } from '@/lib/session';
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   if (await getCurrentUser()) redirect('/');
+  const { emailVerified } = await searchParams;
 
   return (
     <section className="py-12 px-4 bg-gradient-to-b from-slate-100 to-white flex justify-center">
@@ -12,7 +17,7 @@ export default async function LoginPage() {
           Log In
         </h1>
         <p className="text-slate-600 mb-8">Welcome back. Log in to your account.</p>
-        <LoginForm />
+        <LoginForm emailVerified={typeof emailVerified === 'string' ? emailVerified : undefined} />
       </div>
     </section>
   );

@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
+import { sendEmail } from '@/lib/email';
 import { createPasswordResetToken } from '@/lib/passwordReset';
-import { getSiteOrigin } from '@/lib/siteOrigin';
+import { clientIp, tooManyAttempts } from '@/lib/rateLimit';
+import { getPublicSiteUrl } from '@/lib/siteOrigin';
 import { getUserByEmail } from '@/lib/users';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Emails a password reset link (src/lib/passwordReset.ts). At most 5 an hour
+// per email address and 20 per IP address.
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -16,10 +20,15 @@ export async function POST(request: Request) {
     if (!EMAIL_REGEX.test(emailAddress)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
+    const limit = { max: 5, windowMs: 60 * 60 * 1000 };
+    if (
+      tooManyAttempts(`forgot-password:${emailAddress}`, limit) ||
+      tooManyAttempts(`forgot-password-ip:${clientIp(request)}`, { ...limit, max: 20 })
+    ) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
-    // Check if Resend API key is configured
-    const resendApiKey = process.env.RESEND_API_KEY;
-    if (!resendApiKey) {
+    if (!process.env.RESEND_API_KEY) {
       console.error('Resend API key not configured. Password reset email disabled.');
       return NextResponse.json({ error: 'Email service is not configured' }, { status: 500 });
     }
@@ -29,46 +38,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email address not found' }, { status: 404 });
     }
 
-    // SITE_URL pins the link to the real domain so a forged Host header can't
-    // send the reset token somewhere else; locally it falls back to the request.
-    const siteUrl = process.env.SITE_URL || getSiteOrigin(request);
+    const siteUrl = getPublicSiteUrl(request);
     const token = await createPasswordResetToken(user.id);
-    const resetUrl = `${siteUrl}/reset-password?token=${token}`;
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${resendApiKey}`,
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-        to: user.emailAddress,
-        subject: 'Reset your Clarivex password',
-        html: `
-          <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border: 1px solid #87ceeb; border-radius: 8px; padding: 20px;">
-              <h2 style="color: #87ceeb; margin-bottom: 20px;">Reset Your Password</h2>
-              <p style="color: #e2e8f0;">We received a request to reset the password for your Clarivex account.</p>
-              <p style="margin: 24px 0;">
-                <a href="${resetUrl}" style="display: inline-block; background-color: #87ceeb; color: #0f172a; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
-                  Reset Password
-                </a>
-              </p>
-              <p style="color: #e2e8f0;">This link expires in 1 hour and can only be used once.</p>
-              <hr style="border: none; border-top: 1px solid #087cea; margin: 20px 0;">
-              <p style="font-size: 12px; color: #64748b;">
-                If you didn't request this, you can ignore this email. Your password won't change.
-              </p>
-            </div>
-          </div>
-        `,
-      }),
+    const sent = await sendEmail(user.emailAddress, {
+      siteUrl,
+      subject: 'Reset your Clarivex password',
+      heading: 'Reset your password',
+      intro: [
+        `Hi ${user.userName}, we received a request to reset the password for your Clarivex account.`,
+        'Choose a new password with the button below.',
+      ],
+      button: { label: 'Reset Password', url: `${siteUrl}/reset-password?token=${token}` },
+      note: 'This link expires in 1 hour and can only be used once.',
+      footnote: "If you didn't request this, you can ignore this email. Your password won't change.",
     });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      console.error('Resend API error:', error);
+    if (!sent) {
       return NextResponse.json({ error: 'Failed to send reset email' }, { status: 502 });
     }
 

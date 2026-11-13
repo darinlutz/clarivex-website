@@ -34,8 +34,8 @@ export default async function ResetPasswordPage({
             <p className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm mb-6">
               This reset link is invalid or has expired. Please request a new one.
             </p>
-            <Link href="/signup" className="text-powder-600 hover:underline font-medium">
-              Back to Create an Account
+            <Link href="/login" className="text-powder-600 hover:underline font-medium">
+              Back to Log In
             </Link>
           </>
         )}

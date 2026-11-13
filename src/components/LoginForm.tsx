@@ -4,16 +4,20 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import ForgotPasswordForm from './ForgotPasswordForm';
+import ResendVerificationButton from './ResendVerificationButton';
 
 const inputClass =
   'w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors';
 
-export default function LoginForm() {
+// `emailVerified` is the result of opening an emailed verification link
+// (GET /api/auth/verify-email): '1' when it worked, 'invalid' when it didn't.
+export default function LoginForm({ emailVerified }: { emailVerified?: string }) {
   const router = useRouter();
   const [formData, setFormData] = useState({ emailAddress: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,6 +27,7 @@ export default function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setNeedsVerification(false);
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -32,6 +37,7 @@ export default function LoginForm() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
+        setNeedsVerification(data.verificationRequired === true);
         throw new Error(data.error || 'Failed to log in');
       }
       router.push('/');
@@ -48,6 +54,17 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {emailVerified === '1' && (
+        <p className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+          Your email address is verified. You can log in now.
+        </p>
+      )}
+      {emailVerified === 'invalid' && (
+        <p className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          That verification link is invalid or has expired. Log in to have a new one sent.
+        </p>
+      )}
+
       <div>
         <label htmlFor="emailAddress" className="block text-sm font-medium text-dark-blue mb-2">
           Email Address
@@ -83,6 +100,7 @@ export default function LoginForm() {
       {error && (
         <p className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</p>
       )}
+      {needsVerification && <ResendVerificationButton emailAddress={formData.emailAddress} />}
 
       <button
         type="submit"

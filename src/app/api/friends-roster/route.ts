@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 import { addFriend, deleteFriend, readFriends } from '@/lib/friendsRoster';
 import { COUNTRIES } from '@/lib/countries';
 import { getCurrentUser } from '@/lib/session';
-import { requireOwner } from '@/lib/ownerAccess';
+import { requireAdmin } from '@/lib/adminAccess';
 
 // Each signed-in user has their own friends list.
 const NOT_SIGNED_IN = { error: 'Log in to see your friends' };
 
 export async function GET() {
-  const denied = await requireOwner();
+  const denied = await requireAdmin();
   if (denied) return denied;
 
   try {
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const denied = await requireOwner();
+  const denied = await requireAdmin();
   if (denied) return denied;
 
   try {
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const denied = await requireOwner();
+  const denied = await requireAdmin();
   if (denied) return denied;
 
   try {

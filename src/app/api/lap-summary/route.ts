@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { summarizeLapComparison } from '@/lib/lapSummary';
-import { requireOwner } from '@/lib/ownerAccess';
+import { requireAi } from '@/lib/adminAccess';
 
 // Focus-area text for one track is a few KB; anything much bigger isn't a lap comparison
 const MAX_COMPARISON_CHARS = 20000;
 
 export async function POST(request: Request) {
-  const denied = await requireOwner();
+  const denied = await requireAi();
   if (denied) return denied;
 
   try {

@@ -3,7 +3,7 @@ import { getOpenAIUsage } from '@/lib/openaiUsage';
 import { isAdmin } from '@/lib/roles';
 import { getCurrentUser } from '@/lib/session';
 
-// Lists the OpenAI API keys and this month's spend for the Trends page's AI Usage Limits tab. Admins only.
+// Lists the OpenAI API keys and this month's spend for the Sandbox page's AI Usage Limits tab. Admins only.
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {

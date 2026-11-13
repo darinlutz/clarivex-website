@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { query, transaction } from './db';
-import { ensureUserSchema, getUserById, updatePassword, type User } from './users';
+import { ensureUserSchema, getUserById, markEmailVerified, updatePassword, type User } from './users';
 
 const RESET_TTL_MS = 60 * 60 * 1000;
 
@@ -41,6 +41,8 @@ export async function resetPasswordWithToken(token: string, password: string): P
   const user = await getPasswordResetUser(token);
   if (!user) return false;
   await updatePassword(user.id, password);
+  // The link was emailed, so using it also proves the address is theirs
+  if (!user.emailVerified) await markEmailVerified(user.id);
   await query('DELETE FROM clarivex."PasswordResets" WHERE user_id = $1', [user.id]);
   return true;
 }

@@ -2,7 +2,7 @@ import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { isUniqueViolation, query, transaction } from './db';
 import { ROLES } from './roles';
-import { ACCOUNT_STATUS, canBuyPlan } from './accountStatus';
+import { ACCOUNT_STATUS } from './accountStatus';
 
 const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
@@ -15,35 +15,17 @@ export type User = {
   accountStatus: string;
   signupDate: string | null;
   subscriptionEndDate: string | null;
-  stripeSubscriptionId: string | null;
   // One of ROLES
   role: string;
+  // False until a new account opens the link emailed at sign-up (src/lib/emailVerification.ts)
+  emailVerified: boolean;
 };
 
 const USER_COLUMNS =
-  'id, user_name, email_address, account_status, signup_date, subscription_end_date, stripe_subscription_id, role';
+  'id, user_name, email_address, account_status, signup_date, subscription_end_date, role, email_verified';
 
 // The site owner is made Admin on sign-up; everyone else is a User
 const OWNER_EMAIL = 'darinlutz@yahoo.com';
-
-// The site owner's account; used to decide who sees the owner-only nav links
-export const isOwnerEmail = (emailAddress: string | null | undefined) =>
-  emailAddress?.trim().toLowerCase() === OWNER_EMAIL;
-
-// Dates are stored as ISO 8601 UTC strings, so they compare correctly as text.
-// One month from `from`, clamped so Jan 31 becomes Feb 28/29 rather than Mar 3.
-export function oneMonthFrom(from: Date = new Date()): string {
-  const end = new Date(from);
-  end.setUTCDate(1);
-  end.setUTCMonth(end.getUTCMonth() + 1);
-  const lastDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 0)).getUTCDate();
-  end.setUTCDate(Math.min(from.getUTCDate(), lastDay));
-  return end.toISOString();
-}
-
-export function canBuy(user: User, plan: 'monthly' | 'lifetime'): boolean {
-  return canBuyPlan(user.accountStatus, plan);
-}
 
 export class EmailTakenError extends Error {
   constructor() {
@@ -54,7 +36,8 @@ export class EmailTakenError extends Error {
 let schemaReady: Promise<void> | null = null;
 
 // The clarivex schema holds the site's accounts and everything tied to one:
-// Users, each user's own Friends, sign-in Sessions and PasswordResets links.
+// Users, each user's own Friends, sign-in Sessions, PasswordResets and
+// EmailVerifications links, plus SiteSettings (the Admin page's AI lockdown).
 export function ensureUserSchema(): Promise<void> {
   if (!schemaReady) {
     schemaReady = transaction(async (client) => {
@@ -82,8 +65,16 @@ export function ensureUserSchema(): Promise<void> {
       await client.query(
         'CREATE UNIQUE INDEX IF NOT EXISTS users_email_address_key ON clarivex."Users" (lower(email_address))'
       );
+      // Accounts from before email verification existed count as verified;
+      // sign-up inserts new ones as unverified.
       await client.query(
-        'CREATE INDEX IF NOT EXISTS users_stripe_subscription_id_idx ON clarivex."Users" (stripe_subscription_id)'
+        'ALTER TABLE clarivex."Users" ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT TRUE'
+      );
+      // The site owner is always an Admin
+      await client.query(
+        `UPDATE clarivex."Users" SET role = '${ROLES.admin}'
+         WHERE lower(email_address) = $1 AND role <> '${ROLES.admin}'`,
+        [OWNER_EMAIL]
       );
       // Each friend belongs to one user. `seq` records insertion order for listing.
       await client.query(`CREATE TABLE IF NOT EXISTS clarivex."Friends" (
@@ -109,6 +100,20 @@ export function ensureUserSchema(): Promise<void> {
       await client.query(
         'CREATE INDEX IF NOT EXISTS password_resets_user_id_idx ON clarivex."PasswordResets" (user_id)'
       );
+      await client.query(`CREATE TABLE IF NOT EXISTS clarivex."EmailVerifications" (
+        token_hash TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES clarivex."Users"(id) ON DELETE CASCADE,
+        expires_at BIGINT NOT NULL
+      )`);
+      await client.query(
+        'CREATE INDEX IF NOT EXISTS email_verifications_user_id_idx ON clarivex."EmailVerifications" (user_id)'
+      );
+      await client.query(`CREATE TABLE IF NOT EXISTS clarivex."SiteSettings" (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_by INTEGER REFERENCES clarivex."Users"(id) ON DELETE SET NULL
+      )`);
     }).catch((error) => {
       schemaReady = null;
       throw error;
@@ -139,9 +144,9 @@ function rowToUser(row: Record<string, unknown>): User {
     emailAddress: row.email_address as string,
     accountStatus: row.account_status as string,
     role: row.role as string,
+    emailVerified: row.email_verified !== false,
     signupDate: (row.signup_date as string | null) ?? null,
     subscriptionEndDate: (row.subscription_end_date as string | null) ?? null,
-    stripeSubscriptionId: (row.stripe_subscription_id as string | null) ?? null,
   };
 }
 
@@ -154,12 +159,14 @@ export async function createUser(input: {
   emailAddress: string;
   password: string;
 }): Promise<User> {
+  // New accounts start unverified: they can't log in until they open the
+  // link emailed to them.
   await ensureUserSchema();
   const passwordHash = await hashPassword(input.password);
   try {
     const rows = await query(
-      `INSERT INTO clarivex."Users" (user_name, email_address, password, account_status, signup_date, role)
-       VALUES ($1, $2, $3, $6, $4, $5)
+      `INSERT INTO clarivex."Users" (user_name, email_address, password, account_status, signup_date, role, email_verified)
+       VALUES ($1, $2, $3, $6, $4, $5, FALSE)
        RETURNING ${USER_COLUMNS}`,
       [input.userName, input.emailAddress, passwordHash, new Date().toISOString(), initialRole(input.emailAddress), ACCOUNT_STATUS.unsubscribed]
     );
@@ -205,71 +212,11 @@ export async function updatePassword(userId: number, password: string): Promise<
 
 export async function getUserById(id: number): Promise<User | null> {
   await ensureUserSchema();
-  // A monthly subscription whose end date has passed (e.g. a failed renewal) is expired
-  await query(
-    `UPDATE clarivex."Users" SET account_status = $3
-     WHERE id = $1 AND account_status = $4 AND subscription_end_date < $2`,
-    [id, new Date().toISOString(), ACCOUNT_STATUS.expired, ACCOUNT_STATUS.monthly]
-  );
   const [row] = await query(`SELECT ${USER_COLUMNS} FROM clarivex."Users" WHERE id = $1`, [id]);
   return row ? rowToUser(row) : null;
 }
 
-// Stripe purchases only change account_status; the role (Admin or User)
-// never changes with a subscription.
-
-// Links a completed Checkout Session to the user who started it.
-export async function startSubscription(
-  userId: number,
-  stripeCustomerId: string,
-  stripeSubscriptionId: string
-): Promise<void> {
+export async function markEmailVerified(userId: number): Promise<void> {
   await ensureUserSchema();
-  await query(
-    `UPDATE clarivex."Users" SET stripe_customer_id = $1, stripe_subscription_id = $2, account_status = $5,
-       subscription_end_date = $3
-     WHERE id = $4`,
-    [stripeCustomerId, stripeSubscriptionId, oneMonthFrom(), userId, ACCOUNT_STATUS.monthly]
-  );
-}
-
-// A paid Lifetime purchase never expires. Clearing the subscription ID keeps
-// events from an earlier monthly subscription from changing the status.
-// Returns that earlier monthly subscription's ID, if any, so the caller can
-// cancel it in Stripe.
-export async function grantLifetimeAccess(
-  userId: number,
-  stripeCustomerId: string | null
-): Promise<string | null> {
-  await ensureUserSchema();
-  const [row] = await query(
-    `UPDATE clarivex."Users" AS u SET account_status = $3, subscription_end_date = NULL,
-       stripe_subscription_id = NULL, stripe_customer_id = COALESCE($1, u.stripe_customer_id)
-     FROM (SELECT id, stripe_subscription_id FROM clarivex."Users" WHERE id = $2) AS previous
-     WHERE u.id = previous.id
-     RETURNING previous.stripe_subscription_id AS previous_subscription_id`,
-    [stripeCustomerId, userId, ACCOUNT_STATUS.lifetime]
-  );
-  return (row?.previous_subscription_id as string | null | undefined) ?? null;
-}
-
-// Called on each successful monthly renewal payment.
-export async function renewSubscription(stripeSubscriptionId: string): Promise<void> {
-  await ensureUserSchema();
-  await query(
-    `UPDATE clarivex."Users" SET account_status = $3, subscription_end_date = $1
-     WHERE stripe_subscription_id = $2`,
-    [oneMonthFrom(), stripeSubscriptionId, ACCOUNT_STATUS.monthly]
-  );
-}
-
-export async function setStatusBySubscriptionId(
-  stripeSubscriptionId: string,
-  accountStatus: string
-): Promise<void> {
-  await ensureUserSchema();
-  await query('UPDATE clarivex."Users" SET account_status = $1 WHERE stripe_subscription_id = $2', [
-    accountStatus,
-    stripeSubscriptionId,
-  ]);
+  await query('UPDATE clarivex."Users" SET email_verified = TRUE WHERE id = $1', [userId]);
 }

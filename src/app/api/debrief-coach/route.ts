@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { debriefSessionSchema, runDebriefCoach } from '@/lib/debriefCoach';
-import { requireOwner } from '@/lib/ownerAccess';
+import { requireAi } from '@/lib/adminAccess';
 
 // The agent makes several model calls (one per tool round), so give it more than the default
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  const denied = await requireOwner();
+  const denied = await requireAi();
   if (denied) return denied;
 
   try {

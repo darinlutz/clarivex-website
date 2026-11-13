@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { runAgent } from '@/lib/agent';
-import { requireOwner } from '@/lib/ownerAccess';
+import { requireAi } from '@/lib/adminAccess';
 
 export async function POST(request: Request) {
-  const denied = await requireOwner();
+  const denied = await requireAi();
   if (denied) return denied;
 
   try {

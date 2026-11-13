@@ -3,7 +3,7 @@ import { runReadOnlyQuery } from '@/lib/db';
 import { isAdmin } from '@/lib/roles';
 import { getCurrentUser } from '@/lib/session';
 
-// Runs one read-only SQL statement for the Trends page's SQL Query tab. Admins only.
+// Runs one read-only SQL statement for the Sandbox page's SQL Query tab. Admins only.
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {

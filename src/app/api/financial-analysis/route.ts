@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAi } from '@/lib/adminAccess';
 import { runFinancialAnalysis } from '@/lib/financialAnalysis';
 
 interface FinancialAnalysisRequest {
@@ -6,6 +7,9 @@ interface FinancialAnalysisRequest {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireAi();
+  if (denied) return denied;
+
   try {
     const body: FinancialAnalysisRequest = await request.json();
 

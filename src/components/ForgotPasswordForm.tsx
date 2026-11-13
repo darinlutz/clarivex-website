@@ -71,7 +71,7 @@ export default function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
 
       <p className="text-center text-sm text-slate-600">
         <button type="button" onClick={onBack} className="text-powder-600 hover:underline font-medium">
-          Back to Create an Account
+          Back
         </button>
       </p>
     </form>
