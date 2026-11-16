@@ -80,6 +80,7 @@ src/
 **Python Components** (backend automation):
 - `clockify_entry.py` - Automated Clockify time entry management
 - `plot_stock.py` - Generates a stock closing-price chart (PNG, base64 over stdout) from live Alpha Vantage data; invoked as a subprocess from `src/lib/financialAnalysis.ts`'s CodeAgent node
+- `beep_generator.py` - Standalone, standard-library-only beep sequence → WAV generator (`generate_beeps()`, plus a CLI). Not called by the site: the Sandbox's Beep Generator tab runs a sample-identical TypeScript port (`src/lib/beepGenerator.ts`) in the browser, so keep the two in step. Tests: `python -m unittest discover -s tests`
 - `requirements.txt` - Python dependencies (requires `pandas`/`matplotlib` for `plot_stock.py`)
 
 ## Development Conventions

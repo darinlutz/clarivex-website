@@ -10,8 +10,9 @@ import AgentRunner from '@/components/AgentRunner';
 import TrendsForm from '@/components/TrendsForm';
 import SqlQuery from '@/components/SqlQuery';
 import AiUsageLimits from '@/components/AiUsageLimits';
+import BeepGenerator from '@/components/BeepGenerator';
 
-type Tab = 'city' | 'ollama' | 'pdf' | 'qa' | 'agents' | 'googleTrends' | 'sqlQuery' | 'aiUsage';
+type Tab = 'city' | 'ollama' | 'pdf' | 'qa' | 'agents' | 'googleTrends' | 'sqlQuery' | 'aiUsage' | 'beep';
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'city', label: 'City Specific' },
@@ -22,6 +23,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'googleTrends', label: 'Google Trends' },
   { value: 'sqlQuery', label: 'SQL Query' },
   { value: 'aiUsage', label: 'AI Usage Limits' },
+  { value: 'beep', label: 'Beep Generator' },
 ];
 
 // The Sandbox page (Admins only): every experiment on the site in one row of
@@ -39,7 +41,7 @@ export default function SandboxTabs({ aiLocked }: { aiLocked: boolean }) {
             Sandbox
           </h1>
           <p className="text-lg text-slate-600">
-            AI experiments and admin tools: trip planning, search, document Q&amp;A, agents, trends and more.
+            AI experiments and admin tools: trip planning, search, document Q&amp;A, agents, trends, a beep generator and more.
           </p>
         </div>
       </section>
@@ -149,6 +151,16 @@ export default function SandboxTabs({ aiLocked }: { aiLocked: boolean }) {
                 <h2 className="text-2xl font-bold text-dark-blue mb-2">AI Usage Limits</h2>
                 <p className="text-slate-600 mb-8">Your OpenAI API keys and what they have spent this month.</p>
                 <AiUsageLimits />
+              </div>
+            )}
+
+            {activeTab === 'beep' && (
+              <div>
+                <h2 className="text-2xl font-bold text-dark-blue mb-2">Beep Generator</h2>
+                <p className="text-slate-600 mb-8">
+                  Shape a sequence of beeps, press Play to hear it instantly, and download it as a WAV file.
+                </p>
+                <BeepGenerator />
               </div>
             )}
           </div>
