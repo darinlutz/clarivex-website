@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendVerificationEmail } from '@/lib/emailVerification';
-import { clientIp, tooManyAttempts } from '@/lib/rateLimit';
+import { DAY, getClientIp, HOUR, isRateLimited, tooManyRequests } from '@/lib/rateLimit';
 import { getPublicSiteUrl } from '@/lib/siteOrigin';
 import { createUser, EmailTakenError } from '@/lib/users';
 
@@ -29,8 +29,18 @@ export async function POST(request: Request) {
     if (password.length < 8) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
-    if (tooManyAttempts(`signup-ip:${clientIp(request)}`, { max: 5, windowMs: 60 * 60 * 1000 })) {
-      return NextResponse.json({ error: 'Too many sign-ups. Please try again later.' }, { status: 429 });
+    if (userName.length > 100 || emailAddress.length > 254 || password.length > 200) {
+      return NextResponse.json({ error: 'One or more fields are too long' }, { status: 400 });
+    }
+
+    // Keeps bots from mass-creating accounts
+    if (
+      await isRateLimited([
+        { key: `signup:ip:${getClientIp(request)}`, limit: 5, windowMs: HOUR },
+        { key: 'signup:global', limit: 200, windowMs: DAY },
+      ])
+    ) {
+      return tooManyRequests('Too many accounts created. Please try again later.');
     }
 
     const user = await createUser({ userName, emailAddress, password });

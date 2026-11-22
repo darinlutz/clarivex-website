@@ -1,14 +1,25 @@
 import { NextResponse } from 'next/server';
+import { DAY, getClientIp, HOUR, isRateLimited, tooManyRequests } from '@/lib/rateLimit';
 
 interface ContactFormData {
   name: string;
   email: string;
   phone: string;
+  // Honeypot: hidden from people, so only bots fill it in
+  website?: string;
 }
+
+const MAX_LENGTHS = { name: 100, email: 254, phone: 40 };
 
 export async function POST(request: Request) {
   try {
-    const body: ContactFormData = await request.json();
+    const raw = await request.json().catch(() => ({}));
+    const body: ContactFormData = {
+      name: typeof raw.name === 'string' ? raw.name.trim() : '',
+      email: typeof raw.email === 'string' ? raw.email.trim() : '',
+      phone: typeof raw.phone === 'string' ? raw.phone.trim() : '',
+      website: typeof raw.website === 'string' ? raw.website : '',
+    };
 
     // Validate required fields
     if (!body.name || !body.email || !body.phone) {
@@ -16,6 +27,29 @@ export async function POST(request: Request) {
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+    if (
+      body.name.length > MAX_LENGTHS.name ||
+      body.email.length > MAX_LENGTHS.email ||
+      body.phone.length > MAX_LENGTHS.phone
+    ) {
+      return NextResponse.json({ error: 'One or more fields are too long' }, { status: 400 });
+    }
+
+    // Pretend it worked so the bot doesn't learn to skip the field
+    if (body.website) {
+      return NextResponse.json({ success: true, message: 'Your message has been sent successfully' });
+    }
+
+    // Each visitor can send a few messages an hour, and the whole site at most
+    // 50 a day, so the inbox and Resend quota can't be flooded.
+    if (
+      await isRateLimited([
+        { key: `contact:ip:${getClientIp(request)}`, limit: 3, windowMs: HOUR },
+        { key: 'contact:global', limit: 50, windowMs: DAY },
+      ])
+    ) {
+      return tooManyRequests('Too many messages sent. Please try again later.');
     }
 
     // Validate email format
@@ -52,7 +86,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         from: 'onboarding@resend.dev',
         to: 'darinlutz@yahoo.com',
-        subject: `New Contact Form Submission from ${body.name}`,
+        subject: `New Contact Form Submission from ${body.name.replace(/[\r\n]+/g, ' ')}`,
         html: `
           <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 20px;">
             <div style="max-width: 600px; margin: 0 auto; background-color: #1e293b; border: 1px solid #87ceeb; border-radius: 8px; padding: 20px;">

@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
-import { clientIp, tooManyAttempts } from '@/lib/rateLimit';
+import { getClientIp, isRateLimited, MINUTE, tooManyRequests } from '@/lib/rateLimit';
 import { createSession } from '@/lib/session';
 import { authenticateUser } from '@/lib/users';
-
-// At most 10 attempts per email address, and 30 per IP address, every 15
-// minutes, so a bot can't guess its way into an account.
-const WINDOW_MS = 15 * 60 * 1000;
 
 export async function POST(request: Request) {
   try {
@@ -16,11 +12,15 @@ export async function POST(request: Request) {
     if (!emailAddress || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
+    // Slows password guessing: per visitor, and per account so guesses spread
+    // over many IPs still hit a ceiling.
     if (
-      tooManyAttempts(`login:${emailAddress}`, { max: 10, windowMs: WINDOW_MS }) ||
-      tooManyAttempts(`login-ip:${clientIp(request)}`, { max: 30, windowMs: WINDOW_MS })
+      await isRateLimited([
+        { key: `login:ip:${getClientIp(request)}`, limit: 20, windowMs: 15 * MINUTE },
+        { key: `login:email:${emailAddress}`, limit: 30, windowMs: 15 * MINUTE },
+      ])
     ) {
-      return NextResponse.json({ error: 'Too many login attempts. Please try again in 15 minutes.' }, { status: 429 });
+      return tooManyRequests('Too many login attempts. Please wait a few minutes and try again.');
     }
 
     const user = await authenticateUser(emailAddress, password);

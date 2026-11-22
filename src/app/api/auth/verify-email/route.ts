@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendVerificationEmail, verifyEmailToken } from '@/lib/emailVerification';
-import { clientIp, tooManyAttempts } from '@/lib/rateLimit';
+import { DAY, getClientIp, HOUR, isRateLimited, tooManyRequests } from '@/lib/rateLimit';
 import { getPublicSiteUrl } from '@/lib/siteOrigin';
 import { getUserByEmail } from '@/lib/users';
 
@@ -29,12 +29,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
     }
 
-    const limit = { max: 5, windowMs: 60 * 60 * 1000 };
+    // Caps per address, per visitor and site-wide, so inboxes can't be flooded
+    // and the Resend quota can't be drained.
     if (
-      tooManyAttempts(`verify-email:${emailAddress}`, limit) ||
-      tooManyAttempts(`verify-email-ip:${clientIp(request)}`, { ...limit, max: 20 })
+      await isRateLimited([
+        { key: `verify:email:${emailAddress}`, limit: 5, windowMs: HOUR },
+        { key: `verify:ip:${getClientIp(request)}`, limit: 20, windowMs: HOUR },
+        { key: 'verify:global', limit: 200, windowMs: DAY },
+      ])
     ) {
-      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+      return tooManyRequests();
     }
 
     const user = await getUserByEmail(emailAddress);

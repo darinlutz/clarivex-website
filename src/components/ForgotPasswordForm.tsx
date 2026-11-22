@@ -57,7 +57,7 @@ export default function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
       )}
       {sent && (
         <p className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
-          We sent a password reset link to {emailAddress}. It expires in 1 hour.
+          If an account exists for {emailAddress}, we sent it a password reset link. It expires in 1 hour.
         </p>
       )}
 

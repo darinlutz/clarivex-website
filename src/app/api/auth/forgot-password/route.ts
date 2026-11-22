@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { createPasswordResetToken } from '@/lib/passwordReset';
-import { clientIp, tooManyAttempts } from '@/lib/rateLimit';
+import { DAY, getClientIp, HOUR, isRateLimited, tooManyRequests } from '@/lib/rateLimit';
 import { getPublicSiteUrl } from '@/lib/siteOrigin';
 import { getUserByEmail } from '@/lib/users';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Emails a password reset link (src/lib/passwordReset.ts). At most 5 an hour
-// per email address and 20 per IP address.
+// Emails a password reset link (src/lib/passwordReset.ts). Rate limited below.
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -20,22 +19,28 @@ export async function POST(request: Request) {
     if (!EMAIL_REGEX.test(emailAddress)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
-    const limit = { max: 5, windowMs: 60 * 60 * 1000 };
-    if (
-      tooManyAttempts(`forgot-password:${emailAddress}`, limit) ||
-      tooManyAttempts(`forgot-password-ip:${clientIp(request)}`, { ...limit, max: 20 })
-    ) {
-      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
-    }
-
     if (!process.env.RESEND_API_KEY) {
       console.error('Resend API key not configured. Password reset email disabled.');
       return NextResponse.json({ error: 'Email service is not configured' }, { status: 500 });
     }
 
+    // Caps per visitor, per address (so one inbox can't be flooded even from
+    // many IPs) and site-wide (so the Resend quota can't be drained).
+    if (
+      await isRateLimited([
+        { key: `forgot:ip:${getClientIp(request)}`, limit: 5, windowMs: HOUR },
+        { key: `forgot:email:${emailAddress}`, limit: 3, windowMs: HOUR },
+        { key: 'forgot:global', limit: 100, windowMs: DAY },
+      ])
+    ) {
+      return tooManyRequests('Too many reset requests. Please try again later.');
+    }
+
+    // Same response whether or not the account exists, so this form can't be
+    // used to find out who has an account.
     const user = await getUserByEmail(emailAddress);
     if (!user) {
-      return NextResponse.json({ error: 'Email address not found' }, { status: 404 });
+      return NextResponse.json({ success: true });
     }
 
     const siteUrl = getPublicSiteUrl(request);

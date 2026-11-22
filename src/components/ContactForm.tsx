@@ -7,6 +7,8 @@ export default function ContactForm() {
     name: '',
     email: '',
     phone: '',
+    // Honeypot, hidden from people; see /api/contact
+    website: '',
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -32,12 +34,13 @@ export default function ContactForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to send message');
       }
 
       setStatus('success');
       setMessage('Thank you! Your message has been sent successfully. We will be in touch soon.');
-      setFormData({ name: '', email: '', phone: '' });
+      setFormData({ name: '', email: '', phone: '', website: '' });
 
       // Clear success message after 5 seconds
       setTimeout(() => {
@@ -68,6 +71,7 @@ export default function ContactForm() {
           required
           className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
           placeholder="John Doe"
+          maxLength={100}
         />
       </div>
 
@@ -85,6 +89,7 @@ export default function ContactForm() {
           required
           className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
           placeholder="john@example.com"
+          maxLength={254}
         />
       </div>
 
@@ -102,6 +107,21 @@ export default function ContactForm() {
           required
           className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-dark-blue placeholder-slate-400 focus:outline-none focus:border-powder-600 focus:ring-1 focus:ring-powder-500 transition-colors"
           placeholder="+1 (555) 123-4567"
+          maxLength={40}
+        />
+      </div>
+
+      {/* Honeypot: off-screen and skipped by keyboard and screen readers, so only bots fill it in */}
+      <div aria-hidden="true" className="absolute -left-[10000px] w-px h-px overflow-hidden">
+        <label htmlFor="website">Website</label>
+        <input
+          type="text"
+          id="website"
+          name="website"
+          value={formData.website}
+          onChange={handleChange}
+          tabIndex={-1}
+          autoComplete="off"
         />
       </div>
 
